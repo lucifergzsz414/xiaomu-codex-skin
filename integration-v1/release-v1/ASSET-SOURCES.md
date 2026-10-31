@@ -1,6 +1,6 @@
 # 素材来源记录
 
-2026-10-31｜小睦 × Codex 受邀测试候选包。记录当前素材来源与归档状态。
+2026-10-31｜小睦 × Codex `1.0.0-beta.2 / 20261031-3384-rc2` 公开测试版。记录当前素材来源与归档状态；本次快捷方式兼容修正未改变视觉素材。
 
 | 素材组 | 来源与处理 | 尚缺记录 |
 | --- | --- | --- |
@@ -30,4 +30,4 @@ Copyright (c) 2026 Codex Dream Skin Studio contributors
 - PV：`preview-v6\pv-v1\opening-rain-motion-v1\generation-result-20261030.json`；`preview-v6\pv-v1\opening-rain-final-v1\provenance.json`、同目录 `acceptance.json`。
 - 上游：`research\internet-angel\README.md`、`LICENSE`。
 
-PV 保存验收文件确认原始片，字标／淡出字段仍为 `pending-user-review`。2026-10-31 实际冷启动记录为自然播放结束；本轮未新增跳过测试。公开分发前待补齐表中来源、署名与授权／条款记录。
+PV 保存验收文件确认原始片，字标／淡出字段仍为 `pending-user-review`。2026-10-31 的既有实际冷启动记录为自然播放结束；本轮未新增修正版启动或跳过测试。公开预发布不会补齐表中来源、署名与授权／条款记录，这些缺项仍然保留，也不表示全部视觉素材已获得再分发授权。上游 MIT 许可不自动覆盖本项目新增代码或视觉素材。

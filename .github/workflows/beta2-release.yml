@@ -1,0 +1,73 @@
+name: Beta 2 sealed archive acceptance
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/beta2-release]
+    paths:
+      - .github/workflows/beta2-release.yml
+      - integration-v1/release-v1/**
+
+permissions:
+  contents: read
+
+jobs:
+  sealed-package:
+    name: Build and test the final Beta 2 ZIP on Windows Server 2022
+    runs-on: windows-2022
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - name: Check out publication sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Build runtime and seal complete distribution
+        run: |
+          node .\integration-v1\native-v1\build-native.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Native skin build failed' }
+          node .\integration-v1\release-v1\build-release.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Runtime build failed' }
+          & .\integration-v1\release-v1\prepare-release-candidate.ps1
+
+      - name: Verify installation and recovery using the sealed ZIP
+        run: |
+          $taskRelease = Join-Path $env:GITHUB_WORKSPACE 'integration-v1\release-v1'
+          $taskArchive = Join-Path $taskRelease 'dist\xiaomu-codex-skin-1.0.0-beta.2-20261031-3384-rc2.zip'
+          $taskArchiveHash = (Get-FileHash -LiteralPath $taskArchive -Algorithm SHA256).Hash.ToLowerInvariant()
+          $taskManifestHash = (Get-FileHash -LiteralPath (Join-Path $taskRelease 'package\manifest.json') -Algorithm SHA256).Hash.ToLowerInvariant()
+          $taskReports = Join-Path $env:RUNNER_TEMP 'xiaomu-beta2-reports'
+          & .\qa\windows-release.acceptance.ps1 -ArchivePath $taskArchive -ReportDirectory $taskReports -ExpectedArchiveSha256 $taskArchiveHash -ExpectedManifestSha256 $taskManifestHash
+
+      - name: Show scoped acceptance results
+        if: always()
+        run: |
+          $taskSummary = Join-Path $env:RUNNER_TEMP 'xiaomu-beta2-reports\summary.md'
+          if (Test-Path -LiteralPath $taskSummary) {
+            Get-Content -LiteralPath $taskSummary -Raw -Encoding utf8 | Out-File -LiteralPath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          }
+
+      - name: Save successful sealed ZIP and checksum
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: beta2-sealed-package
+          path: |
+            integration-v1/release-v1/dist/xiaomu-codex-skin-1.0.0-beta.2-20261031-3384-rc2.zip
+            integration-v1/release-v1/dist/xiaomu-codex-skin-1.0.0-beta.2-20261031-3384-rc2.zip.sha256
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Save report only
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: beta2-archive-acceptance
+          path: |
+            ${{ runner.temp }}/xiaomu-beta2-reports/report.json
+            ${{ runner.temp }}/xiaomu-beta2-reports/summary.md
+          if-no-files-found: warn
+          retention-days: 7

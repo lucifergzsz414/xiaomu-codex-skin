@@ -15,5 +15,5 @@ copy(path.join(root,'../native-v1/native-skin.js'),'skin.js','6ddb217b9193233bd2
 copy(path.join(project,'research/internet-angel/windows/scripts/common-windows.ps1'),'common-windows.ps1','288af44b5c2d4b6f855f48676a3df7ea439d954e7e369ba270658bdbde23c84b');
 copy(path.join(project,'research/internet-angel/windows/scripts/config-utf8.ps1'),'config-utf8.ps1','3a9ff2daf1cf998a9e1b7bb443845f2fc1f60df8c02171fbde3f8d12e9be3f75');
 copy(path.join(project,'research/internet-angel/LICENSE'),'LICENSE-upstream.txt');
-fs.writeFileSync(path.join(pkg,'manifest.json'),JSON.stringify({id:'xiaomu-codex-skin',version:'1.0.0',releaseChannel:'invited-beta',releaseLabel:'1.0.0-beta.2',candidateId:'20261031-3384-rc2',codexVersion:'component-detected',validatedCodexVersion:'26.1027.3384.0',installedMethod:'managed-user-shortcuts',files},null,2));
+fs.writeFileSync(path.join(pkg,'manifest.json'),JSON.stringify({id:'xiaomu-codex-skin',version:'1.0.0',releaseChannel:'public-beta',releaseLabel:'1.0.0-beta.2',candidateId:'20261031-3384-rc2',codexVersion:'component-detected',validatedCodexVersion:'26.1027.3384.0',installedMethod:'managed-user-shortcuts',files},null,2));
 console.log(JSON.stringify({package:pkg,files:Object.keys(files).length}));
