@@ -1,0 +1,59 @@
+name: Independent Windows package acceptance
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/clean-windows-acceptance]
+    paths:
+      - .github/workflows/windows-acceptance.yml
+      - qa/windows-release.acceptance.ps1
+
+permissions:
+  contents: read
+
+jobs:
+  released-package:
+    name: RC1 installation and recovery on Windows Server 2022
+    runs-on: windows-2022
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - name: Check out acceptance harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Download exact public release candidate
+        run: |
+          $taskDirectory = Join-Path $env:RUNNER_TEMP 'xiaomu-release-acceptance'
+          $null = New-Item -ItemType Directory -Path $taskDirectory -Force
+          $taskArchive = Join-Path $taskDirectory 'rc1.zip'
+          Invoke-WebRequest -UseBasicParsing -Uri 'https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/download/v1.0.0-beta.1/xiaomu-codex-skin-1.0.0-beta.1-20261031-3384-rc1.zip' -OutFile $taskArchive
+          $taskHash = (Get-FileHash -LiteralPath $taskArchive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($taskHash -cne '96504fb0cf2e381fbd969eb63849b888114a7258ea0c601b77f3e093c3fa082f') { throw 'Downloaded release hash mismatch' }
+
+      - name: Exercise installed package without an existing Codex installation
+        run: |
+          $taskDirectory = Join-Path $env:RUNNER_TEMP 'xiaomu-release-acceptance'
+          & .\qa\windows-release.acceptance.ps1 -ArchivePath (Join-Path $taskDirectory 'rc1.zip') -ReportDirectory (Join-Path $taskDirectory 'reports')
+
+      - name: Show scoped acceptance results
+        if: always()
+        run: |
+          $taskSummary = Join-Path $env:RUNNER_TEMP 'xiaomu-release-acceptance\reports\summary.md'
+          if (Test-Path -LiteralPath $taskSummary) {
+            Get-Content -LiteralPath $taskSummary -Raw -Encoding utf8 | Out-File -LiteralPath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          }
+
+      - name: Save report only
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: windows-server-2022-rc1-acceptance
+          path: |
+            ${{ runner.temp }}/xiaomu-release-acceptance/reports/report.json
+            ${{ runner.temp }}/xiaomu-release-acceptance/reports/summary.md
+          if-no-files-found: warn
+          retention-days: 7
