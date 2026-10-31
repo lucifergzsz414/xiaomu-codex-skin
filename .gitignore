@@ -1,0 +1,60 @@
+# Local settings and credentials
+.env
+.env.*
+!.env.example
+.secrets/
+secrets/
+*.pem
+*.key
+*.pfx
+*.p12
+.claude/
+.codex/
+.codebase-memory/
+.jez/
+
+# Dependencies and caches
+node_modules/
+.npm/
+.cache/
+__pycache__/
+*.py[cod]
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Backups and local work areas
+.backups/
+backups/
+backup-*/
+*.bak
+*.bak.*
+*.orig
+*.tmp
+*.temp
+.cleanup-reports/
+
+# Generated native and release artifacts
+integration-v1/native-v1/native-skin.js
+integration-v1/native-v1/build-manifest.json
+integration-v1/release-v1/package/
+integration-v1/release-v1/dist/
+integration-v1/release-v1/bin/
+*.exe
+*.dll
+*.pdb
+*.zip
+*.7z
+
+# Test output, captures and logs; source images and videos remain tracked
+test-output/
+test-results/
+playwright-report/
+coverage/
+screenshots/
+recordings/
+*.log
+**/fixture-*.png
+**/screenshot-*.png
+**/preview-*.png
+**/preview-*.webm

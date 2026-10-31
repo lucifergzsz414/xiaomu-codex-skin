@@ -1,0 +1,10 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),{createHash}=require('node:crypto'),{execFileSync}=require('node:child_process');
+const root=__dirname,system=process.env.SystemRoot;
+const assembly=path.join(system,'Microsoft.NET/assembly/GAC_MSIL/System.Management.Automation/v4.0_3.0.0.0__31bf3856ad364e35/System.Management.Automation.dll');
+const sha=createHash('sha256').update(fs.readFileSync(path.join(root,'control-center.ps1'))).digest('hex');
+const output=path.join(root,'test-output');fs.mkdirSync(output,{recursive:true});
+const source=path.join(output,'control-host.generated.cs');
+const workerSha=createHash('sha256').update(fs.readFileSync(path.join(root,'control-actions.ps1'))).digest('hex');
+fs.writeFileSync(source,fs.readFileSync(path.join(root,'control-host.cs'),'utf8').replace('__CONTROL_CENTER_SHA256__',sha).replaceAll('__CONTROL_ACTIONS_SHA256__',workerSha));
+execFileSync(path.join(system,'Microsoft.NET/Framework64/v4.0.30319/csc.exe'),['/nologo','/optimize+','/target:winexe','/reference:'+assembly,'/reference:System.Windows.Forms.dll','/win32icon:'+path.join(root,'xiaomu.ico'),'/out:'+path.join(root,'XiaomuSkinManager.exe'),source],{encoding:'utf8',windowsHide:true,timeout:30000});

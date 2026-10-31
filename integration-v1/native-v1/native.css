@@ -1,0 +1,598 @@
+/* Scope all rules to recognized native nodes; preserve text and semantic colors. */
+/* Native aliases observed on Store Codex 26.1013.3656.0. Important is limited
+   to owned theme tokens so existing inline custom-theme colors cannot win.
+   Git statistic colors use the same readable hues as the light diff panel.
+   No syntax, terminal, error, warning, success or chart tokens are set. */
+html[data-xiaomu-native-skin="v1"] {
+  --codex-base-ink: #2e4939 !important;
+  --codex-base-surface: #f8faf3 !important;
+  --codex-base-accent: #48694e !important;
+  --color-text: #2e4939 !important;
+  --color-text-primary: #2e4939 !important;
+  --color-text-primary-surface: #2e4939 !important;
+  --color-text-primary-soft: #2e4939 !important;
+  --color-text-primary-soft-alt: #2e4939 !important;
+  --color-text-primary-outline: #2e4939 !important;
+  --color-text-primary-outline-hover: #2e4939 !important;
+  --color-text-primary-ghost: #2e4939 !important;
+  --color-text-primary-ghost-hover: #2e4939 !important;
+  --color-text-primary-solid: #fffef9 !important;
+  --color-text-secondary: #4f6654 !important;
+  --color-text-secondary-solid: #4f6654 !important;
+  --color-text-secondary-outline: #4f6654 !important;
+  --color-text-secondary-outline-hover: #2e4939 !important;
+  --color-text-secondary-soft: #2e4939 !important;
+  --color-text-secondary-soft-alt: #2e4939 !important;
+  --color-text-secondary-ghost: #4f6654 !important;
+  --color-text-secondary-ghost-hover: #2e4939 !important;
+  --color-text-tertiary: #526850 !important;
+  --color-token-text-primary: #2e4939 !important;
+  --color-token-text-secondary: #4f6654 !important;
+  --color-token-text-tertiary: #526850 !important;
+  --color-token-text-link-foreground: #48694e !important;
+  --link-primary-text-color: #48694e !important;
+  --color-text-toolbar-action: #4f6654 !important;
+  --color-text-composer-reference: #48694e !important;
+  --color-text-composer-primary: #fffef9 !important;
+  --app-color-text-foreground: #2e4939 !important;
+  --app-color-text-foreground-secondary: #4f6654 !important;
+  --app-color-text-foreground-tertiary: #526850 !important;
+  --app-color-text-accent: #48694e !important;
+  --app-color-text-on-accent: #fffef9 !important;
+  --app-color-text-button-primary: #fffef9 !important;
+  --app-color-text-button-secondary: #2e4939 !important;
+  --app-color-text-button-tertiary: #4f6654 !important;
+  --app-color-foreground-application-menu: #2e4939 !important;
+  --app-color-icon-accent: #48694e !important;
+  --app-color-icon-primary: #48694e !important;
+  --app-color-icon-secondary: #4f6654 !important;
+  --app-color-icon-tertiary: #526850 !important;
+  --color-codex-icon: #48694e !important;
+  --color-codex-icon-active: #2e4939 !important;
+  --color-token-foreground: #2e4939 !important;
+  --color-token-dropdown-foreground: #2e4939 !important;
+  --color-token-description-foreground: #526850 !important;
+  --color-codex-description: #526850 !important;
+  --opacity-composer-placeholder: 1 !important;
+  --color-background-primary-solid: #48694e !important;
+  --color-background-primary-solid-hover: #3e5d44 !important;
+  --color-background-primary-solid-active: #344f3a !important;
+  --color-background-user-message: #e8f0df !important;
+  --color-background-user-message-compact: #e8f0df !important;
+  --color-text-user-message: #2e4939 !important;
+  --user-message-background-color: #e8f0df !important;
+  --user-message-text-color: #2e4939 !important;
+  --color-surface: #f8faf3 !important;
+  --color-surface-card: #fffef9 !important;
+  --color-surface-secondary: #edf3e7 !important;
+  --color-surface-tertiary: #e8f0df !important;
+  --color-surface-elevated: #fffef9 !important;
+  --color-surface-elevated-secondary: #edf3e7 !important;
+  --color-token-bg-primary: #edf3e7 !important;
+  --color-token-bg-secondary: #edf3e7 !important;
+  --color-token-bg-tertiary: #e8f0df !important;
+  --color-token-main-surface-primary: #f8faf3 !important;
+  --color-token-side-bar-background: #edf3e7 !important;
+  --app-color-background-surface: #f8faf3 !important;
+  --app-color-background-surface-under: #edf3e7 !important;
+  --app-color-background-shell: #edf3e7 !important;
+  --app-color-background-application-menu: #edf3e7 !important;
+  --app-color-background-editor-opaque: #fffef9 !important;
+  --app-color-background-control: #fffef9 !important;
+  --color-background-control-opaque: #fffef9 !important;
+  --color-background-panel: #fffef9 !important;
+  --app-color-background-elevated-primary: #fffef9 !important;
+  --app-color-background-elevated-primary-opaque: #fffef9 !important;
+  --app-color-background-elevated-secondary: #f2f6ec !important;
+  --app-color-background-elevated-secondary-opaque: #f2f6ec !important;
+  --app-color-background-elevated-tertiary-opaque: #e8f0df !important;
+  --app-color-background-button-primary: #48694e !important;
+  --app-color-background-button-primary-hover: #3e5d44 !important;
+  --app-color-background-button-primary-active: #344f3a !important;
+  --app-color-background-button-primary-inactive: #a8baa3 !important;
+  --app-color-background-button-secondary: #edf3e7 !important;
+  --app-color-background-button-secondary-hover: #e2ecd9 !important;
+  --app-color-background-button-secondary-active: #d8e7cc !important;
+  --app-color-background-button-secondary-inactive: #f2f5ee !important;
+  --app-color-background-button-tertiary: transparent !important;
+  --app-color-background-button-tertiary-hover: #e8f0df !important;
+  --app-color-background-button-tertiary-active: #d8e7cc !important;
+  --app-color-background-accent: #e8f0df !important;
+  --app-color-background-accent-hover: #dfead4 !important;
+  --app-color-background-accent-active: #d8e7cc !important;
+  --color-background-composer-surface: #fffef9 !important;
+  --color-background-composer-action-bar: #f2f6ec !important;
+  --color-background-composer-primary: #48694e !important;
+  --color-background-button-outline-hover: #e8f0df !important;
+  --color-background-segmented-selected: #d8e7cc !important;
+  --color-background-segmented-selected-hover: #d1e0c5 !important;
+  --color-background-segmented-form-selected: #d8e7cc !important;
+  --color-background-segmented-form-track: #edf3e7 !important;
+  --color-background-primary-soft-alpha: #48694e08 !important;
+  --color-background-primary-soft-hover: #48694e14 !important;
+  --color-background-primary-soft-active: #48694e20 !important;
+  --color-background-text-selection: #b0c5a080 !important;
+  --color-border: #d3dfca !important;
+  --color-border-default: #d3dfca !important;
+  --color-border-strong: #b0c5a0 !important;
+  --color-token-border-default: #d3dfca !important;
+  --color-token-input-border: #b0c5a0 !important;
+  --app-color-border: #d3dfca !important;
+  --app-color-border-light: #e0e8d9 !important;
+  --app-color-border-heavy: #b0c5a0 !important;
+  --app-color-border-focus: #48694e !important;
+  --app-color-border-application-menu-separator: #d3dfca !important;
+  --input-outline-border-color: #b0c5a0 !important;
+  --input-outline-border-color-focus: #48694e !important;
+  --input-placeholder-text-color: #526850 !important;
+  --menu-item-background-color: #e8f0df !important;
+  --menu-separator-background-color: #d3dfca !important;
+  --segmented-control-background: #edf3e7 !important;
+  --switch-track-color-checked: #48694e !important;
+  --switch-track-color-checked-hover: #3e5d44 !important;
+  --switch-track-color-checked-disabled: #a8baa3 !important;
+  --scrollbar-color: #a6baa0 !important;
+  --color-token-scrollbar-slider-hover-background: #a6baa0 !important;
+  --color-token-scrollbar-slider-active-background: #89a281 !important;
+  color: #2e4939;
+  background-color: #edf3e7;
+}
+html[data-xiaomu-native-skin="v1"] body { background-color: #edf3e7; }
+/* These native regions define local translucent aliases below the root. */
+html[data-xiaomu-native-skin="v1"] aside.app-shell-left-panel .sidebar-navigation :is(.text-fade-truncate, [class*="_content_"], [class*="_ButtonInner_"]) {
+  color: #4f6654 !important;
+}
+html[data-xiaomu-native-skin="v1"] .text-codex-description:not(pre *, code *) {
+  color: #526850 !important;
+}
+html[data-xiaomu-native-skin="v1"] [role="tooltip"] {
+  --color-background-tooltip-shortcut: #3e5d44 !important;
+}
+/* Native approval descriptions use alpha utilities instead of the plain alias.
+   Keep warning and destructive hues distinct; never change approval state. */
+html[data-xiaomu-native-skin="v1"] :is([class~="text-codex-description/80"], [class~="text-text-tertiary/90"], [class~="text-text/60"][class~="max-w-[80ch]"]):not(pre *, code *) {
+  color: #526850 !important;
+}
+html[data-xiaomu-native-skin="v1"] :is([role="dialog"], [role="alertdialog"], [class~="group/automatic-approval-review"]) .text-warning:not(pre *, code *) {
+  color: #946019 !important;
+}
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="settings"] button.text-chart-red:not(:disabled, [aria-disabled="true"]),
+html[data-xiaomu-native-skin="v1"] :is([role="dialog"], [role="alertdialog"]) button.text-chart-red:not(:disabled, [aria-disabled="true"]) {
+  color: #a43e4c !important;
+}
+/* Native window navigation can retain explicit white foregrounds after a
+   temporary theme switch. Restrict this override to chrome controls. */
+html[data-xiaomu-native-skin="v1"] :is(nav[class~="group/sidebar-rail"], header.draggable) :is(button, [role="button"], button svg) {
+  color: #48694e !important;
+}
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="main"],
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="hub"],
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="settings"],
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="home"] { background-color: #f8faf3; }
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="home"] {
+  background-image: linear-gradient(90deg,rgba(248,250,243,.97) 0%,rgba(248,250,243,.88) 48%,rgba(248,250,243,.28) 100%),url("__BACKGROUND__") !important;
+  background-size: cover !important;
+  background-position: center !important;
+}
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="sidebar"] {
+  background: linear-gradient(165deg,#edf4e5,#e8f0df 70%,#f3f5e9);
+  border-color: #d3dfca;
+}
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="sidebar"] [aria-current="page"] {
+  background-color: #d8e7cc;
+  color: #2e4939;
+  box-shadow: inset 3px 0 #48694e;
+}
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="composer"] {
+  background-color: #fffef9;
+  border-color: #b0c5a0;
+  box-shadow: 0 3px 16px #48694e0d;
+}
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="composer"]:focus-within { outline: 1px solid #b0c5a0; outline-offset: 2px; }
+/* The native checked switch track uses a chart-blue utility. Recolor only
+   this control part; keep the chart palette and the checked value intact. */
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="settings"] [role="switch"][aria-checked="true"] > span:first-child {
+  background-color: #48694e !important;
+}
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="home-mark"] { position: relative; opacity: 1 !important; }
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="home-mark"] > svg { visibility: hidden; }
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="home-mark"] > [data-xiaomu-native-decoration] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  transform: scale(1.65);
+}
+/* Home modules sit beside the original composer; native controls are never
+   cloned, reparented or replaced. Short windows scroll within the home pane. */
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="home-layout"] {
+  flex: 0 0 auto; min-height: 100%; height: auto; justify-content: center;
+  gap: 22px; padding: 48px 0 30px;
+}
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="home-intro-region"] {
+  flex: 0 0 auto; padding-bottom: 0; min-height: 0;
+}
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="home-composer-region"] {
+  flex: 0 0 auto; justify-content: flex-start; min-height: 0;
+}
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="home-intro-region"] [data-feature="game-source"] {
+  font-size: 14px; line-height: 1.6; color: #4f6654;
+}
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="home-intro-region"] [data-xiaomu-native-part="home-mark"] {
+  margin-bottom: 8px;
+}
+.xiaomu-home-intro { text-align: center; color: #2e4939; }
+.xiaomu-home-intro h1 { font-size: clamp(25px,2.5vw,34px); font-weight: 500; line-height: 1.35; margin: 8px 0 12px; letter-spacing: .03em; }
+.xiaomu-home-intro p { margin: 0; font-size: 15px; line-height: 1.6; color: #4f6654; }
+.xiaomu-home-intro .xiaomu-home-label { font-size: 12px; letter-spacing: .16em; }
+.xiaomu-home-suggestions { width: min(728px,calc(100% - 48px)); align-self: center; color: #2e4939; container: xiaomu-recommendations / inline-size; }
+.xiaomu-home-note { margin: 0 0 20px; min-height: 22px; font-size: 13px; color: #4f6654; }
+.xiaomu-home-suggestions h2 { font-size: 14px; font-weight: 500; margin: 0 0 12px; }
+.xiaomu-home-cards { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,260px),1fr)); gap: 12px; }
+.xiaomu-home-cards button { position: relative; display: flex; gap: 14px; align-items: center; text-align: left; padding: 15px 18px; min-height: 94px; color: #2e4939; background: #fffef9eb; border: 1px solid #bdcdb2; border-radius: 7px; cursor: pointer; box-shadow: inset 0 0 0 4px #f2f6ed; }
+.xiaomu-home-cards button::before { content: ''; position: absolute; top: -1px; right: 16px; width: 37px; height: 5px; border-top: 2px solid #a6b99a; border-bottom: 1px solid #b8ac7b; }
+.xiaomu-home-cards button:hover { background: #f2f7eb; border-color: #809b75; }
+.xiaomu-home-cards button:focus-visible { outline: 2px solid #48694e; outline-offset: 3px; }
+.xiaomu-home-cards img { width: 44px; height: 52px; object-fit: contain; flex: none; }
+.xiaomu-home-cards strong { display: block; font-size: 15px; font-weight: 500; line-height: 1.5; }
+.xiaomu-home-cards small { display: block; margin-top: 3px; font-size: 13px; line-height: 1.5; color: #526850; }
+.xiaomu-home-signature { text-align: right; font-size: 10px; letter-spacing: .12em; margin: 18px 0 0; color: #526850; }
+@media(max-width:620px) {
+  html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="home-layout"] { padding-top: 30px; }
+  .xiaomu-home-suggestions { width: calc(100% - 32px); }
+  .xiaomu-home-cards { grid-template-columns: minmax(0,1fr); gap: 10px; }
+  .xiaomu-home-cards button { min-height: 80px; padding: 12px 16px; }
+}
+html[data-xiaomu-native-skin="v1"] svg[data-xiaomu-native-original-icon] { display: none !important; }
+.xiaomu-sidebar-icon { display: inline-block; flex: none; object-fit: contain; vertical-align: middle; pointer-events: none; user-select: none; }
+.xiaomu-sidebar-intro { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 84px; margin: 3px 8px 12px; padding: 4px 4px 10px; border-bottom: 1px solid #cad9bd; flex: none; }
+.xiaomu-sidebar-intro small { display: block; color: #526850; font-size: 11px; letter-spacing: .025em; }
+.xiaomu-sidebar-intro p { margin: 7px 0 0; color: #506b4c; font-size: 14px; line-height: 1.6; }
+.xiaomu-sidebar-intro img { width: 64px; height: 68px; object-fit: contain; pointer-events: none; flex: none; }
+.xiaomu-sidebar-signature { margin: 4px 12px 10px; padding: 11px 9px 2px; border-top: 1px solid #cad9bd; color: #526c4c; display: flex; flex-direction: column; gap: 3px; flex: none; }
+.xiaomu-sidebar-signature strong { font-size: 14px; font-weight: 500; letter-spacing: .12em; }
+.xiaomu-sidebar-signature small { font-size: 11px; color: #526850; }
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="sidebar"] .sidebar-item[aria-current="page"] { box-shadow: inset 2px 0 #a08b54; }
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="sidebar"] button:has(svg[data-xiaomu-native-original-icon="i-new-chat"]) {
+  border: 1px solid #b7c9aa; border-radius: 5px; background: #fffef9c9; min-height: 40px; margin: 2px 4px; width: calc(100% - 8px);
+}
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="sidebar"] button:has(svg[data-xiaomu-native-original-icon="i-new-chat"]):hover { background: #f2f7eb; border-color: #809b75; }
+@media(max-height:700px) {
+  .xiaomu-sidebar-intro { min-height: 64px; margin-bottom: 7px; padding-bottom: 7px; }
+  .xiaomu-sidebar-intro img { width: 48px; height: 50px; }
+  .xiaomu-sidebar-signature { margin-bottom: 5px; padding-top: 7px; }
+}
+/* Work surfaces keep the native transcript and code/terminal semantic palette. */
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="main"] [data-user-message-bubble="true"] { border: 1px solid #d1dfc7; border-radius: 10px 10px 3px 10px; }
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="main"] [data-xiaomu-native-page-part="reply"] {
+  position: relative; border-left: 2px solid #bdcdb2; padding: 4px 0 4px 42px;
+}
+.xiaomu-reply-chibi { position: absolute; left: 6px; top: 1px; width: 28px; height: 34px; object-fit: contain; pointer-events: none; user-select: none; }
+/* Dot has native message bubbles, not the coding transcript's portrait gutter. */
+html[data-xiaomu-native-skin="v1"] .messaging-root {
+  --messaging-send-background:#dce9d2 !important;
+  --messaging-send-foreground:#2e4939 !important;
+  --orbit-call-background:#e5eedf !important;
+  --orbit-call-foreground:#2e4939 !important;
+  --orbit-message-link-color:#3e6548 !important;
+  --orbit-connection-accent:#54734d !important;
+  background-color:#f5f8ef;
+  background-image:linear-gradient(155deg,#eef4e7 0%,#f8faf4 58%,#edf3e5 100%);
+}
+html[data-xiaomu-native-skin="v1"] .messaging-root .message-bubble {
+  background-color:#f0f4eb !important;
+  color:#2e4939 !important;
+  border:1px solid #d5e0cb;
+  border-radius:18px;
+  box-shadow:none;
+}
+html[data-xiaomu-native-skin="v1"] .messaging-root .message-row.self .message-bubble {
+  background-color:#dce9d2 !important;
+  border-color:#b8cda9;
+}
+html[data-xiaomu-native-skin="v1"] .messaging-root .message-bubble-wrap { min-width:0; }
+/* Dot owns grouping (including date/sender boundaries). Paint one decorative
+   portrait per native assistant group; never insert nodes into message text. */
+html[data-xiaomu-native-skin="v1"] .messaging-root .message-row.assistant:not(.self),
+html[data-xiaomu-native-skin="v1"]:has([class~="group/orbit-profile"] > [data-orbit-profile-trigger]) .messaging-root .message-row:not(.self),
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="dot"] .message-row:not(.self) {
+  position:relative;
+  box-sizing:border-box;
+  padding-inline-start:36px;
+}
+html[data-xiaomu-native-skin="v1"] .messaging-root .message-row.assistant:not(.self):not(.grouped-previous)::before,
+html[data-xiaomu-native-skin="v1"]:has([class~="group/orbit-profile"] > [data-orbit-profile-trigger]) .messaging-root .message-row:not(.self):not(.grouped-previous)::before,
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="dot"] .message-row:not(.self):not(.grouped-previous)::before {
+  content:"";
+  position:absolute;
+  inset-inline-start:0;
+  top:2px;
+  width:28px;
+  height:32px;
+  background:url("__DOT_PORTRAIT__") center top / contain no-repeat;
+  pointer-events:none;
+}
+@media(max-width:600px) {
+  html[data-xiaomu-native-skin="v1"] .messaging-root .message-row.assistant:not(.self),
+html[data-xiaomu-native-skin="v1"]:has([class~="group/orbit-profile"] > [data-orbit-profile-trigger]) .messaging-root .message-row:not(.self),
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="dot"] .message-row:not(.self) { padding-inline-start:30px; }
+  html[data-xiaomu-native-skin="v1"] .messaging-root .message-row.assistant:not(.self):not(.grouped-previous)::before,
+html[data-xiaomu-native-skin="v1"]:has([class~="group/orbit-profile"] > [data-orbit-profile-trigger]) .messaging-root .message-row:not(.self):not(.grouped-previous)::before,
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="dot"] .message-row:not(.self):not(.grouped-previous)::before { width:24px; height:28px; }
+}
+html[data-xiaomu-native-skin="v1"] .messaging-root .message-meta { color:#526b50; }
+/* Style only native Dot controls. Emoji artwork, danger fills and live cloud
+   computer screenshots retain their original meaning and behavior. */
+html[data-xiaomu-native-skin="v1"] [data-orbit-profile] {
+  --orbit-call-background:#e0ebd7;
+  --orbit-call-foreground:#2e4939;
+  border-color:#c7d6bc;
+  box-shadow:0 8px 28px #3047381c;
+}
+html[data-xiaomu-native-skin="v1"] [data-orbit-profile] img[src$="/o-soft-gradient-gray-ed947018774a.png"] {
+  content:url("__DOT_PORTRAIT__");
+  object-fit:contain;
+  background:#e5eedf;
+}
+html[data-xiaomu-native-skin="v1"] .messaging-root :is(.message-reaction,[data-action="jump-reply"]) {
+  border-color:#bdcfb0;
+  background-color:#edf3e7;
+  color:#3e6548;
+}
+html[data-xiaomu-native-skin="v1"] .messaging-root .message-reaction[aria-pressed="true"] {
+  border-color:#6e8c5d;
+  background-color:#dce9d2;
+}
+html[data-xiaomu-native-skin="v1"] :is([data-orbit-profile] button,.messaging-root .message-body,.messaging-root [data-action]):focus-visible {
+  outline:2px solid #48694e;
+  outline-offset:2px;
+}
+/* Keep native timestamp visibility, compact header sizing and stop-button
+   semantics. Only the expanded profile's padding and composer tokens change. */
+html[data-xiaomu-native-skin="v1"] [data-orbit-profile-identity][class~="pt-4"] {
+  padding-top:12px;
+  padding-bottom:8px;
+}
+html[data-xiaomu-native-skin="v1"] .messaging-root [role="separator"][data-markdown-copy="exclude"] > time {
+  color:#526b50;
+}
+html[data-xiaomu-native-skin="v1"] .messaging-root .composer-wrap [data-xiaomu-native-part="composer"] {
+  --color-background-composer-primary:#48694e !important;
+  --color-text-composer-primary:#fffef9 !important;
+  --color-background-composer-surface:#fffef9 !important;
+  border-color:#b8cda9;
+}
+html[data-xiaomu-native-skin="v1"] .messaging-root .composer-wrap button:enabled:hover {
+  box-shadow:0 0 0 1px #48694e66;
+}
+html[data-xiaomu-native-skin="v1"] .messaging-root .composer-wrap button:focus-visible {
+  outline:2px solid #48694e;
+  outline-offset:2px;
+}
+/* Keep bubble corners inside the native scroll viewport. Do not change its
+   content-shift transform, scroll position, or native message widths. */
+html[data-xiaomu-native-skin="v1"] .messaging-root .message-list {
+  box-sizing:border-box;
+  padding-inline:clamp(12px,2vw,24px);
+}
+/* The dot profile is a sticky sibling of the transcript; its native scroll
+   animation and measured height remain intact while text scrolls behind it. */
+html[data-xiaomu-native-skin="v1"] [class~="sticky"][class~="top-0"]:has(> [data-orbit-profile-identity]) {
+  background:#f5f8ef;
+  box-shadow:0 1px 0 #d5e0cb,0 6px 12px #48694e08;
+}
+html[data-xiaomu-native-skin="v1"] [data-orbit-profile-identity] {
+  background:#f5f8ef;
+  color:#2e4939;
+}
+/* Replace only the profile artwork paint. Native button, sizing, accessible
+   label, status text and hero/compact transitions continue to belong to Dot. */
+/* The conversation's floating header differs from the profile side panel. */
+html[data-xiaomu-native-skin="v1"] [class~="group/orbit-profile"]:has(> [data-orbit-profile-trigger]) [class~="size-14"] {
+  background:url("__DOT_PORTRAIT__") center / contain no-repeat;
+}
+html[data-xiaomu-native-skin="v1"] [class~="group/orbit-profile"]:has(> [data-orbit-profile-trigger]) [class~="size-14"]::after {
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:1;
+  pointer-events:none;
+  background:url("__DOT_PORTRAIT__") center / contain no-repeat;
+}
+html[data-xiaomu-native-skin="v1"] [class~="group/orbit-profile"]:has(> [data-orbit-profile-trigger]) [class~="size-14"] > :first-child {
+  opacity:0 !important;
+}
+html[data-xiaomu-native-skin="v1"] [class~="origin-top"]:has([class~="group/orbit-profile"] > [data-orbit-profile-trigger]) {
+  background-color:#f5f8ef;
+  box-shadow:0 1px 0 #d5e0cb,0 6px 12px #48694e08;
+}
+html[data-xiaomu-native-skin="v1"] [data-orbit-profile-identity] [data-character-artwork] {
+  background-image:url("__DOT_PORTRAIT__");
+  background-position:center;
+  background-size:contain;
+  background-repeat:no-repeat;
+}
+html[data-xiaomu-native-skin="v1"] [data-orbit-profile-identity] [data-character-artwork] > * {
+  opacity:0 !important;
+}
+@media(max-width:600px) {
+  html[data-xiaomu-native-skin="v1"] .messaging-root .message-bubble { border-radius:14px; padding:10px 12px; }
+}
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="main"] [class~="group/turn-diff-header"] { border-bottom: 1px solid #d3dfca; background: #f2f6ec; }
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="main"] .thread-scroll-container pre { border-radius: 6px; }
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="main"] [data-xiaomu-native-part="composer"] { border-radius: 8px; box-shadow: 0 3px 18px #48694e0d,inset 0 0 0 3px #f2f6ec; }
+/* Settings titles retain their native text and original control associations. */
+/* Command search keeps its native input, cmdk options and keyboard behavior. */
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-overlay="search"] { top:max(16px,min(14vh,96px))!important; width:min(520px,calc(100vw - 24px))!important; min-width:0!important; max-height:calc(100dvh - 32px); }
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-overlay="search"] [cmdk-root] { position:relative; min-width:0; border:1px solid #bdcfb0; border-radius:14px; background:#fffef9; box-shadow:0 12px 38px #30473824; overflow:hidden; }
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-overlay="search"] [cmdk-input] { padding-inline-end:64px; border-bottom:1px solid #d3dfca; }
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-overlay="search"] [cmdk-list] { max-height:min(54vh,calc(100dvh - 128px)); overflow-y:auto; min-width:0; }
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-overlay="search"] [cmdk-item][data-selected="true"] { background-color:#e0ebd7; outline-color:#48694e; }
+.xiaomu-search-chibi { position:absolute; top:4px; inset-inline-end:14px; width:38px; height:44px; object-fit:contain; pointer-events:none; }
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-panel-part="file-toolbar"] { background:#f2f6ec; border-bottom:1px solid #c7d6bc; box-shadow:0 2px 8px #48694e08; }
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-page-part="settings-title"] { position: relative; min-height: 90px; padding-right: 88px; padding-bottom: 16px; border-bottom: 1px solid #cad9bd; }
+.xiaomu-settings-lead { font-size: 14px; line-height: 1.7; margin: 9px 0 0; color: #526850; }
+.xiaomu-settings-chibi { position: absolute; right: 4px; top: 0; width: 72px; height: 78px; object-fit: contain; pointer-events: none; }
+/* Native collection headings keep their original controls and scroll regions. */
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-page-part="hub-title"] { position:relative; min-width:0; min-height:84px; padding-inline-end:76px; padding-block-end:12px; border-bottom:1px solid #cad9bd; }
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-page-part="hub-title"] h1 { font-size:clamp(22px,2.4vw,30px); line-height:1.3; overflow-wrap:anywhere; }
+.xiaomu-hub-chibi { position:absolute; inset-inline-end:4px; top:0; width:60px; height:68px; object-fit:contain; pointer-events:none; }
+.xiaomu-hub-lead { color:#526850; font-size:14px; line-height:1.6; margin:8px 0 0; overflow-wrap:anywhere; }
+@media(max-width:600px) { html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-page-part="hub-title"] { padding-inline-end:56px; } .xiaomu-hub-chibi { width:44px; height:54px; } }
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-panel-part="terminal-panel"] { border-top-color: #a7bd98; box-shadow: 0 -2px 8px #48694e0c; }
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-panel-part="terminal-tabs"] { background: #edf3e7; border-bottom: 1px solid #b7c9aa; }
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-panel-part="diff-toolbar"] { background: #f2f6ec; border-bottom: 1px solid #c7d6bc; }
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-panel-part="diff-panel"] { outline: 1px solid #d3dfca; outline-offset: -1px; }
+.xiaomu-panel-badge { display: inline-flex; align-items: center; gap: 5px; color: #526850; flex: none; font-size: 11px; white-space: nowrap; pointer-events: none; padding: 0 5px; }
+.xiaomu-panel-badge img { width: 24px; height: 27px; object-fit: contain; flex: none; }
+@media(max-width:1000px){.xiaomu-panel-badge>span{display:none}}
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-page-part="settings-card"] { border-color: #c7d6bc; border-radius: 7px; background-color: #fffef9; box-shadow: 0 2px 9px #48694e06; }
+@media(max-width:700px) {
+  .xiaomu-reply-chibi { left: 4px; top: 4px; width: 20px; height: 24px; }
+  html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="main"] [data-xiaomu-native-page-part="reply"] { padding-left: 32px; }
+  html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-page-part="settings-title"] { padding-right: 66px; }
+  .xiaomu-settings-chibi { width: 54px; height: 62px; }
+}
+/* Native keyboard-navigation feedback has literal indigo/lime colors, bypassing
+   theme aliases. Override only recognized composer controls, including portals
+   that remain inside the native composer root. Keep the navigation behavior. */
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="composer"] :is(
+  [data-composer-navigation-highlight],
+  [data-composer-navigation-selected][data-composer-navigation-open],
+  [data-composer-navigation-selected][aria-expanded="true"],
+  [data-composer-navigation-selected][data-state="open"]
+) {
+  --composer-navigation-ring-color: #48694e !important;
+  --composer-navigation-edge-color: #48694e47 !important;
+  --composer-navigation-glow-color: #48694e26 !important;
+  --composer-navigation-glow-radius: 6px !important;
+}
+/* The native diff renderer can retain a dark host while its application chrome
+   is light. Use its observed public host variables; never rewrite shadow nodes
+   or syntax spans. Keep added/deleted hues distinct and readable on paper. */
+/* Include chat summaries and file lists, which sit outside the diff panel. */
+html[data-xiaomu-native-skin="v1"] {
+  --color-codex-git-added: #257443 !important;
+  --color-codex-git-deleted: #a43e4c !important;
+}
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-panel-part="diff-panel"] diffs-container {
+  color-scheme: light !important;
+  --diffs-bg: #f8faf3 !important;
+  --diffs-fg: #2e4939 !important;
+  --diffs-addition-color-override: #257443 !important;
+  --diffs-deletion-color-override: #a43e4c !important;
+}
+
+
+/* Native split panes can be narrow inside a wide window. Measure the owned
+   recommendation region, rather than the viewport or native panel classes. */
+.xiaomu-home-cards button > span { flex: 1; min-width: 0; }
+@container xiaomu-recommendations (max-width: 400px) {
+  .xiaomu-home-cards { gap: 10px; }
+  .xiaomu-home-cards button { gap: 12px; min-height: 76px; padding: 12px; }
+  .xiaomu-home-cards img { width: 36px; height: 44px; }
+  .xiaomu-home-cards strong { font-size: 14px; white-space: nowrap; }
+  .xiaomu-home-cards small { line-height: 1.6; }
+  .xiaomu-home-note { margin-bottom: 12px; }
+  .xiaomu-home-signature { margin-top: 12px; letter-spacing: .06em; }
+}
+/* Observed native path values and Worktrees inputs have fixed-width wrappers.
+   Wrap these rows so descriptions never collapse into a vertical strip. */
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="settings"] [class~="@container/settings-row"]:has(span.font-mono.w-48),
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="settings"] [class~="@container/settings-row"]:has(> :last-child .w-72 > input) {
+  flex-wrap: wrap; row-gap: 8px;
+}
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="settings"] [class~="@container/settings-row"]:has(span.font-mono.w-48) > :first-child,
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="settings"] [class~="@container/settings-row"]:has(> :last-child .w-72 > input) > :first-child {
+  flex-basis: 220px;
+}
+/* Use the native review header's existing container; do not replace its
+   container name or touch file-tree, code, terminal, or command handlers. */
+@container review-header (max-width: 620px) {
+  .xiaomu-panel-badge > span { display: none; }
+}
+.xiaomu-panel-badge { flex: 0 1 auto; min-width: 0; }
+.xiaomu-panel-badge > span { overflow: hidden; text-overflow: ellipsis; }
+.xiaomu-search-status:not([hidden]) {
+  margin: 8px 0 0; padding: 10px 14px; border: 1px solid #c7d6bc;
+  border-radius: 12px; background: #f2f6ec; color: #48624a;
+  font-size: 13px; line-height: 1.6; overflow-wrap: anywhere;
+}
+[data-xiaomu-native-overlay="search"]:has(.xiaomu-search-status:not([hidden])) [cmdk-list] {
+  max-height: min(48vh, calc(100dvh - 208px)) !important;
+}
+/* These are Codex's own Radix menus, recognized through the pinned component.
+   Keep its collision positioning, actions, submenus and disabled semantics. */
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-menu="v1"] {
+  box-sizing: border-box; min-width: min(216px, calc(100vw - 12px)) !important;
+  max-width: calc(100vw - 12px) !important;
+  max-height: min(calc(100dvh - 12px),var(--radix-context-menu-content-available-height,var(--radix-dropdown-menu-content-available-height,calc(100dvh - 12px)))) !important;
+  overflow-y: auto; padding: 5px !important; border: 1px solid #bed0b4 !important;
+  border-radius: 12px !important; background: #fbfcf6 !important;
+  color: #2e4939 !important; box-shadow: 0 8px 24px #31473224,0 1px 3px #31473212 !important;
+}
+[data-xiaomu-native-menu="v1"] .xiaomu-menu-signature {
+  display: flex; align-items: center; gap: 8px; min-height: 32px;
+  padding: 0 7px 5px; margin-bottom: 4px; border-bottom: 1px solid #d3dec8;
+  color: #607952; font-size: 12px; line-height: 1.5; letter-spacing: .08em;
+  pointer-events: none; user-select: none;
+}
+.xiaomu-menu-signature img { width: 27px; height: 30px; object-fit: contain; flex: none; }
+[data-xiaomu-native-menu="v1"] :is([role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"]) {
+  min-height: 30px !important; padding: 6px 8px !important;
+  border-radius: 7px !important; font-size: 14px !important; line-height: 1.45;
+}
+[data-xiaomu-native-menu="v1"] :is([role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"]):is([data-highlighted],[data-state="open"]) {
+  background: #e4eddc !important; outline: 1px solid #c7d6bc !important; outline-offset: -1px;
+}
+[data-xiaomu-native-menu="v1"] [aria-disabled="true"] { opacity: .48; cursor: default !important; }
+[data-xiaomu-native-menu="v1"] [role="separator"] { border-color: #d3dec8 !important; }
+
+/* Keep the static home background underneath the first decoded video frame.
+   The isolated negative layer sits behind native content and never takes input. */
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="home"] { position: relative; isolation: isolate; }
+.xiaomu-home-background {
+  position: absolute; inset: 0; z-index: -1; overflow: hidden;
+  pointer-events: none; user-select: none; visibility: hidden;
+}
+.xiaomu-home-background[data-xiaomu-background-state="playing"] { visibility: visible; }
+.xiaomu-home-background video { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.xiaomu-home-background::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg,rgba(248,250,243,.97) 0%,rgba(248,250,243,.88) 48%,rgba(248,250,243,.28) 100%);
+}
+@media (prefers-reduced-motion: reduce) { .xiaomu-home-background { visibility: hidden !important; } }
+html[data-xiaomu-native-skin="v1"] .xiaomu-background-motion-control { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  html[data-xiaomu-native-skin="v1"] [data-xiaomu-background-size="wide"] .xiaomu-background-motion-control { display: inline-flex; margin-top: 10px; padding: 5px 10px; border: 1px solid #a7b99b; border-radius: 7px; background: #f8faf3; color: #48634b; font: inherit; font-size: 12px; cursor: pointer; }
+}
+
+/* ChatGPT conversation tokens can be locally scoped below the app palette. */
+html[data-xiaomu-native-skin="v1"] { color-scheme: light !important; }
+html[data-xiaomu-native-skin="v1"] :is([data-conversation-role], [data-chatgpt-conversation-selection-target]) {
+  --color-text: #2e4939 !important;
+  --color-text-primary: #2e4939 !important;
+  --color-text-secondary: #4f6654 !important;
+  --text-primary: #2e4939 !important;
+  --text-secondary: #4f6654 !important;
+  --tw-prose-body: #2e4939 !important;
+  --tw-prose-headings: #2e4939 !important;
+  color: #2e4939;
+}
+/* New ChatGPT Markdown roots expose this attribute without legacy prose classes. */
+html[data-xiaomu-native-skin="v1"] [data-conversation-role] :is(.markdown,.prose),
+html[data-xiaomu-native-skin="v1"] [data-markdown-text-style="assistant-message"] {
+  color: #2e4939 !important;
+  --color-text: #2e4939 !important;
+  --text-primary: #2e4939 !important;
+  --tw-prose-body: #2e4939 !important;
+  --tw-prose-headings: #2e4939 !important;
+  --tw-prose-bold: #2e4939 !important;
+  --tw-prose-quotes: #4f6654 !important;
+  --tw-prose-th-cells: #2e4939 !important;
+}
+
+html[data-xiaomu-native-skin="v1"] :is(h1,h2)[data-xiaomu-native-part="home-mark"] { display: none !important; }

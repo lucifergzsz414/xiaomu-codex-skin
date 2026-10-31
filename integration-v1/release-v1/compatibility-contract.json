@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "features": {
+    "core": [
+      [
+        "app-shell-left-panel"
+      ],
+      [
+        "_MainContentSurface_",
+        "data-app-shell-main-surface",
+        "main-surface"
+      ],
+      [
+        "_ComposerLayoutRoot_",
+        "composer-surface-chrome"
+      ],
+      [
+        "ProseMirror"
+      ]
+    ],
+    "sidebar": [
+      [
+        "data-app-action-sidebar-thread-id"
+      ]
+    ],
+    "pages": [
+      [
+        "data-settings-panel-slug"
+      ],
+      [
+        "general-settings"
+      ]
+    ],
+    "panels": [
+      [
+        "data-codex-terminal"
+      ],
+      [
+        "viewer-header"
+      ],
+      [
+        "data-app-shell-tabs"
+      ]
+    ],
+    "overlays": [
+      [
+        "command-menu-dialog"
+      ],
+      [
+        "data-command-menu-search-section"
+      ]
+    ],
+    "contextMenus": [
+      [
+        "disableNative"
+      ],
+      [
+        "showContextMenu"
+      ]
+    ]
+  },
+  "menu": {
+    "name": "Wxn",
+    "length": 12391,
+    "sha256": "0b7d7527c136309985822313072fe9338e2187078dd26f4afcfecbc88cfbec84"
+  }
+}
