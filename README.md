@@ -8,6 +8,8 @@
 
 [下载安装包](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases) · [详细使用说明](integration-v1/release-v1/USAGE.md) · [第三方与素材说明](THIRD-PARTY-NOTICES.md)
 
+**安装问题与修正进度（2026-10-31）：** 公开 beta.1 已在独立英文 Windows Server 测试机上复现中文快捷方式创建失败，非中文系统请暂缓新装。源码中的 beta.2 / RC2 修正候选已通过独立 Windows Server 的 26 项检查，尚未替换 Release 下载包。真实 Windows 11 普通用户、Store Codex 启动与重启验收仍待完成，详见 [验收记录与正式版门槛](qa/RELEASE-READINESS.md)。
+
 ## 使用前准备
 
 | 项目 | 当前要求 |
