@@ -68,7 +68,8 @@ if($Repair -or -not (Test-Path -LiteralPath $destination)){
 }
 $skinName=([string][char]0x5c0f)+[char]0x7766+' Codex'
 $restoreName=([string][char]0x6062)+[char]0x590d+' Codex '+[char]0x539f+[char]0x6837
-$shell=New-Object -ComObject WScript.Shell
+. (Join-Path $source 'entrypoints.ps1') -Mode Functions
+$shell=New-XiaomuShortcutShell
 $entries=@(@{Name=$skinName;Script='launch.vbs'},@{Name=$restoreName;Script='restore.vbs'},@{Name='小睦皮肤管理';Script='manage.vbs'})
 $links=@()
 foreach($entry in $entries){

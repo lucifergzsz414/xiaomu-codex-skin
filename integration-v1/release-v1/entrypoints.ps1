@@ -1,6 +1,89 @@
 ﻿[CmdletBinding()]
 param([ValidateSet('Inspect','Apply','Restore','Functions')][string]$Mode='Inspect',[string[]]$ShortcutRoots=@())
 $ErrorActionPreference='Stop'
+function New-XiaomuShortcutShell {
+  # WScript.Shell converts shortcut filenames through the system ANSI code page.
+  # Use the Unicode Shell Link interface and IPersistFile for every load/save.
+  if(-not ('Xiaomu.UnicodeShortcutsV1.Factory' -as [type])){
+    Add-Type -TypeDefinition @'
+using System;
+using System.Globalization;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.ComTypes;
+using System.Text;
+namespace Xiaomu.UnicodeShortcutsV1 {
+    [ComImport, Guid("000214F9-0000-0000-C000-000000000046"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IShellLinkW {
+        void GetPath([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder path, int count, IntPtr findData, uint flags);
+        void GetIDList(out IntPtr itemList);
+        void SetIDList(IntPtr itemList);
+        void GetDescription([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder value, int count);
+        void SetDescription([MarshalAs(UnmanagedType.LPWStr)] string value);
+        void GetWorkingDirectory([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder value, int count);
+        void SetWorkingDirectory([MarshalAs(UnmanagedType.LPWStr)] string value);
+        void GetArguments([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder value, int count);
+        void SetArguments([MarshalAs(UnmanagedType.LPWStr)] string value);
+        void GetHotkey(out short value);
+        void SetHotkey(short value);
+        void GetShowCmd(out int value);
+        void SetShowCmd(int value);
+        void GetIconLocation([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder value, int count, out int index);
+        void SetIconLocation([MarshalAs(UnmanagedType.LPWStr)] string value, int index);
+        void SetRelativePath([MarshalAs(UnmanagedType.LPWStr)] string value, uint reserved);
+        void Resolve(IntPtr window, uint flags);
+        void SetPath([MarshalAs(UnmanagedType.LPWStr)] string value);
+    }
+    public sealed class Factory {
+        public Shortcut CreateShortcut(string path) { return new Shortcut(path); }
+    }
+    public sealed class Shortcut {
+        private readonly string path;
+        private readonly IShellLinkW link;
+        internal Shortcut(string value) {
+            path = Path.GetFullPath(value);
+            if (!String.Equals(Path.GetExtension(path), ".lnk", StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException("Only .lnk shortcut files are supported.");
+            link = (IShellLinkW)Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("00021401-0000-0000-C000-000000000046"), true));
+            if (File.Exists(path)) ((IPersistFile)link).Load(path, 0);
+        }
+        public string TargetPath {
+            get { var b = new StringBuilder(32768); link.GetPath(b, b.Capacity, IntPtr.Zero, 0); return b.ToString(); }
+            set { link.SetPath(value ?? ""); }
+        }
+        public string Arguments {
+            get { var b = new StringBuilder(32768); link.GetArguments(b, b.Capacity); return b.ToString(); }
+            set { link.SetArguments(value ?? ""); }
+        }
+        public string WorkingDirectory {
+            get { var b = new StringBuilder(32768); link.GetWorkingDirectory(b, b.Capacity); return b.ToString(); }
+            set { link.SetWorkingDirectory(value ?? ""); }
+        }
+        public string Description {
+            get { var b = new StringBuilder(32768); link.GetDescription(b, b.Capacity); return b.ToString(); }
+            set { link.SetDescription(value ?? ""); }
+        }
+        public int WindowStyle {
+            get { int value; link.GetShowCmd(out value); return value; }
+            set { link.SetShowCmd(value); }
+        }
+        public string IconLocation {
+            get { var b = new StringBuilder(32768); int index; link.GetIconLocation(b, b.Capacity, out index); return b.ToString() + "," + index.ToString(CultureInfo.InvariantCulture); }
+            set {
+                string location = value ?? ""; int index = 0;
+                int comma = location.LastIndexOf(',');
+                if (comma >= 0 && Int32.TryParse(location.Substring(comma + 1), NumberStyles.Integer, CultureInfo.InvariantCulture, out index))
+                    location = location.Substring(0, comma);
+                link.SetIconLocation(location, index);
+            }
+        }
+        public void Save() { ((IPersistFile)link).Save(path, true); }
+    }
+}
+'@
+  }
+  return [Xiaomu.UnicodeShortcutsV1.Factory]::new()
+}
 function Test-XiaomuShortcutTarget($Target,$Arguments,$Executable,$Root){
   $wscript=Join-Path $env:SystemRoot 'System32\wscript.exe'
   $powershell=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
@@ -70,7 +153,7 @@ function Sync-XiaomuEntrypoints($Root,$Roots,$Executable,$Action){
     }
     $state.entries=$remaining
   } else {
-    $shell=New-Object -ComObject WScript.Shell
+    $shell=New-XiaomuShortcutShell
     $paths=@(Get-XiaomuEntryFiles $Roots)
     # Create conventional entries only where the name is free; never replace an unrelated link by name.
     foreach($base in @($Roots|Select-Object -First 2)){$canonical=Join-Path $base 'Codex.lnk';if((Test-Path -LiteralPath $base) -and -not (Test-Path -LiteralPath $canonical)){$paths+=$canonical}}

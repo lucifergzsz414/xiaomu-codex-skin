@@ -1,7 +1,9 @@
 [CmdletBinding()]
 param(
   [Parameter(Mandatory=$true)][string]$ArchivePath,
-  [Parameter(Mandatory=$true)][string]$ReportDirectory
+  [Parameter(Mandatory=$true)][string]$ReportDirectory,
+  [ValidatePattern('^[a-fA-F0-9]{64}$')][string]$ExpectedArchiveSha256='96504fb0cf2e381fbd969eb63849b888114a7258ea0c601b77f3e093c3fa082f',
+  [ValidatePattern('^[a-fA-F0-9]{64}$')][string]$ExpectedManifestSha256='125f1e7d8f3410c9aa5db958e2127e1affd76db13e7adbcd9792e81e6349b523'
 )
 $ErrorActionPreference='Stop'
 # This harness installs into the disposable runner user's real profile. Never run on a developer PC.
@@ -10,8 +12,8 @@ if($env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_ENVIRONMENT -cne 'github-host
 }
 [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false)
 $OutputEncoding=[Console]::OutputEncoding
-$expectedZip='96504fb0cf2e381fbd969eb63849b888114a7258ea0c601b77f3e093c3fa082f'
-$expectedManifest='125f1e7d8f3410c9aa5db958e2127e1affd76db13e7adbcd9792e81e6349b523'
+$expectedZip=$ExpectedArchiveSha256.ToLowerInvariant()
+$expectedManifest=$ExpectedManifestSha256.ToLowerInvariant()
 $checks=New-Object 'System.Collections.Generic.List[string]'
 $stage='hosted runner baseline'
 $failureType=''
@@ -23,6 +25,9 @@ $failureFile=''
 $technicalPassed=$false
 $dependencies=$null
 $officialCodexPresent=$null
+$observedCandidate=$null
+$observedLabel=$null
+$shortcutReadbackMethod='not-run'
 $os=Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
 $elevated=[Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 $workspace=Join-Path $env:RUNNER_TEMP ('xiaomu-release-'+[guid]::NewGuid().ToString('N'))
@@ -73,15 +78,18 @@ try{
   $codexRegistration=@(Get-AppxPackage -Name OpenAI.Codex -ErrorAction Stop)
   $officialCodexPresent=$codexRegistration.Count -gt 0
   Check ($codexRegistration.Count -eq 0 -and @(Get-Process -Name ChatGPT -ErrorAction SilentlyContinue).Count -eq 0) 'no official Codex registration or running ChatGPT process'
-  Check ((Hash $ArchivePath) -ceq $expectedZip) 'public RC1 ZIP matches the pinned SHA256'
+  Check ((Hash $ArchivePath) -ceq $expectedZip) 'selected release ZIP matches the expected SHA256'
   $null=New-Item -ItemType Directory -Path $workspace
   $expanded=Join-Path $workspace 'downloaded-package'
   Expand-Archive -LiteralPath $ArchivePath -DestinationPath $expanded
   $script:releasePackage=Join-Path $expanded 'skin'
-  Check ((Hash (Join-Path $releasePackage 'manifest.json')) -ceq $expectedManifest) 'downloaded runtime manifest matches RC1'
+  Check ((Hash (Join-Path $releasePackage 'manifest.json')) -ceq $expectedManifest) 'extracted runtime manifest matches the expected candidate SHA256'
   $downloadSnapshot=Snapshot $expanded
   . (Join-Path $releasePackage 'control-actions.ps1') -Action Functions
   $manifest=Test-ControlPackage $releasePackage
+  if($manifest.candidateId -isnot [string] -or $manifest.candidateId -cnotmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$' -or $manifest.releaseLabel -isnot [string] -or $manifest.releaseLabel -cnotmatch '^[A-Za-z0-9][A-Za-z0-9.+_-]{0,79}$'){throw 'Verified manifest has invalid candidate metadata.'}
+  $observedCandidate=$manifest.candidateId
+  $observedLabel=$manifest.releaseLabel
   Check (@($manifest.files.PSObject.Properties).Count -eq 24) 'all 24 runtime files verify before installation'
   $dependencies=Get-ControlDependencies
   Check (-not $dependencies.ready -and $dependencies.codexVersion -eq '' -and $dependencies.issues.Count -gt 0) 'actual missing Codex dependency is reported without a readiness mock'
@@ -94,9 +102,14 @@ try{
   $stage='install into default profile and Desktop'
   & (Join-Path $releasePackage 'install.ps1') -SourceRoot $releasePackage | Out-Null
   $installedManifest=Test-ControlPackage $installed
-  Check ((Hash (Join-Path $installed 'manifest.json')) -ceq $expectedManifest -and @($installedManifest.files.PSObject.Properties).Count -eq 24) 'default profile install contains all 24 exact RC1 files'
+  Check ((Hash (Join-Path $installed 'manifest.json')) -ceq $expectedManifest -and @($installedManifest.files.PSObject.Properties).Count -eq 24) 'default profile install contains all 24 exact selected candidate files'
   $receipt=Get-Content -LiteralPath (Join-Path $installParent 'installation.json') -Raw -Encoding utf8|ConvertFrom-Json
-  $shell=New-Object -ComObject WScript.Shell
+  . (Join-Path $releasePackage 'entrypoints.ps1') -Mode Functions
+  if(Get-Command New-XiaomuShortcutShell -CommandType Function -ErrorAction SilentlyContinue){
+    $shell=New-XiaomuShortcutShell;$shortcutReadbackMethod='IShellLinkW'
+  }else{
+    $shell=New-Object -ComObject WScript.Shell;$shortcutReadbackMethod='WScript.Shell legacy candidate'
+  }
   $dedicated=@($receipt.shortcuts)
   $linksMatch=$dedicated.Count -eq 3
   foreach($path in $dedicated){
@@ -125,14 +138,15 @@ try{
   $fakeExecutable=Join-Path $fixture 'ChatGPT.exe'
   [IO.File]::WriteAllText($fakeExecutable,'Synthetic shortcut target; never executed.')
   $officialFixture=Join-Path $roots[0] 'Fixture Codex.lnk'
-  $link=$shell.CreateShortcut($officialFixture);$link.TargetPath=$fakeExecutable;$link.Save()
+  $fixtureShell=New-Object -ComObject WScript.Shell
+  $link=$fixtureShell.CreateShortcut($officialFixture);$link.TargetPath=$fakeExecutable;$link.Save()
   $originalShortcutHash=Hash $officialFixture
   . (Join-Path $releasePackage 'entrypoints.ps1') -Mode Functions
   $applied=Sync-XiaomuEntrypoints $installed $roots $fakeExecutable 'Apply'
   Check ($applied.changed -eq 3 -and (Hash $officialFixture) -cne $originalShortcutHash) 'synthetic COM shortcut roots apply with real backup files'
   $entryReceiptHash=Hash (Join-Path $installed 'entrypoints.json')
   $null=Control 'Pause'
-  [IO.File]::AppendAllText((Join-Path $installed 'skin.js'),'RC1 acceptance corruption sentinel')
+  [IO.File]::AppendAllText((Join-Path $installed 'skin.js'),'Release acceptance corruption sentinel')
   $sentinel=Join-Path $workspace 'damaged-manager-executed.txt'
   [IO.File]::WriteAllText((Join-Path $installed 'manager.ps1'),('[IO.File]::WriteAllText('''+$sentinel.Replace("'","''")+''',''BAD'');throw ''Damaged manager must not execute'''))
   $oldFiles=Snapshot $installed
@@ -174,7 +188,7 @@ try{
     'System reboot and subsequent automatic skin loading.'
   )
   $report=[ordered]@{
-    candidate='20261031-3384-rc1';zipSha256=$expectedZip;manifestSha256=$expectedManifest
+    candidate=$observedCandidate;releaseLabel=$observedLabel;zipSha256=$expectedZip;manifestSha256=$expectedManifest;shortcutReadbackMethod=$shortcutReadbackMethod
     technicalChecksPassed=$technicalPassed;passed=$checks.Count;checks=$checks.ToArray()
     environment=[ordered]@{runner='GitHub-hosted Windows';osEdition=[string]$os.EditionID;osBuild=[string]$os.CurrentBuild;elevated=$elevated;freshSkinBaseline=$checks.Contains('no prior default Xiaomu installation or repair backup')}
     dependencies=[ordered]@{ready=$(if($null -ne $dependencies){$dependencies.ready}else{$null});nodeVersion=$(if($null -ne $dependencies){$dependencies.nodeVersion}else{''});officialCodexPresent=$officialCodexPresent}
@@ -184,7 +198,7 @@ try{
   }
   $null=New-Item -ItemType Directory -Path $ReportDirectory -Force
   [IO.File]::WriteAllText((Join-Path $ReportDirectory 'report.json'),($report|ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))
-  $lines=@('# Independent Windows Server RC1 acceptance','',('Technical checks passed: '+$technicalPassed),('Passed checks: '+$checks.Count),('OS edition: '+$os.EditionID+'; build: '+$os.CurrentBuild+'; elevated: '+$elevated),'','## Passed checks','')+@($checks|ForEach-Object{'- '+$_})+@('','## Not verified','')+@($skipped|ForEach-Object{'- '+$_})
+  $lines=@('# Independent Windows Server release acceptance','',('Candidate: '+$observedCandidate+'; release: '+$observedLabel),('Technical checks passed: '+$technicalPassed),('Passed checks: '+$checks.Count),('OS edition: '+$os.EditionID+'; build: '+$os.CurrentBuild+'; elevated: '+$elevated),('Shortcut readback: '+$shortcutReadbackMethod),'','## Passed checks','')+@($checks|ForEach-Object{'- '+$_})+@('','## Not verified','')+@($skipped|ForEach-Object{'- '+$_})
   if(-not $technicalPassed){$lines+=@('',('Failed stage: '+$stage+' ('+$failureType+'; '+$failureScript+':'+$failureLine+')'),('Message: '+$failureMessage),('File basename: '+$failureFile),'','```text',$failureStack,'```')}
   [IO.File]::WriteAllText((Join-Path $ReportDirectory 'summary.md'),($lines -join [Environment]::NewLine),[Text.UTF8Encoding]::new($false))
 }

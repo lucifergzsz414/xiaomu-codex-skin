@@ -7,13 +7,14 @@ on:
     paths:
       - .github/workflows/windows-acceptance.yml
       - qa/windows-release.acceptance.ps1
+      - integration-v1/release-v1/**
 
 permissions:
   contents: read
 
 jobs:
   released-package:
-    name: RC1 installation and recovery on Windows Server 2022
+    name: Source candidate installation and recovery on Windows Server 2022
     runs-on: windows-2022
     timeout-minutes: 10
     defaults:
@@ -27,6 +28,7 @@ jobs:
 
       - name: Download exact public release candidate
         run: |
+          $ProgressPreference = 'SilentlyContinue'
           $taskDirectory = Join-Path $env:RUNNER_TEMP 'xiaomu-release-acceptance'
           $null = New-Item -ItemType Directory -Path $taskDirectory -Force
           $taskArchive = Join-Path $taskDirectory 'rc1.zip'
@@ -34,10 +36,30 @@ jobs:
           $taskHash = (Get-FileHash -LiteralPath $taskArchive -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($taskHash -cne '96504fb0cf2e381fbd969eb63849b888114a7258ea0c601b77f3e093c3fa082f') { throw 'Downloaded release hash mismatch' }
 
-      - name: Exercise installed package without an existing Codex installation
+      - name: Build Unicode-shortcut correction candidate
+        run: |
+          node .\integration-v1\native-v1\build-native.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Native skin build failed' }
+          node .\integration-v1\release-v1\build-release.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Source candidate build failed' }
+          $taskDirectory = Join-Path $env:RUNNER_TEMP 'xiaomu-release-acceptance'
+          $taskBaseline = Join-Path $taskDirectory 'baseline'
+          Expand-Archive -LiteralPath (Join-Path $taskDirectory 'rc1.zip') -DestinationPath $taskBaseline
+          $taskPackage = Join-Path $taskDirectory 'candidate\skin'
+          $null = New-Item -ItemType Directory -Path $taskPackage -Force
+          Copy-Item -Path .\integration-v1\release-v1\package\* -Destination $taskPackage
+          $taskOriginalSkin = (Get-FileHash -LiteralPath (Join-Path $taskBaseline 'skin\skin.js') -Algorithm SHA256).Hash
+          $taskCandidateSkin = (Get-FileHash -LiteralPath (Join-Path $taskPackage 'skin.js') -Algorithm SHA256).Hash
+          if ($taskOriginalSkin -cne $taskCandidateSkin) { throw 'Installer correction unexpectedly changed the skin bundle' }
+          Compress-Archive -LiteralPath $taskPackage -DestinationPath (Join-Path $taskDirectory 'candidate.zip')
+
+      - name: Exercise candidate without an existing Codex installation
         run: |
           $taskDirectory = Join-Path $env:RUNNER_TEMP 'xiaomu-release-acceptance'
-          & .\qa\windows-release.acceptance.ps1 -ArchivePath (Join-Path $taskDirectory 'rc1.zip') -ReportDirectory (Join-Path $taskDirectory 'reports')
+          $taskArchive = Join-Path $taskDirectory 'candidate.zip'
+          $taskArchiveHash = (Get-FileHash -LiteralPath $taskArchive -Algorithm SHA256).Hash.ToLowerInvariant()
+          $taskManifestHash = (Get-FileHash -LiteralPath (Join-Path $taskDirectory 'candidate\skin\manifest.json') -Algorithm SHA256).Hash.ToLowerInvariant()
+          & .\qa\windows-release.acceptance.ps1 -ArchivePath $taskArchive -ReportDirectory (Join-Path $taskDirectory 'reports') -ExpectedArchiveSha256 $taskArchiveHash -ExpectedManifestSha256 $taskManifestHash
 
       - name: Show scoped acceptance results
         if: always()
@@ -51,7 +73,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: windows-server-2022-rc1-acceptance
+          name: windows-server-2022-source-candidate-acceptance
           path: |
             ${{ runner.temp }}/xiaomu-release-acceptance/reports/report.json
             ${{ runner.temp }}/xiaomu-release-acceptance/reports/summary.md
