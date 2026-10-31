@@ -16,6 +16,10 @@ $checks=New-Object 'System.Collections.Generic.List[string]'
 $stage='hosted runner baseline'
 $failureType=''
 $failureLine=0
+$failureMessage=''
+$failureScript=''
+$failureStack=''
+$failureFile=''
 $technicalPassed=$false
 $dependencies=$null
 $officialCodexPresent=$null
@@ -31,6 +35,17 @@ function Check($condition,[string]$name){
   Write-Output ('PASS '+$name)
 }
 function Hash([string]$path){return (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()}
+function Sanitize-Diagnostic([string]$text){
+  $prefixes=@('RUNNER_TEMP','USERPROFILE','LOCALAPPDATA','GITHUB_WORKSPACE')|ForEach-Object{
+    $value=[Environment]::GetEnvironmentVariable($_)
+    if($value){[pscustomobject]@{name=$_;value=$value}}
+  }|Sort-Object @{Expression={$_.value.Length};Descending=$true}
+  foreach($prefix in $prefixes){
+    $text=[regex]::Replace($text,[regex]::Escape($prefix.value),('<'+$prefix.name+'>'),[Text.RegularExpressions.RegexOptions]::IgnoreCase)
+  }
+  if($text.Length -gt 8000){$text=$text.Substring(0,8000)+' [truncated]'}
+  return $text
+}
 function Snapshot([string]$root){
   $map=@{}
   foreach($file in @(Get-ChildItem -LiteralPath $root -File -Recurse)){
@@ -141,7 +156,15 @@ try{
 }catch{
   $failureType=$_.Exception.GetType().Name
   $failureLine=$_.InvocationInfo.ScriptLineNumber
+  $failureMessage=Sanitize-Diagnostic $_.Exception.Message
+  $failureScript=[IO.Path]::GetFileName($_.InvocationInfo.ScriptName)
+  $failureStack=Sanitize-Diagnostic $_.ScriptStackTrace
+  if($_.Exception.PSObject.Properties['FileName'] -and $_.Exception.FileName){$failureFile=[IO.Path]::GetFileName($_.Exception.FileName)}
   Write-Output ('FAIL '+$stage+' ('+$failureType+')')
+  Write-Output ('Failure source: '+$failureScript+':'+$failureLine)
+  Write-Output ('Failure message: '+$failureMessage)
+  if($failureFile){Write-Output ('Failure file basename: '+$failureFile)}
+  if($failureStack){Write-Output ('Failure stack: '+$failureStack)}
 }finally{
   $skipped=@(
     'Positive official Store Codex startup and skin rendering: no Store Codex registration in this Server runner.',
@@ -156,12 +179,13 @@ try{
     environment=[ordered]@{runner='GitHub-hosted Windows';osEdition=[string]$os.EditionID;osBuild=[string]$os.CurrentBuild;elevated=$elevated;freshSkinBaseline=$checks.Contains('no prior default Xiaomu installation or repair backup')}
     dependencies=[ordered]@{ready=$(if($null -ne $dependencies){$dependencies.ready}else{$null});nodeVersion=$(if($null -ne $dependencies){$dependencies.nodeVersion}else{''});officialCodexPresent=$officialCodexPresent}
     independentDesktopWindowsVerified=$false;officialCodexLaunched=$false;visualReviewRequired=$true
-    skipped=$skipped;failedStage=$(if(-not $technicalPassed){$stage}else{''});failureType=$failureType;failureLine=$failureLine;atUtc=[datetime]::UtcNow.ToString('o')
+    skipped=$skipped;failedStage=$(if(-not $technicalPassed){$stage}else{''});failureType=$failureType;failureLine=$failureLine
+    failureMessage=$failureMessage;failureScript=$failureScript;failureStack=$failureStack;failureFileBasename=$failureFile;atUtc=[datetime]::UtcNow.ToString('o')
   }
   $null=New-Item -ItemType Directory -Path $ReportDirectory -Force
   [IO.File]::WriteAllText((Join-Path $ReportDirectory 'report.json'),($report|ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))
   $lines=@('# Independent Windows Server RC1 acceptance','',('Technical checks passed: '+$technicalPassed),('Passed checks: '+$checks.Count),('OS edition: '+$os.EditionID+'; build: '+$os.CurrentBuild+'; elevated: '+$elevated),'','## Passed checks','')+@($checks|ForEach-Object{'- '+$_})+@('','## Not verified','')+@($skipped|ForEach-Object{'- '+$_})
-  if(-not $technicalPassed){$lines+=@('',('Failed stage: '+$stage+' ('+$failureType+'; script line '+$failureLine+')'))}
+  if(-not $technicalPassed){$lines+=@('',('Failed stage: '+$stage+' ('+$failureType+'; '+$failureScript+':'+$failureLine+')'),('Message: '+$failureMessage),('File basename: '+$failureFile),'','```text',$failureStack,'```')}
   [IO.File]::WriteAllText((Join-Path $ReportDirectory 'summary.md'),($lines -join [Environment]::NewLine),[Text.UTF8Encoding]::new($false))
 }
 if(-not $technicalPassed){exit 1}
