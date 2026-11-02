@@ -55,6 +55,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -SourceRoo
 
 ## 当前验证范围
 
+2026-11-02补验：最终Beta.2安装包在维护机隔离目录完成21/21项安装与修复检查，入口模块的3个测试快捷方式精确回滚；现用Codex的皮肤暂停、无重启重新挂接恢复通过。现用安装与最终公开包并非逐文件相同，未据此宣称完整端到端验收。搜索、设置和右键菜单不在本轮范围，详见[验收记录](qa/RELEASE-READINESS.md#维护机补充验收2026-11-02)。
+
 本次最终 Beta.2 ZIP 在全新的英文 Windows Server 2022 管理员测试机上 **26/26 项通过**：实际安装、中文入口回读、缺依赖启动拦截、暂停、恢复、重复操作和损坏修复。32 个包内文件完成逐项校验。[完整运行](https://github.com/lucifergzsz414/xiaomu-codex-skin/actions/runs/41209958097) · [原样结果 JSON](qa/results/beta2-archive-20261031.json)。
 
 皮肤 `skin.js` 与此前本机 Store `26.1027.3384.0` 验证的版本完全相同，原有冷启动、片头自然结束与右键菜单记录仍保留。Windows 11 普通用户的真实 Codex 启动、画面、系统重启和下载安全提示尚未完成验收；本轮也没有重新实测片头“跳过”或 Esc。独立桌面环境按包内 `CLEAN-TEST-GUIDE.md` 继续记录，26 项结果不代表这些项目已通过。

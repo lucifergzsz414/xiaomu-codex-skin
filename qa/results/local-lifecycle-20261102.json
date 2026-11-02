@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "date": "2026-11-02",
+  "scope": "Installer and existing real-client skin pause/reattach only",
+  "scopeClosed": true,
+  "scopedAcceptancePassed": true,
+  "package": {
+    "version": "1.0.0-beta.2",
+    "candidate": "20261031-3384-rc2",
+    "zipSHA256": "fc70bf3b564e89cea6644f66d4565ca0d98659e2c9a75f09844de5489cc3e1cb"
+  },
+  "isolatedInstaller": {
+    "checksPassed": 21,
+    "checksTotal": 21,
+    "runtimeFilesVerified": 24,
+    "testShortcutsVerified": 3,
+    "firstInstall": true,
+    "repeatInstall": true,
+    "corruptRuntimeRejected": true,
+    "trustedSourceRepair": true,
+    "damagedBackupPreserved": true,
+    "repairRemainsPaused": true,
+    "fixtureRestore": true
+  },
+  "isolatedShortcutModule": {
+    "existingTestLinks": 3,
+    "applyChanged": 3,
+    "repeatApplyChanged": 0,
+    "restoreChanged": 3,
+    "restoredBytesMatchOriginal": true,
+    "backupsPreserved": 3,
+    "realUserShortcutsChanged": false,
+    "targetLaunched": false
+  },
+  "existingRealClient": {
+    "codexVersion": "26.1027.3384.0",
+    "nodeVersionAtTest": "24.15.0",
+    "installedRuntimeIntegrityFiles": 24,
+    "pauseRemovedSkin": true,
+    "attachRestoredSkin": true,
+    "codexProcessUnchanged": true,
+    "managedRuntimeFilesUnchanged": true,
+    "finalSkinStatus": "active",
+    "currentInstalledCopyEqualsPublicPackage": false,
+    "differentFilesFromPublicPackage": 5,
+    "publicPackageEndToEndAccepted": false
+  },
+  "notCovered": [
+    "Draft preservation",
+    "Search, settings and context-menu interactions",
+    "Fresh ordinary-user Windows installation",
+    "Codex cold launch or system reboot",
+    "Real-user shortcut rollback"
+  ],
+  "codexRestarted": false,
+  "otherTasksStopped": false,
+  "messagesSent": false,
+  "privatePathsIncluded": false,
+  "chatOrDraftTextIncluded": false,
+  "screenshotsIncluded": false,
+  "stableReleaseAcceptance": false
+}
