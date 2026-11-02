@@ -1,0 +1,97 @@
+{
+  "schema": 1,
+  "date": "2026-11-02",
+  "scope": "Static comparison of existing installation and exact final public Beta.2 archive",
+  "package": {
+    "releaseLabel": "1.0.0-beta.2",
+    "candidateId": "20261031-3384-rc2",
+    "zipSHA256": "fc70bf3b564e89cea6644f66d4565ca0d98659e2c9a75f09844de5489cc3e1cb"
+  },
+  "runtimeFiles": 24,
+  "installedManifestValidFiles": 24,
+  "publicManifestValidFiles": 24,
+  "byteIdenticalFiles": 19,
+  "differentFiles": [
+    {
+      "file": "owner-check.exe",
+      "installedSHA256": "f759b1d5e8e0a71a2ecb787d5a1a4c0cab8c259c8a0616a7cbd2ff4e9e7ebf7d",
+      "publicSHA256": "77da15496ed7b69ef902a0c5943ab7b5aacbfc5836aac8341b3beadf337c94da",
+      "classification": "compiler-metadata-only",
+      "differingBytes": 18,
+      "normalizedSHA256": "a912b1f512bfed3a322dcdbcb143f38f989d3b6ec4084024c1780c25eaa5e2c8",
+      "zeroedRanges": [
+        {
+          "field": "COFF timestamp",
+          "start": 136,
+          "endExclusive": 140,
+          "length": 4
+        },
+        {
+          "field": "MVID",
+          "start": 6580,
+          "endExclusive": 6596,
+          "length": 16
+        }
+      ],
+      "allOtherBytesIdentical": true
+    },
+    {
+      "file": "entrypoints.ps1",
+      "installedSHA256": "2f67fceb59c7dcc9b055e7806b1ea5ca348fe8795ac4e48063daa55e89f2b250",
+      "publicSHA256": "acd5a19c2385cbb3391265194efe7661d93c6f6c01eec24e80620ef5e4f24660",
+      "classification": "unicode-shortcut-fix-already-in-public-package"
+    },
+    {
+      "file": "install.ps1",
+      "installedSHA256": "df6b51cd6d28e587a7d0662255ca42752204ade9856b0b5c132457b3c984181e",
+      "publicSHA256": "92451619c59979e6bc9219b2fd2ed36380ddb516b69c89ec30041dcbffb687bb",
+      "classification": "uses-public-unicode-shortcut-helper"
+    },
+    {
+      "file": "XiaomuSkinManager.exe",
+      "installedSHA256": "1b2439e3bad05080ff36c8af917bd875015cf57503b308c9ab8d6d7ec27ad5a4",
+      "publicSHA256": "b715088b559ca8e444b6506bb0b5c2af253b8d9466df5dd9d6cf917f2459c552",
+      "classification": "compiler-metadata-only",
+      "differingBytes": 19,
+      "normalizedSHA256": "77a8c27be4d13495e7900129b7ed85abfdcde7d7e25e9f4b538cb3275f1f5dd0",
+      "zeroedRanges": [
+        {
+          "field": "COFF timestamp",
+          "start": 136,
+          "endExclusive": 140,
+          "length": 4
+        },
+        {
+          "field": "MVID",
+          "start": 3616,
+          "endExclusive": 3632,
+          "length": 16
+        }
+      ],
+      "allOtherBytesIdentical": true
+    },
+    {
+      "file": "USAGE.md",
+      "installedSHA256": "0d37cfea057ee97f0cb49d20fbb3bfcd622bb6ebd6c7be0ac9e422c8e78b605b",
+      "publicSHA256": "29a43b84105ee9ccd97038683a6cc7d0b8e95f2e732f1bfa8aeb6f330a6e403e",
+      "classification": "documentation-update"
+    }
+  ],
+  "binaryMethod": "Static PE/CLR mapping, Module table MVID index confirmation, all-byte comparison; no target execution",
+  "scriptSourceAndFinalPackageMatch": true,
+  "liveOnlyFunctionalFixesFound": false,
+  "mergeRequired": false,
+  "repackageRequired": false,
+  "installedCopyEqualsPublicPackage": false,
+  "runtimeModified": false,
+  "installationOrLifecycleActionsPerformed": false,
+  "codexRestarted": false,
+  "realWindowInteractionsPerformed": false,
+  "targetExecutablesRun": false,
+  "newRuntimeTestsPerformed": false,
+  "publicPackageEndToEndAcceptanceClaimed": false,
+  "stableReleaseAcceptance": false,
+  "privatePathsIncluded": false,
+  "chatOrDraftTextIncluded": false,
+  "screenshotsIncluded": false
+}
