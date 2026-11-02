@@ -8,6 +8,10 @@
 
 [下载安装包](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.0-beta.2) · [详细使用说明](integration-v1/release-v1/USAGE.md) · [第三方与素材说明](THIRD-PARTY-NOTICES.md)
 
+![小睦素材演示页：浅绿配色与窗边背景，非实机录屏](docs/images/material-preview.png)
+
+上图是素材演示页截图，非真实 Codex 窗口。[本地播放背景和片头](docs/demo/index.html) · [小范围试用说明](docs/BETA-TRYOUT.md)
+
 **本版修正（2026-10-31）：** 已修正非中文 Windows 创建中文快捷方式失败的问题。本次最终 ZIP 在独立 Windows Server 测试机上通过 26 项检查；[beta.1 原包](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.0-beta.1)及其校验值继续保留。Windows 11 普通用户、Store Codex 实际启动与重启验收仍待完成，详见 [验收记录与正式版门槛](qa/RELEASE-READINESS.md)。
 
 ## 使用前准备
@@ -104,3 +108,5 @@ node .\integration-v1\release-v1\build-release.cjs
 角色图、背景、视频与图标的部分来源、署名及再分发记录仍待补齐，详见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) 和 [ASSET-SOURCES.md](integration-v1/release-v1/ASSET-SOURCES.md)。
 
 反馈请提供候选编号、Windows / Store Codex / Node.js 版本、操作步骤和完整错误提示。截图先遮住私人内容；请勿上传聊天正文、登录资料或密钥。
+
+可以使用[皮肤问题反馈表](https://github.com/lucifergzsz414/xiaomu-codex-skin/issues/new?template=skin-problem.yml)填写；不知道的环境信息写“不确定”即可。小范围试用建议见[试用说明](docs/BETA-TRYOUT.md)。
