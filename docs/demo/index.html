@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' file:; media-src 'self' file:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+  <meta name="description" content="小睦 Codex 皮肤 Beta.2 的首页循环、五秒片头和 Q 版素材展示草稿。">
+  <title>小睦 Codex · 素材演示</title>
+  <style>
+    :root { color-scheme: light; --paper: #f8faf3; --ink: #2e4939; --muted: #53684f; --line: #bdcdae; --leaf: #e8efdf; --white: #fffef9; --gold: #9b8550; }
+    * { box-sizing: border-box; }
+    html { background: var(--paper); color: var(--ink); }
+    body { margin: 0; font: 16px/1.7 "Microsoft YaHei UI", "Microsoft YaHei", sans-serif; }
+    a { color: inherit; text-underline-offset: .24em; text-decoration-thickness: 1px; }
+    a:hover { color: #325b29; }
+    a:focus-visible, video:focus-visible { outline: 3px solid #4f773c; outline-offset: 5px; }
+    .skip { position: absolute; top: 8px; left: 16px; padding: 8px 16px; background: var(--white); transform: translateY(-160%); z-index: 2; }
+    .skip:focus { transform: none; }
+    .page { width: min(1180px, calc(100% - 64px)); margin: auto; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 26px 0; border-bottom: 1px solid var(--line); }
+    .brand { font-size: 19px; font-weight: 600; letter-spacing: .02em; }
+    .version { display: inline-block; margin-left: 10px; padding: 1px 9px; border: 1px solid var(--line); border-radius: 5px; font-size: 12px; font-weight: 500; vertical-align: middle; }
+    .notice { margin: 0; color: var(--muted); font-size: 13px; }
+    .intro { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 24px; padding: 40px 0 30px; }
+    h1 { margin: 0 0 12px; font-family: "Yu Mincho", "Microsoft YaHei UI", serif; font-size: clamp(30px, 4vw, 48px); line-height: 1.35; font-weight: 500; }
+    .intro p { margin: 0; max-width: 38em; color: var(--muted); }
+    .intro img { width: 84px; height: 98px; object-fit: contain; }
+    .window { margin: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--leaf); }
+    .window-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 11px 17px; background: #edf3e6; border-bottom: 1px solid var(--line); }
+    .window-bar strong { font-size: 15px; font-weight: 500; }
+    .window-bar span { color: var(--muted); font-size: 13px; }
+    video { display: block; width: 100%; aspect-ratio: 16/9; object-fit: contain; background: #18251c; accent-color: #587d45; }
+    figcaption { padding: 14px 18px; font-size: 14px; color: var(--muted); background: var(--white); }
+    .section { padding-top: 44px; }
+    .section-heading { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px 24px; margin-bottom: 18px; }
+    h2 { margin: 0; font-size: 22px; font-weight: 500; line-height: 1.5; }
+    .section-heading p { margin: 0; color: var(--muted); font-size: 14px; }
+    .opening { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(230px, 1fr); align-items: center; gap: 34px; }
+    .opening figure { margin: 0; min-width: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+    .opening-copy { padding-left: 22px; border-left: 2px solid var(--gold); }
+    .opening-copy h3 { margin: 0 0 10px; font-size: 20px; font-weight: 500; }
+    .opening-copy p { margin: 0; color: var(--muted); font-size: 15px; }
+    .characters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-block: 1px solid var(--line); background: #f0f5e9; }
+    .character { display: flex; align-items: center; gap: 12px; padding: 24px 16px; min-width: 0; }
+    .character + .character { border-left: 1px solid var(--line); }
+    .character img { width: 56px; height: 70px; object-fit: contain; flex: 0 0 56px; }
+    .character h3 { margin: 0 0 3px; font-size: 16px; font-weight: 500; }
+    .character p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
+    .about { display: flex; justify-content: space-between; align-items: start; gap: 28px; margin: 36px 0; }
+    .about p { margin: 0; max-width: 48em; color: var(--muted); font-size: 14px; }
+    nav { display: flex; flex-wrap: wrap; gap: 10px 22px; flex: 0 0 auto; font-size: 14px; }
+    footer { padding: 20px 0 30px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    footer p { margin: 0; max-width: 72em; }
+    @media (max-width: 900px) {
+      .characters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .character:nth-child(3) { border-left: 0; }
+      .character:nth-child(n+3) { border-top: 1px solid var(--line); }
+      .opening { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+      .about { flex-direction: column; gap: 18px; }
+    }
+    @media (max-width: 540px) {
+      .page { width: calc(100% - 32px); }
+      header { align-items: start; flex-direction: column; gap: 5px; padding: 18px 0; }
+      .intro { padding: 28px 0 22px; gap: 10px; }
+      .intro img { width: 60px; height: 80px; }
+      .intro p { font-size: 14px; }
+      .section { padding-top: 30px; }
+      .window-bar { padding: 9px 12px; }
+      .window-bar span { font-size: 12px; }
+      figcaption { padding: 12px; font-size: 13px; }
+      .character { padding: 16px 10px; gap: 7px; }
+      .character img { width: 42px; height: 58px; flex-basis: 42px; }
+      .character h3 { font-size: 14px; }
+      .character p { font-size: 12px; }
+      .opening-copy { padding-left: 15px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">跳到演示内容</a>
+  <div class="page">
+    <header>
+      <div class="brand">小睦 Codex <span class="version">Beta.2</span></div>
+      <p class="notice">素材演示 · 非实机录屏</p>
+    </header>
+    <main id="main">
+      <div class="intro">
+        <div>
+          <h1>……开始吧。</h1>
+          <p>浅绿的工作界面，窗边的小睦。先看看已经做好的动态背景和片头。</p>
+        </div>
+        <img src="../../preview-v6/assets/q-idle.png" alt="Q 版小睦" width="84" height="98">
+      </div>
+      <figure class="window">
+        <div class="window-bar"><strong>窗边 · 首页循环</strong><span>8 秒 / 静音</span></div>
+        <video controls muted playsinline loop preload="none" poster="../../preview-v6/assets/hair-rig-v31/full-background/pilot-003/frame-000.png" aria-label="小睦窗边八秒循环背景" aria-describedby="background-caption">
+          <source src="../../preview-v6/assets/hair-rig-v31/full-background/pilot-003/window-loop.mp4" type="video/mp4">
+          当前浏览器不能播放此视频。可<a href="../../preview-v6/assets/hair-rig-v31/full-background/pilot-003/window-loop.mp4">打开背景视频文件</a>查看。
+        </video>
+        <figcaption id="background-caption">点播放查看眨眼、头发与环境的循环。这一页使用与测试包相同的成品素材；默认静止，播放与暂停由你控制。</figcaption>
+      </figure>
+      <section class="section" aria-labelledby="opening-title">
+        <div class="section-heading"><h2 id="opening-title">雨声之前，先见一面。</h2><p>五秒开场 / 静音</p></div>
+        <div class="opening">
+          <figure>
+            <video controls muted playsinline preload="metadata" aria-label="小睦五秒雨景开场" aria-describedby="opening-caption">
+              <source src="../../preview-v6/pv-v1/opening-rain-final-v1/renders/review-v1/xiaomu-codex-rain-opening-5s-1080p.mp4" type="video/mp4">
+              当前浏览器不能播放此视频。可<a href="../../preview-v6/pv-v1/opening-rain-final-v1/renders/review-v1/xiaomu-codex-rain-opening-5s-1080p.mp4">打开片头视频文件</a>查看。
+            </video>
+            <figcaption id="opening-caption">AI 辅助生成画面，经过本地字标与淡出处理。此处手动播放，不循环。</figcaption>
+          </figure>
+          <div class="opening-copy">
+            <h3>一小段开场，然后开始工作。</h3>
+            <p>五秒片头用于从小睦入口重新启动应用。日常切换聊天时不会重播；这里可以单独播放。</p>
+          </div>
+        </div>
+      </section>
+      <section class="section" aria-labelledby="characters-title">
+        <div class="section-heading"><h2 id="characters-title">熟悉的小睦，陪在细节里。</h2><p>首页推荐与状态装饰使用的四张 Q 版图</p></div>
+        <div class="characters">
+          <article class="character"><img src="../../preview-v6/assets/q-reading.png" alt="读书的小睦" width="56" height="70" loading="lazy"><div><h3>探索代码</h3><p>先从目录开始。</p></div></article>
+          <article class="character"><img src="../../preview-v6/assets/q-work.png" alt="工作中的小睦" width="56" height="70" loading="lazy"><div><h3>构建新功能</h3><p>把想法写下来。</p></div></article>
+          <article class="character"><img src="../../preview-v6/assets/q-think.png" alt="思考中的小睦" width="56" height="70" loading="lazy"><div><h3>审查代码</h3><p>改过的地方，再看一遍。</p></div></article>
+          <article class="character"><img src="../../preview-v6/assets/q-idle.png" alt="安静的小睦" width="56" height="70" loading="lazy"><div><h3>修复问题</h3><p>从报错开始。</p></div></article>
+        </div>
+      </section>
+      <div class="about">
+        <p>本页展示首页背景、片头与 Q 版素材。安装方法和兼容范围见项目说明。</p>
+        <nav aria-label="项目资料"><a href="../../README.md">项目说明</a><a href="../../integration-v1/release-v1/USAGE.md">使用说明</a><a href="../../integration-v1/release-v1/ASSET-SOURCES.md">素材来源</a></nav>
+      </div>
+    </main>
+    <footer><p>非官方粉丝外观项目。当前为 1.0.0-beta.2 测试版；素材署名与来源记录以项目文档为准。本页不连接任何服务，可在本地直接打开。</p></footer>
+  </div>
+</body>
+</html>
