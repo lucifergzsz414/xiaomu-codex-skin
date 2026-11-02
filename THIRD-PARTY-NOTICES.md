@@ -21,7 +21,7 @@ Copyright (c) 2026 Codex Dream Skin Studio contributors
 
 本候选包含 Q 版若叶睦图像、窗边背景与八秒循环、五秒雨景开场、SVG 图标及管理器图标。部分素材的原作者、最初发布链接、署名、再分发依据或生成服务条款记录尚未补齐。
 
-具体来源、处理方式和待补记录见 [`integration-v1\release-v1\ASSET-SOURCES.md`](integration-v1/release-v1/ASSET-SOURCES.md)。该文件保留打包时的来源与归档状态；公开预发布不会自动补齐表中的缺项。列出来源不表示已取得全部视觉素材的公开分发授权，上游脚本的 MIT 许可也不自动覆盖这些素材。
+具体来源、处理方式和待补记录见 [`ASSET-SOURCES.md`](integration-v1/release-v1/ASSET-SOURCES.md)与[脱敏文件清单](integration-v1/release-v1/asset-ledger.json)。2026-11-02 补充了当前公开包实际内嵌素材的字节核对、桌宠直接来源和视频制作链；原始制作收据仍由维护者保留，未发布。列出来源不表示已取得全部视觉素材的公开分发授权，上游脚本的 MIT 许可也不自动覆盖这些素材。
 
 ## 本项目新增内容
 

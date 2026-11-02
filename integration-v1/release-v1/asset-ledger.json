@@ -1,0 +1,353 @@
+{
+  "schema": 1,
+  "verifiedDate": "2026-11-02",
+  "package": {
+    "releaseLabel": "1.0.0-beta.2",
+    "candidateId": "20261031-3384-rc2",
+    "zipSHA256": "fc70bf3b564e89cea6644f66d4565ca0d98659e2c9a75f09844de5489cc3e1cb",
+    "skinSHA256": "6ddb217b9193233bd2027b925d9972a442cf68306f63cd0d63b79680ad44eaed"
+  },
+  "scope": "Current build inputs and static comparison with final public archive; not a complete publication of original production receipts",
+  "entries": [
+    {
+      "id": "q-idle",
+      "path": "preview-v6/assets/q-idle.png",
+      "sha256": "34a7ab3cc5d4f64d9c84a51080a738903f6b210ef3dfdb31faf0a29b88971522",
+      "bytes": 997276,
+      "kind": "image",
+      "uses": [
+        "home recommendations",
+        "character decoration",
+        "Dot portrait",
+        "manager-portrait.png"
+      ],
+      "verifiedSourceChain": [
+        {
+          "type": "byte-identical-reuse",
+          "source": "xiaomu-desktop/src/renderer/react/assets/status-moods/平静.png"
+        }
+      ],
+      "unresolved": [
+        "original creator",
+        "first publication URL",
+        "generation batch if any",
+        "redistribution permission"
+      ],
+      "exactBytesEmbeddedInFinalSkin": true,
+      "installedManagerPortraitByteIdentical": true
+    },
+    {
+      "id": "q-reading",
+      "path": "preview-v6/assets/q-reading.png",
+      "sha256": "365c30c18e859aa90f2c241ab4682b7a595158713adc253cddcc3200b148b1ba",
+      "bytes": 1094854,
+      "kind": "image",
+      "uses": [
+        "home recommendations",
+        "character decoration"
+      ],
+      "verifiedSourceChain": [
+        {
+          "type": "byte-identical-reuse",
+          "source": "xiaomu-desktop/src/renderer/react/assets/status-moods/学习.png"
+        }
+      ],
+      "unresolved": [
+        "original creator",
+        "first publication URL",
+        "generation batch if any",
+        "redistribution permission"
+      ],
+      "exactBytesEmbeddedInFinalSkin": true
+    },
+    {
+      "id": "q-work",
+      "path": "preview-v6/assets/q-work.png",
+      "sha256": "38f0e622e2cdec663deafb0d466b2593bcae8aec8110fe113292f4598bc6fc47",
+      "bytes": 1279235,
+      "kind": "image",
+      "uses": [
+        "home recommendations",
+        "character decoration"
+      ],
+      "verifiedSourceChain": [
+        {
+          "type": "byte-identical-reuse",
+          "source": "xiaomu-desktop/src/renderer/react/assets/status-moods/工作中.png"
+        }
+      ],
+      "unresolved": [
+        "original creator",
+        "first publication URL",
+        "generation batch if any",
+        "redistribution permission"
+      ],
+      "exactBytesEmbeddedInFinalSkin": true
+    },
+    {
+      "id": "q-think",
+      "path": "preview-v6/assets/q-think.png",
+      "sha256": "fdba28adb2e5da755c89fa49707e1433fb0637476e7346aa9e5d287d9902b59a",
+      "bytes": 930568,
+      "kind": "image",
+      "uses": [
+        "home recommendations",
+        "character decoration"
+      ],
+      "verifiedSourceChain": [
+        {
+          "type": "byte-identical-reuse",
+          "source": "xiaomu-desktop/src/renderer/react/assets/思考组件.png"
+        }
+      ],
+      "unresolved": [
+        "original creator",
+        "first publication URL",
+        "generation batch if any",
+        "redistribution permission"
+      ],
+      "exactBytesEmbeddedInFinalSkin": true
+    },
+    {
+      "id": "home-poster",
+      "path": "preview-v6/assets/hair-rig-v31/full-background/pilot-003/frame-000.png",
+      "sha256": "dbf6e027333ad17af25deb011b9fd46d0d49a4bed5a9ea7278caf66b112b3056",
+      "bytes": 1116493,
+      "kind": "image",
+      "uses": [
+        "static home cover"
+      ],
+      "verifiedSourceChain": [
+        {
+          "name": "quiet-loop-v1/source.png",
+          "sha256": "a702d5bdf764225ec5512638f704e7e59da6607b4053e0e935cc07b6056d6161",
+          "recordLocation": "maintainer-held production project; not published"
+        },
+        {
+          "type": "local-composite",
+          "inputs": [
+            "registered blink states",
+            "Blender hair layers and occlusion",
+            "environment video"
+          ],
+          "environmentInput": {
+            "name": "xiaomu-background-v4-window-curtain-review.mp4",
+            "sha256": "8be5f9c289de6a88a521106d56b241397c06126b20e5702d7a363c1178ec82a9"
+          },
+          "additionalPaidGenerationCallsInComposite": 0
+        }
+      ],
+      "unresolved": [
+        "complete initial illustration origin and applicable rights",
+        "complete final environment-video origin and applicable rights"
+      ],
+      "exactBytesEmbeddedInFinalSkin": true
+    },
+    {
+      "id": "home-loop",
+      "path": "preview-v6/assets/hair-rig-v31/full-background/pilot-003/window-loop.mp4",
+      "sha256": "7cc30c32c845222ace86d542242b87c71efba2363883a12ff7356c1adcfe0d33",
+      "bytes": 1326419,
+      "kind": "video",
+      "uses": [
+        "animated home background"
+      ],
+      "verifiedSourceChain": [
+        {
+          "name": "quiet-loop-v1/source.png",
+          "sha256": "a702d5bdf764225ec5512638f704e7e59da6607b4053e0e935cc07b6056d6161",
+          "recordLocation": "maintainer-held production project; not published"
+        },
+        {
+          "type": "local-composite",
+          "inputs": [
+            "registered blink states",
+            "Blender hair layers and occlusion",
+            "environment video"
+          ],
+          "environmentInput": {
+            "name": "xiaomu-background-v4-window-curtain-review.mp4",
+            "sha256": "8be5f9c289de6a88a521106d56b241397c06126b20e5702d7a363c1178ec82a9"
+          },
+          "additionalPaidGenerationCallsInComposite": 0
+        }
+      ],
+      "unresolved": [
+        "complete initial illustration origin and applicable rights",
+        "complete final environment-video origin and applicable rights"
+      ],
+      "exactBytesEmbeddedInFinalSkin": true,
+      "media": {
+        "durationSeconds": 8,
+        "width": 1440,
+        "height": 812,
+        "framesPerSecond": 30,
+        "silent": true
+      }
+    },
+    {
+      "id": "opening-pv",
+      "path": "preview-v6/pv-v1/opening-rain-final-v1/renders/review-v1/xiaomu-codex-rain-opening-5s-1080p.mp4",
+      "sha256": "9c7f8ab53b007172cf578c57e98494b6ad9e8988e4c38de65e27359cbdecf020",
+      "bytes": 4008531,
+      "kind": "video",
+      "uses": [
+        "cold-start opening"
+      ],
+      "verifiedSourceChain": [
+        {
+          "type": "AI-video-generation",
+          "service": "Updream",
+          "model": "VIDU Q4 Preview",
+          "mode": "multi-image reference",
+          "referenceCount": 3,
+          "referenceHashes": [
+            "9c002d1263bef109f2baaf242c3fe31c1189df3b21c414f8af3cca158e2aa0e0",
+            "144ec7cf1a03e83d4195b9ab0b5484d764d27cb60d22655a9b82e304d2ec00ea",
+            "52f78b9578492fc678810aa67f01edbdf70931856dea33ca902f90609abb1330"
+          ],
+          "rawOutputSHA256": "f9102f3b5c2f6fae37f6e230f9a22477f5a2250ac09d9ebd027bdc871a679f16",
+          "automaticRetries": 0,
+          "evidence": "maintainer-held quote and generation receipt; raw records not published"
+        },
+        {
+          "type": "local-video-postproduction",
+          "changes": [
+            "wordmark from 3.85 seconds",
+            "last four frames fade to light green"
+          ],
+          "speedChange": false,
+          "spatialWarp": false,
+          "additionalGenerationCalls": 0
+        }
+      ],
+      "unresolved": [
+        "complete generation receipts and source record for the three reference images",
+        "terms applicable to this Updream generation",
+        "reference character and instrument redistribution basis"
+      ],
+      "exactBytesEmbeddedInFinalSkin": true,
+      "media": {
+        "durationSeconds": 5,
+        "width": 1920,
+        "height": 1080,
+        "framesPerSecond": 24,
+        "silent": true
+      },
+      "acceptance": {
+        "rawClipAccepted": true,
+        "wordmarkAndFadeSeparatelyAccepted": false,
+        "wordmarkAndFadeRecordStatus": "pending-user-review"
+      }
+    },
+    {
+      "id": "manager-icon",
+      "path": "integration-v1/release-v1/xiaomu.ico",
+      "sha256": "9d3ce2434ad5f6d79ab5bbed10f3f3f65f8faa7828811cf7016308dd81f862d1",
+      "bytes": 67817,
+      "kind": "icon",
+      "uses": [
+        "Windows shortcuts",
+        "manager executable icon"
+      ],
+      "verifiedSourceChain": [
+        {
+          "type": "local-file-reuse",
+          "embeddedBy": "build-control-host.cjs /win32icon"
+        }
+      ],
+      "unresolved": [
+        "original image",
+        "conversion production record",
+        "creator and redistribution basis"
+      ],
+      "exactInstalledFileMatch": true
+    },
+    {
+      "id": "page-svg",
+      "path": "preview-v6/index.html",
+      "sha256": "a23b1120dd53aee11fe17db7b6ff4bedda974cbc95d2c8fb46c4622431f0ac9f",
+      "bytes": 3795,
+      "kind": "source-container",
+      "uses": [
+        "inline functional SVG icons"
+      ],
+      "verifiedSourceChain": [
+        {
+          "type": "inline-source-definitions",
+          "symbolIds": [
+            "i-new-chat",
+            "i-folder",
+            "i-code",
+            "i-file-diff",
+            "i-settings",
+            "i-appearance",
+            "i-terminal",
+            "i-editor",
+            "i-shield",
+            "i-sidebar",
+            "i-leaf"
+          ],
+          "externalIconDownloadAtBuild": false
+        }
+      ],
+      "unresolved": [
+        "initial authorship or external icon-library attribution if applicable"
+      ]
+    },
+    {
+      "id": "entry-svg",
+      "path": "integration-v1/native-v1/build-native.cjs",
+      "sha256": "5213df98fd0f490641c2b9332524cf08560da2b1d7810ef8c7a96730d998e0e7",
+      "bytes": 6677,
+      "kind": "source-container",
+      "uses": [
+        "inline functional SVG icons"
+      ],
+      "verifiedSourceChain": [
+        {
+          "type": "inline-source-definitions",
+          "symbolIds": [
+            "i-schedule",
+            "i-plugins",
+            "i-sites"
+          ],
+          "externalIconDownloadAtBuild": false
+        }
+      ],
+      "unresolved": [
+        "initial authorship or external icon-library attribution if applicable"
+      ]
+    }
+  ],
+  "upstreamCode": [
+    {
+      "path": "research/internet-angel/windows/scripts/common-windows.ps1",
+      "sha256": "288af44b5c2d4b6f855f48676a3df7ea439d954e7e369ba270658bdbde23c84b",
+      "license": "MIT",
+      "copyright": "Copyright (c) 2026 Codex Dream Skin Studio contributors",
+      "sourceProject": "https://github.com/EmiyaKatuz/Codex-Dream-Skin-Needy-Girl-Overdose"
+    },
+    {
+      "path": "research/internet-angel/windows/scripts/config-utf8.ps1",
+      "sha256": "3a9ff2daf1cf998a9e1b7bb443845f2fc1f60df8c02171fbde3f8d12e9be3f75",
+      "license": "MIT",
+      "copyright": "Copyright (c) 2026 Codex Dream Skin Studio contributors",
+      "sourceProject": "https://github.com/EmiyaKatuz/Codex-Dream-Skin-Needy-Girl-Overdose"
+    },
+    {
+      "path": "research/internet-angel/LICENSE",
+      "sha256": "0e8f0b5cc9f0d8103079fa6e4caf6955ba85ef7e2a7da8683e755df361382e4c",
+      "license": "MIT",
+      "copyright": "Copyright (c) 2026 Codex Dream Skin Studio contributors",
+      "sourceProject": "https://github.com/EmiyaKatuz/Codex-Dream-Skin-Needy-Girl-Overdose"
+    }
+  ],
+  "unresolvedRightsCleared": false,
+  "allAssetsOriginalClaimed": false,
+  "originalProductionRecordsPublished": false,
+  "privatePathsIncluded": false,
+  "serviceTaskOrAccountIdentifiersIncluded": false,
+  "releaseZipModified": false,
+  "newPaidGenerationCalls": 0
+}

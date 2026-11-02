@@ -55,11 +55,19 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -SourceRoo
 
 ## 当前验证范围
 
+2026-11-02补验：最终Beta.2安装包在维护机隔离目录完成21/21项安装与修复检查，入口模块的3个测试快捷方式精确回滚；现用Codex的皮肤暂停、无重启重新挂接恢复通过。现用安装与最终公开包并非逐文件相同，未据此宣称完整端到端验收。搜索、设置和右键菜单不在本轮范围，详见[验收记录](qa/RELEASE-READINESS.md#维护机补充验收2026-11-02)。
+
 本次最终 Beta.2 ZIP 在全新的英文 Windows Server 2022 管理员测试机上 **26/26 项通过**：实际安装、中文入口回读、缺依赖启动拦截、暂停、恢复、重复操作和损坏修复。32 个包内文件完成逐项校验。[完整运行](https://github.com/lucifergzsz414/xiaomu-codex-skin/actions/runs/41209958097) · [原样结果 JSON](qa/results/beta2-archive-20261031.json)。
 
 皮肤 `skin.js` 与此前本机 Store `26.1027.3384.0` 验证的版本完全相同，原有冷启动、片头自然结束与右键菜单记录仍保留。Windows 11 普通用户的真实 Codex 启动、画面、系统重启和下载安全提示尚未完成验收；本轮也没有重新实测片头“跳过”或 Esc。独立桌面环境按包内 `CLEAN-TEST-GUIDE.md` 继续记录，26 项结果不代表这些项目已通过。
 
 本仓库与 GitHub Release 以**公开预发布**提供 Beta.2。包内 `RELEASE-CANDIDATE.json` 保留封包时“准备公开发布”的记录；封包后的最终 ZIP 验收见上面的运行链接和 Release 页面。旧 Beta.1 中的“受邀测试”“尚未公开发布”等字段是旧包的历史记录，旧包未覆盖。测试和素材记录中的待完成项继续有效。
+
+## 本地素材演示
+
+完整克隆或下载本仓库后，在浏览器打开 [`docs/demo/index.html`](docs/demo/index.html)，可查看实际使用的八秒首页背景、五秒片头和四张 Q 图。演示页面使用预设说明文字，标明“素材演示 · 非实机录屏”；无需预览服务，不连接 Codex，也不执行安装。它不是完整产品界面或新的实机验收记录。
+
+2026-11-02 新增[脱敏素材清单](integration-v1/release-v1/asset-ledger.json)，记录当前包的实际文件、来源链、哈希和仍缺的作者／权利记录。原始制作收据含本地或服务信息，未直接发布。
 
 ## 从源码构建
 
