@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "type": "material-showcase-not-actual-UI-recording",
+  "output": "docs/demo/beta2-materials-15s.mp4",
+  "outputSHA256": "55f3246319ba6e280ed9603d9e8454085a70600ef84f413db1cc1f96a506561c",
+  "sources": [
+    {
+      "path": "preview-v6/pv-v1/opening-rain-final-v1/renders/review-v1/xiaomu-codex-rain-opening-5s-1080p.mp4",
+      "sha256": "9c7f8ab53b007172cf578c57e98494b6ad9e8988e4c38de65e27359cbdecf020"
+    },
+    {
+      "path": "preview-v6/assets/hair-rig-v31/full-background/pilot-003/window-loop.mp4",
+      "sha256": "7cc30c32c845222ace86d542242b87c71efba2363883a12ff7356c1adcfe0d33"
+    }
+  ],
+  "timeline": [
+    {
+      "start": 0,
+      "end": 5,
+      "content": "existing opening"
+    },
+    {
+      "start": 5,
+      "end": 13,
+      "content": "existing home loop"
+    },
+    {
+      "start": 13,
+      "end": 15,
+      "content": "version and repository card"
+    }
+  ],
+  "video": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "frames": 450,
+    "durationSeconds": 15,
+    "audio": false
+  },
+  "processing": [
+    "aspect-preserving scale and pad",
+    "frame-rate conversion",
+    "labels and end card",
+    "H264 encoding"
+  ],
+  "sourcesUnchanged": true,
+  "newGenerativeCalls": 0,
+  "accountOrTaskIdsIncluded": false,
+  "characterAnimationChanged": false,
+  "runtimeModified": false,
+  "captureOfRealCodexClaimed": false,
+  "distributedSystemFont": false
+}

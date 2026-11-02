@@ -12,6 +12,8 @@
 
 上图是素材演示页截图，非真实 Codex 窗口。[本地播放背景和片头](docs/demo/index.html) · [小范围试用说明](docs/BETA-TRYOUT.md)
 
+[十五秒素材短片](docs/demo/beta2-materials-15s.mp4)：现有片头、窗边循环与版本卡的静音剪辑，非实机录屏。[分享文案草稿](docs/SHARE-DRAFT.md)可供小范围试用介绍使用。
+
 **本版修正（2026-10-31）：** 已修正非中文 Windows 创建中文快捷方式失败的问题。本次最终 ZIP 在独立 Windows Server 测试机上通过 26 项检查；[beta.1 原包](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.0-beta.1)及其校验值继续保留。Windows 11 普通用户、Store Codex 实际启动与重启验收仍待完成，详见 [验收记录与正式版门槛](qa/RELEASE-READINESS.md)。
 
 ## 使用前准备
