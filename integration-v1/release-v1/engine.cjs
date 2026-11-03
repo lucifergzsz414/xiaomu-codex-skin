@@ -1,10 +1,42 @@
 'use strict';
 const fs=require('node:fs');const path=require('node:path');const {execFileSync}=require('node:child_process');const {createHash,randomUUID}=require('node:crypto');
+const {performance}=require('node:perf_hooks');
 const root=__dirname;const marker='__XIAOMU_INSTALLED_SESSION_V1__';
 function failureCode(error){
  const native=typeof error?.stderr==='string'?error.stderr.trim():'';
  const code=/^[A-Z_]{2,50}$/.test(native)?native:error?.code;
  return typeof code==='string'&&/^[A-Z_]{2,50}$/.test(code)?code:'UNAVAILABLE';
+}
+function createStartupTiming({now=()=>performance.now()}={}){
+ const phaseNames=['preparation','identity','target-list','connect','eligibility','ownership','opening','apply','cleanup','loop-sleep'];
+ const targetPhases=['connect','eligibility','ownership','opening','apply','cleanup'];
+ const phaseTimings=Object.fromEntries(phaseNames.map(name=>[name,{calls:0,totalMs:0,failures:0,timeouts:0}]));
+ const milestonesMs={firstTargetsMs:null,firstEligibleMs:null,firstApplyStartedMs:null,firstApplyCompletedMs:null};
+ const started=now();let stopped=false,sweepCompletedMs=null,targetFailureCount=0,targetTimeoutCount=0;
+ const known=(names,name)=>{if(!names.includes(name))throw new TypeError('Unknown startup timing stage');};
+ function begin(phase){
+  known(phaseNames,phase);if(stopped)return ()=>{};
+  const start=now();phaseTimings[phase].calls++;let ended=false;
+  return ()=>{if(ended||stopped)return;ended=true;phaseTimings[phase].totalMs+=Math.max(0,now()-start);};
+ }
+ function sync(phase,action){if(stopped){known(phaseNames,phase);return action();}const end=begin(phase);try{return action();}finally{end();}}
+ async function timeAsync(phase,action){if(stopped){known(phaseNames,phase);return action();}const end=begin(phase);try{return await action();}finally{end();}}
+ function mark(name){
+  known(Object.keys(milestonesMs),name);
+  if(!stopped&&milestonesMs[name]===null)milestonesMs[name]=Math.max(0,now()-started);
+  return milestonesMs[name];
+ }
+ function targetFailure(phase,error){
+  known(targetPhases,phase);if(stopped)return;
+  phaseTimings[phase].failures++;targetFailureCount++;
+  if(error?.code==='ETIMEDOUT'||typeof error?.message==='string'&&/\b(?:timeout|timed\s+out)\b/i.test(error.message)){phaseTimings[phase].timeouts++;targetTimeoutCount++;}
+ }
+ function stop(){
+  if(!stopped){sweepCompletedMs=Math.max(0,now()-started);stopped=true;}
+  const round=value=>value===null?null:Math.round(value*1000)/1000;
+  return {timingSchema:2,phaseTimings:Object.fromEntries(phaseNames.map(name=>[name,{...phaseTimings[name],totalMs:round(phaseTimings[name].totalMs)}])),milestonesMs:Object.fromEntries(Object.entries(milestonesMs).map(([name,value])=>[name,round(value)])),sweepCompletedMs:round(sweepCompletedMs),targetFailureCount,targetTimeoutCount};
+ }
+ return {begin,sync,timeAsync,mark,targetFailure,stop};
 }
 async function waitForTargets({gate,fetchTargets,sleep,stopped,onRetry}){
  let identityFailures=0,endpointFailures=0;
@@ -85,6 +117,7 @@ function verifyIdentity(root,identity,compatibility){
 }
 async function run(){
  const controllerStartedAtMs=Date.now();let firstApplied=false;
+ const startupTiming=createStartupTiming();const preparationDone=startupTiming.begin('preparation');
  const identity=JSON.parse(Buffer.from(process.argv[2]||'','base64').toString('utf8'));
  if(!Number.isInteger(identity.pid)||identity.pid<=0||typeof identity.startUtc!=='string'||!/^\d{4}-\d\d-\d\dT[\d:.]+Z$/.test(identity.startUtc))throw Error('Invalid identity');
  if(typeof identity.executable!=='string'||!path.isAbsolute(identity.executable)||!Number.isInteger(identity.session))throw Error('Incomplete process identity');
@@ -97,53 +130,58 @@ async function run(){
  const verifier=path.join(root,'owner-check.exe');if(createHash('sha256').update(fs.readFileSync(verifier)).digest('hex')!==manifest.files['owner-check.exe'])throw Error('Owner verifier integrity failed');
  const token=randomUUID();const clients=new Map();let failed=false;let stopReason='stopped';
  const openingGate=createOpeningGate({root,identity});
- const gate=()=>verifyIdentity(root,identity,compatibility);
+ const gate=()=>startupTiming.sync('identity',()=>verifyIdentity(root,identity,compatibility));
  const health={recoveryCount:0,lastFailure:null,lastRecoveredAtUtc:null};
  const events=[];const record=(event,details={})=>{events.push({atUtc:new Date().toISOString(),event,...details});if(events.length>32)events.shift();fs.writeFileSync(path.join(root,'session-events.json'),JSON.stringify(events,null,2));};
  const status=(state,extra={})=>fs.writeFileSync(path.join(root,'status.json'),JSON.stringify({atUtc:new Date().toISOString(),status:state,...health,...extra},null,2));
+ preparationDone();
  try{
   status('connecting');
   while(!fs.existsSync(path.join(root,'stop.flag'))){
    let retrying=false;
-   const targets=await waitForTargets({gate,fetchTargets:async()=>{
+   const targets=await waitForTargets({gate,fetchTargets:()=>startupTiming.timeAsync('target-list',async()=>{
     const response=await fetch('http://127.0.0.1:9335/json/list',{redirect:'error',signal:AbortSignal.timeout(4000)});
     if(!response.ok)throw Object.assign(Error('Endpoint HTTP failure'),{code:'ENDPOINT_HTTP'});
     const rows=await response.json();if(!Array.isArray(rows))throw Object.assign(Error('Endpoint format failure'),{code:'ENDPOINT_FORMAT'});
     return rows.filter(validTarget);
-   },sleep:ms=>new Promise(r=>setTimeout(r,ms)),stopped:()=>fs.existsSync(path.join(root,'stop.flag')),onRetry:details=>{
+   }),sleep:ms=>startupTiming.timeAsync('loop-sleep',()=>new Promise(r=>setTimeout(r,ms))),stopped:()=>fs.existsSync(path.join(root,'stop.flag')),onRetry:details=>{
     retrying=true;health.lastFailure={atUtc:new Date().toISOString(),stage:details.stage,code:details.code};
     if(details.attempt===1)record('retrying',details);
     status('retrying-'+details.stage,details);
    }});
    if(targets===null)break;
+   if(targets.length)startupTiming.mark('firstTargetsMs');
    if(retrying){health.recoveryCount++;health.lastRecoveredAtUtc=new Date().toISOString();record('reconnected',{recoveryCount:health.recoveryCount});}
    const present=new Set(targets.map(t=>t.id));
    for(const [id,c] of clients)if(!present.has(id)){c.close();clients.delete(id);}
    let activePages=0;let conflicts=0;
    for(const target of targets){
     if(fs.existsSync(path.join(root,'stop.flag')))break;
-    let c=clients.get(target.id);if(!c){try{c=await connect(target.webSocketDebuggerUrl);clients.set(target.id,c);}catch{continue;}}
+    let c=clients.get(target.id);if(!c){try{c=await startupTiming.timeAsync('connect',()=>connect(target.webSocketDebuggerUrl));clients.set(target.id,c);}catch(error){startupTiming.targetFailure('connect',error);continue;}}
+    let phase='eligibility';
     try{
-     if(await evaluate(c,eligible)){
-      const owned=await evaluate(c,`window[${JSON.stringify(marker)}]?.token===${JSON.stringify(token)}`);
-      if(owned){if(await evaluate(c,`document.documentElement.getAttribute('data-xiaomu-native-skin')==='v1'`))activePages++;}
+     if(await startupTiming.timeAsync(phase,()=>evaluate(c,eligible))){
+      startupTiming.mark('firstEligibleMs');phase='ownership';
+      const owned=await startupTiming.timeAsync(phase,()=>evaluate(c,`window[${JSON.stringify(marker)}]?.token===${JSON.stringify(token)}`));
+      if(owned){if(await startupTiming.timeAsync(phase,()=>evaluate(c,`document.documentElement.getAttribute('data-xiaomu-native-skin')==='v1'`))){activePages++;startupTiming.mark('firstApplyCompletedMs');}}
       else{
        if(fs.existsSync(path.join(root,'stop.flag')))break;
        let opening=null;
        if(openingGate.pending()){
-        let ordinaryWorkspace=false;try{ordinaryWorkspace=await evaluate(c,openingTargetExpression);}catch{}
+        phase='opening';let ordinaryWorkspace=false;try{ordinaryWorkspace=await startupTiming.timeAsync(phase,()=>evaluate(c,openingTargetExpression));}catch(error){startupTiming.targetFailure(phase,error);}
         opening=openingGate.claim(ordinaryWorkspace);
        }
-       const result=await evaluate(c,applyExpression(bundle,token,compatibility.capabilities,guardianSource,captionSource,opening));
-       if(result.owned&&result.active)activePages++;if(result.conflict)conflicts++;
+       phase='apply';startupTiming.mark('firstApplyStartedMs');
+       const result=await startupTiming.timeAsync(phase,()=>evaluate(c,applyExpression(bundle,token,compatibility.capabilities,guardianSource,captionSource,opening)));
+       if(result.owned&&result.active){activePages++;startupTiming.mark('firstApplyCompletedMs');}if(result.conflict)conflicts++;
       }
      }
-     else await evaluate(c,cleanupExpression(token));
-    }catch{c.close();clients.delete(target.id);}
+     else{phase='cleanup';await startupTiming.timeAsync(phase,()=>evaluate(c,cleanupExpression(token)));}
+    }catch(error){startupTiming.targetFailure(phase,error);c.close();clients.delete(target.id);}
    }
-   if(activePages&&!firstApplied){firstApplied=true;const launch=Date.parse(identity.launchRequestedAtUtc||'');fs.writeFileSync(path.join(root,'startup-timing.json'),JSON.stringify({atUtc:new Date().toISOString(),controllerToFirstApplyMs:Date.now()-controllerStartedAtMs,launchToFirstApplyMs:Number.isFinite(launch)?Date.now()-launch:null,packageVersion:compatibility.packageVersion,metric:'skin injection completed; visual first-paint acceptance is separate'},null,2));}
+   if(activePages&&!firstApplied){firstApplied=true;const launch=Date.parse(identity.launchRequestedAtUtc||'');fs.writeFileSync(path.join(root,'startup-timing.json'),JSON.stringify({atUtc:new Date().toISOString(),controllerToFirstApplyMs:Date.now()-controllerStartedAtMs,launchToFirstApplyMs:Number.isFinite(launch)?Date.now()-launch:null,packageVersion:compatibility.packageVersion,metric:'skin injection completed; visual first-paint acceptance is separate',...startupTiming.stop()},null,2));}
    status(activePages?'active':'waiting-for-native-workspace',{activePages,conflicts,version:manifest.version,packageVersion:compatibility.packageVersion,compatibility:compatibility.mode,disabled:compatibility.disabled});
-   await new Promise(r=>setTimeout(r,!activePages&&Date.now()-controllerStartedAtMs<15000?120:1500));
+   await startupTiming.timeAsync('loop-sleep',()=>new Promise(r=>setTimeout(r,!activePages&&Date.now()-controllerStartedAtMs<15000?120:1500)));
   }
  }catch(e){failed=true;stopReason='session-error-'+failureCode(e);record('stopped',{reason:stopReason});}
  finally{
@@ -152,5 +190,5 @@ async function run(){
   for(const c of clients.values())c.close();status(failed?stopReason:'disabled',{restoredPages:restored});
  }
 }
-module.exports={validTarget,applyExpression,cleanupExpression,verifyIdentity,waitForTargets,createOpeningGate,openingTargetExpression};
+module.exports={validTarget,applyExpression,cleanupExpression,verifyIdentity,waitForTargets,createOpeningGate,openingTargetExpression,createStartupTiming};
 if(require.main===module)run().catch(()=>{fs.writeFileSync(path.join(root,'status.json'),JSON.stringify({status:'failed-before-application'}));process.exitCode=1;});
