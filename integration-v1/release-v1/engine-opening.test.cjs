@@ -20,11 +20,11 @@ function gate(root, changes={}, options={}) {
 }
 function check(name, body) { body();checks.push({name,passed:true}); }
 function context() {
-  return {window:{}, document:{querySelector(){return null;}}};
+  return {...workspace(),window:{}};
 }
 function workspace(changes={}) {
-  const main={getBoundingClientRect:()=>({width:900,height:700,bottom:740,right:1100,top:40,left:200})};
-  return {document:{visibilityState:'visible',hidden:false,hasFocus:()=>true,
+  const main={closest:()=>null,querySelectorAll:()=>[],getBoundingClientRect:()=>({width:900,height:700,bottom:740,right:1100,top:40,left:200})};
+  return {navigator:{userActivation:{hasBeenActive:false}},document:{visibilityState:'visible',hidden:false,hasFocus:()=>true,
     querySelectorAll:selector=>selector==='aside.app-shell-left-panel'?[{}]:[],
     querySelector:selector=>selector.includes('main:')?main:null,...changes},
     getComputedStyle:()=>({display:'block',visibility:'visible',opacity:'1'}),
@@ -74,7 +74,7 @@ function Invoke-Scenario([bool]$fail){
   });
   check('cold startup claims once only after an ordinary workspace is visible',()=>{
     const root=area('cold'), current=gate(root);
-    assert.equal(current.pending(),true);assert.equal(current.claim(false),null);
+    assert.equal(current.pending(),true);
     const claim=current.claim(true);assert.equal(claim.eligible,true);assert.match(claim.hostKey,/^[a-f0-9]{64}$/);
     const ledger=JSON.parse(fs.readFileSync(path.join(root,'opening-state.json'),'utf8'));
     assert.equal(ledger.hostKey,claim.hostKey);assert.equal(ledger.consumed,true);assert.equal(ledger.schema,1);
@@ -97,18 +97,18 @@ function Invoke-Scenario([bool]$fail){
   });
   check('late startup and far-future timestamp skip before touching storage',()=>{
     const root=area('late');
-    assert.equal(gate(root,{launchRequestedAtUtc:'2026-10-28T09:29:49.999Z'}).claim(true),null);
+    assert.equal(gate(root,{launchRequestedAtUtc:'2026-10-28T09:28:59.999Z'}).claim(true),null);
     assert.equal(gate(root,{launchRequestedAtUtc:'2026-10-28T09:30:02.001Z'}).claim(true),null);
     assert.equal(gate(root,{launchRequestedAtUtc:'not-a-date'}).claim(true),null);
     assert.deepEqual(fs.readdirSync(root),[]);
-    assert.ok(gate(root,{launchRequestedAtUtc:'2026-10-28T09:29:50.000Z'}).claim(true));
+    assert.ok(gate(root,{launchRequestedAtUtc:'2026-10-28T09:29:00.000Z'}).claim(true));
   });
   check('small clock skew is accepted but expired eligibility is rechecked at claim',()=>{
     const root=area('clock');
     assert.ok(gate(root,{launchRequestedAtUtc:'2026-10-28T09:30:02.000Z'}).claim(true));
     const other=area('clock-expiry');let clock=now;
     const current=gate(other,{}, {now:()=>clock});assert.equal(current.pending(),true);
-    clock+=10000;assert.equal(current.claim(true),null);assert.deepEqual(fs.readdirSync(other),[]);
+    clock+=60000;assert.equal(current.claim(true),null);assert.deepEqual(fs.readdirSync(other),[]);
   });
   check('invalid host identities never become eligible',()=>{
     const root=area('invalid');

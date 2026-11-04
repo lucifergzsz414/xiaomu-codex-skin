@@ -68,12 +68,12 @@ function createOpeningGate({root:stateRoot,identity,now=Date.now,fileSystem=fs})
  let attempted=false;
  function pending(){
   if(attempted||!valid)return false;
-  try{const age=now()-launch;return Number.isFinite(age)&&age>=-2000&&age<=10000;}catch{return false;}
+  try{const age=now()-launch;return Number.isFinite(age)&&age>=-2000&&age<=60000;}catch{return false;}
  }
  function claim(ordinaryWorkspace){
-  if(ordinaryWorkspace!==true||!pending())return null;
-  // Consumption precedes renderer injection. A failed injection, storage error,
-  // reconnect or another target must never queue a second opening in this run.
+  if(typeof ordinaryWorkspace!=='boolean'||!pending())return null;
+  // The first eligible page consumes the decision, including a deliberate skip.
+  // A later target, reconnect or controller must never queue a delayed opening.
   attempted=true;
   let previous;
   try{
@@ -92,7 +92,7 @@ function createOpeningGate({root:stateRoot,identity,now=Date.now,fileSystem=fs})
    fileSystem.writeFileSync(descriptor,JSON.stringify({schema:1,hostKey,consumed:true,claimedAtUtc:new Date(now()).toISOString()}),'utf8');
    fileSystem.fsyncSync(descriptor);fileSystem.closeSync(descriptor);descriptor=null;
    fileSystem.renameSync(temporary,ledger);temporaryOwned=false;
-   return {eligible:true,hostKey};
+   return ordinaryWorkspace?{eligible:true,hostKey}:null;
   }catch{return null;}
   finally{
    if(descriptor!==null)try{fileSystem.closeSync(descriptor);}catch{}
@@ -101,9 +101,21 @@ function createOpeningGate({root:stateRoot,identity,now=Date.now,fileSystem=fs})
  }
  return {pending,claim};
 }
-const openingTargetExpression=`(() => {if(document.visibilityState!=='visible'||document.hidden||!document.hasFocus()||document.querySelectorAll('aside.app-shell-left-panel').length!==1||document.querySelector('[data-orbit-profile-identity]'))return false;const main=document.querySelector('main:is(.main-surface,[data-app-shell-main-surface],[class*="_MainContentSurface_"])');if(!main)return false;const style=getComputedStyle(main),box=main.getBoundingClientRect();return style.display!=='none'&&style.visibility==='visible'&&Number(style.opacity)!==0&&box.width>0&&box.height>0&&box.bottom>0&&box.right>0&&box.top<innerHeight&&box.left<innerWidth;})()`;
+const openingTargetExpression=`(() => {try{
+ if(document.visibilityState!=='visible'||document.hidden||!document.hasFocus()||navigator.userActivation?.hasBeenActive!==false||document.querySelectorAll('aside.app-shell-left-panel').length!==1||document.querySelector('[data-orbit-profile-identity]'))return false;
+ const main=document.querySelector('main:is(.main-surface,[data-app-shell-main-surface],[class*="_MainContentSurface_"])');
+ const visible=node=>{if(!node||node.closest('[hidden],[inert],[aria-hidden="true"]'))return false;const style=getComputedStyle(node),box=node.getBoundingClientRect();return style.display!=='none'&&style.visibility==='visible'&&Number(style.opacity)!==0&&box.width>0&&box.height>0&&box.bottom>0&&box.right>0&&box.top<innerHeight&&box.left<innerWidth;};
+ if(!visible(main))return false;
+ if([...document.querySelectorAll('[role="dialog"],[role="alertdialog"],[role="menu"]'),...main.querySelectorAll('[aria-busy="true"]')].some(visible))return false;
+ for(const composer of main.querySelectorAll(':is(.composer-surface-chrome,[class*="_ComposerLayoutRoot_"],[data-composer-surface-variant][data-composer-radius-variant])')){
+  if(!visible(composer))continue;
+  for(const editor of composer.querySelectorAll('.ProseMirror[contenteditable="true"],textarea,input[type="text"]'))if(visible(editor)&&((typeof editor.value==='string'&&editor.value.trim())||(editor.textContent||'').trim()||editor.querySelector('img,[contenteditable="false"]')))return false;
+  if([...composer.querySelectorAll('[data-composer-attachments][data-visible-attachments]')].some(visible))return false;
+ }
+ return true;
+}catch{return false;}})()`;
 const compatibilityNoticeSource=`if(window[key].capabilities){const labels={sidebar:'侧栏图标',pages:'页面装饰',panels:'终端与文件面板',overlays:'搜索与弹窗',contextMenus:'右键菜单'};const disabled=Object.keys(labels).filter(k=>window[key].capabilities[k]===false);if(disabled.length){const note=document.createElement('div');note.setAttribute('role','status');note.setAttribute('data-xiaomu-compatibility-notice','');note.style.cssText='position:fixed;bottom:12px;right:12px;max-width:calc(100vw - 24px);box-sizing:border-box;padding:10px 12px;border:1px solid #bed0b4;border-radius:12px;background:#fbfcf6;color:#2e4939;font:13px/1.5 sans-serif;z-index:100';const text=document.createElement('span');text.textContent='小睦皮肤已加载；'+disabled.map(k=>labels[k]).join('、')+'暂时保留原样。';const close=document.createElement('button');close.type='button';close.textContent='知道了';close.style.cssText='margin-left:8px;color:inherit;background:transparent;border:0;cursor:pointer';close.onclick=()=>note.remove();note.append(text,close);document.body.append(note);window[key].notice=note;}};`;
-function applyExpression(bundle,token,capabilities=null,guardianSource='',captionSource='',opening=null){const openingContext=opening?.eligible===true&&typeof opening.hostKey==='string'&&/^[a-f0-9]{64}$/.test(opening.hostKey)?{eligible:true,hostKey:opening.hostKey}:null;const guardianSetup=guardianSource?'window[key].guardianCompatibility=('+guardianSource+');':'';const captionSetup=captionSource?'window[key].captionContrast=('+captionSource+');':'';return `(() => {const key=${JSON.stringify(marker)},token=${JSON.stringify(token)};if(window[key])return {owned:window[key].token===token,active:!!window.__XIAOMU_NATIVE_SKIN_V1__};if(window.__XIAOMU_NATIVE_SKIN_V1__||document.querySelector('#xiaomu-native-style-v1,html[data-xiaomu-native-skin]'))return {owned:false,conflict:true};window[key]={token,capabilities:${JSON.stringify(capabilities)},opening:${JSON.stringify(openingContext)}};try{if(window[key].capabilities?.core===false)throw Error("Unsupported core");${guardianSetup}${captionSetup}${bundle}\n;${compatibilityNoticeSource}return {owned:true,active:!!window.__XIAOMU_NATIVE_SKIN_V1__,parts:window.__XIAOMU_NATIVE_SKIN_V1__?.inspect().decoratedParts||[]};}catch(e){window[key]?.guardianCompatibility?.cleanup();window[key]?.captionContrast?.cleanup();window[key]?.notice?.remove();window.__XIAOMU_NATIVE_SKIN_V1__?.cleanup();delete window[key];throw e;}})()`;}
+function applyExpression(bundle,token,capabilities=null,guardianSource='',captionSource='',opening=null){const openingContext=opening?.eligible===true&&typeof opening.hostKey==='string'&&/^[a-f0-9]{64}$/.test(opening.hostKey)?{eligible:true,hostKey:opening.hostKey}:null;const openingSetup=openingContext?'(('+openingTargetExpression+')?'+JSON.stringify(openingContext)+':null)':'null';const guardianSetup=guardianSource?'window[key].guardianCompatibility=('+guardianSource+');':'';const captionSetup=captionSource?'window[key].captionContrast=('+captionSource+');':'';return `(() => {const key=${JSON.stringify(marker)},token=${JSON.stringify(token)};if(window[key])return {owned:window[key].token===token,active:!!window.__XIAOMU_NATIVE_SKIN_V1__};if(window.__XIAOMU_NATIVE_SKIN_V1__||document.querySelector('#xiaomu-native-style-v1,html[data-xiaomu-native-skin]'))return {owned:false,conflict:true};window[key]={token,capabilities:${JSON.stringify(capabilities)},opening:${openingSetup}};try{if(window[key].capabilities?.core===false)throw Error("Unsupported core");${guardianSetup}${captionSetup}${bundle}\n;${compatibilityNoticeSource}return {owned:true,active:!!window.__XIAOMU_NATIVE_SKIN_V1__,parts:window.__XIAOMU_NATIVE_SKIN_V1__?.inspect().decoratedParts||[]};}catch(e){window[key]?.guardianCompatibility?.cleanup();window[key]?.captionContrast?.cleanup();window[key]?.notice?.remove();window.__XIAOMU_NATIVE_SKIN_V1__?.cleanup();delete window[key];throw e;}})()`;}
 function cleanupExpression(token){return `(() => {const key=${JSON.stringify(marker)},owned=window[key];if(!owned||owned.token!==${JSON.stringify(token)})return false;owned.observer?.disconnect();owned.guardianCompatibility?.cleanup();owned.captionContrast?.cleanup();owned.notice?.remove();window.__XIAOMU_NATIVE_SKIN_V1__?.cleanup();delete window[key];return true;})()`;}
 async function connect(url){
  const ws=new WebSocket(url);let serial=0;const pending=new Map();
@@ -173,7 +185,7 @@ async function run(){
       else{
        if(fs.existsSync(path.join(root,'stop.flag')))break;
        let opening=null;
-       if(openingGate.pending()){
+       if(!firstApplied&&openingGate.pending()){
         phase='opening';let ordinaryWorkspace=false;try{ordinaryWorkspace=await startupTiming.timeAsync(phase,()=>evaluate(c,openingTargetExpression));}catch(error){startupTiming.targetFailure(phase,error);}
         opening=openingGate.claim(ordinaryWorkspace);
        }
