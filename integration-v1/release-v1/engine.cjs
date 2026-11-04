@@ -38,7 +38,13 @@ function createStartupTiming({now=()=>performance.now()}={}){
  }
  return {begin,sync,timeAsync,mark,targetFailure,stop};
 }
-async function waitForTargets({gate,fetchTargets,sleep,stopped,onRetry}){
+function startupDelay({kind,attempt=1,elapsedMs,firstApplied=false,activePages=0}){
+ const startup=!firstApplied&&Number.isFinite(elapsedMs)&&elapsedMs>=0&&elapsedMs<60000;
+ if(kind==='endpoint')return startup?Math.min(1500,500*2**Math.min(attempt-1,2)):Math.min(10000,1500*2**Math.min(attempt-1,3));
+ if(kind==='poll')return activePages>0||!startup?1500:elapsedMs<15000?120:500;
+ throw new TypeError('Unknown startup delay kind');
+}
+async function waitForTargets({gate,fetchTargets,sleep,stopped,onRetry,getEndpointDelay=attempt=>startupDelay({kind:'endpoint',attempt,firstApplied:true})}){
  let identityFailures=0,endpointFailures=0;
  while(!stopped()){
   try{gate();identityFailures=0;}
@@ -49,7 +55,7 @@ async function waitForTargets({gate,fetchTargets,sleep,stopped,onRetry}){
   }
   if(stopped())return null;
   try{const targets=await fetchTargets();return stopped()?null:targets;}
-  catch(error){endpointFailures++;const delayMs=Math.min(10000,1500*2**Math.min(endpointFailures-1,3));onRetry({stage:'endpoint',attempt:endpointFailures,code:failureCode(error),delayMs});await sleep(delayMs);}
+  catch(error){endpointFailures++;const delayMs=getEndpointDelay(endpointFailures);onRetry({stage:'endpoint',attempt:endpointFailures,code:failureCode(error),delayMs});await sleep(delayMs);}
  }
  return null;
 }
@@ -148,7 +154,7 @@ async function run(){
     retrying=true;health.lastFailure={atUtc:new Date().toISOString(),stage:details.stage,code:details.code};
     if(details.attempt===1)record('retrying',details);
     status('retrying-'+details.stage,details);
-   }});
+   },getEndpointDelay:attempt=>startupDelay({kind:'endpoint',attempt,elapsedMs:Date.now()-controllerStartedAtMs,firstApplied})});
    if(targets===null)break;
    if(targets.length)startupTiming.mark('firstTargetsMs');
    if(retrying){health.recoveryCount++;health.lastRecoveredAtUtc=new Date().toISOString();record('reconnected',{recoveryCount:health.recoveryCount});}
@@ -181,7 +187,7 @@ async function run(){
    }
    if(activePages&&!firstApplied){firstApplied=true;const launch=Date.parse(identity.launchRequestedAtUtc||'');fs.writeFileSync(path.join(root,'startup-timing.json'),JSON.stringify({atUtc:new Date().toISOString(),controllerToFirstApplyMs:Date.now()-controllerStartedAtMs,launchToFirstApplyMs:Number.isFinite(launch)?Date.now()-launch:null,packageVersion:compatibility.packageVersion,metric:'skin injection completed; visual first-paint acceptance is separate',...startupTiming.stop()},null,2));}
    status(activePages?'active':'waiting-for-native-workspace',{activePages,conflicts,version:manifest.version,packageVersion:compatibility.packageVersion,compatibility:compatibility.mode,disabled:compatibility.disabled});
-   await startupTiming.timeAsync('loop-sleep',()=>new Promise(r=>setTimeout(r,!activePages&&Date.now()-controllerStartedAtMs<15000?120:1500)));
+   await startupTiming.timeAsync('loop-sleep',()=>new Promise(r=>setTimeout(r,startupDelay({kind:'poll',elapsedMs:Date.now()-controllerStartedAtMs,firstApplied,activePages}))));
   }
  }catch(e){failed=true;stopReason='session-error-'+failureCode(e);record('stopped',{reason:stopReason});}
  finally{
@@ -190,5 +196,5 @@ async function run(){
   for(const c of clients.values())c.close();status(failed?stopReason:'disabled',{restoredPages:restored});
  }
 }
-module.exports={validTarget,applyExpression,cleanupExpression,verifyIdentity,waitForTargets,createOpeningGate,openingTargetExpression,createStartupTiming};
+module.exports={validTarget,applyExpression,cleanupExpression,verifyIdentity,waitForTargets,createOpeningGate,openingTargetExpression,createStartupTiming,startupDelay};
 if(require.main===module)run().catch(()=>{fs.writeFileSync(path.join(root,'status.json'),JSON.stringify({status:'failed-before-application'}));process.exitCode=1;});
