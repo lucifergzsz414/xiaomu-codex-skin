@@ -4,23 +4,25 @@
 
 这是粉丝制作的外观项目，与 OpenAI、BanG Dream! 及相关权利方无隶属或背书关系。
 
-**当前预发布：`1.0.0-beta.2` · 候选编号：`20261031-3384-rc2`**
+**当前预发布为 7803 兼容测试版，候选编号 20261105-7803-rc1。**
 
-[下载安装包](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.0-beta.2) · [详细使用说明](integration-v1/release-v1/USAGE.md) · [第三方与素材说明](THIRD-PARTY-NOTICES.md)
+[下载 7803 安装包](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/download/v1.0.0-7803-rc1/xiaomu-codex-skin-20261105-7803-rc1.zip) · [SHA-256 校验文件](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/download/v1.0.0-7803-rc1/xiaomu-codex-skin-20261105-7803-rc1.zip.sha256) · [发布说明](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.0-7803-rc1) · [第三方与素材说明](THIRD-PARTY-NOTICES.md)
+
+旧版下载仍可用。[Beta.2（3384 兼容版）](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.0-beta.2) · [Beta.1](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.0-beta.1)
 
 ![小睦素材演示页：浅绿配色与窗边背景，非实机录屏](docs/images/material-preview.png)
 
-上图是素材演示页截图，非真实 Codex 窗口。[本地播放背景和片头](docs/demo/index.html) · [小范围试用说明](docs/BETA-TRYOUT.md)
+上图是素材演示页截图，非真实 Codex 窗口。[本地播放背景和片头](docs/demo/index.html) · [Beta.2 试用记录](https://github.com/lucifergzsz414/xiaomu-codex-skin/blob/6f98a3d796949e39c71980e09d0a5582dedb29c3/docs/BETA-TRYOUT.md)
 
-[十五秒素材短片](docs/demo/beta2-materials-15s.mp4)：现有片头、窗边循环与版本卡的静音剪辑，非实机录屏。[分享文案草稿](docs/SHARE-DRAFT.md)可供小范围试用介绍使用。
+[十五秒素材短片](docs/demo/beta2-materials-15s.mp4)：现有片头、窗边循环与版本卡的静音剪辑，非实机录屏。[Beta.2 分享文案草稿](docs/SHARE-DRAFT.md)。
 
-**本版修正（2026-10-31）：** 已修正非中文 Windows 创建中文快捷方式失败的问题。本次最终 ZIP 在独立 Windows Server 测试机上通过 26 项检查；[beta.1 原包](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.0-beta.1)及其校验值继续保留。Windows 11 普通用户、Store Codex 实际启动与重启验收仍待完成，详见 [验收记录与正式版门槛](qa/RELEASE-READINESS.md)。
+本版适配 Microsoft Store Codex 26.1029.7803.0 的设置页、搜索弹窗和聊天右键菜单，包含初次加载与片头触发调整。
 
 ## 使用前准备
 
 | 项目 | 当前要求 |
 | --- | --- |
-| 系统与客户端 | Windows；当前用户已安装 Microsoft Store Codex **26.1027.3384.0** |
+| 系统与客户端 | Windows；当前用户已安装 Microsoft Store Codex **26.1029.7803.0** |
 | Node.js | **22 或更高版本**，安装在默认目录 `C:\Program Files\nodejs` |
 | Codex 外观 | 在 Codex 原生设置中选择**浅色主题** |
 
@@ -28,8 +30,8 @@
 
 ## 安装与恢复
 
-1. 从 [Releases](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.0-beta.2) 下载 `xiaomu-codex-skin-1.0.0-beta.2-20261031-3384-rc2.zip`，完整解压并保留原包。
-2. 阅读解压目录的 `START-HERE.md`，双击 `skin\manage.vbs`，选择“安装 / 修复”。
+1. 下载 [7803 安装包](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/download/v1.0.0-7803-rc1/xiaomu-codex-skin-20261105-7803-rc1.zip)，完整解压并保留原包。
+2. 阅读包内的 `START-HERE.md` 和 `skin\USAGE.md`，双击 `skin\manage.vbs`，选择“安装 / 修复”。
 3. 保存工作并正常退出全部 Codex 窗口，再从桌面“小睦 Codex”或管理窗口的“启动 / 继续”进入。
 4. 暂时停用可选“暂停皮肤”；撤回外观与受管快捷方式可选“恢复官方外观”。
 
@@ -40,12 +42,12 @@
 压缩包 SHA256：
 
 ```text
-fc70bf3b564e89cea6644f66d4565ca0d98659e2c9a75f09844de5489cc3e1cb
+c73f8589e4ce2a442e30b74fe332f51dfaa641499c9e82f381edb65f8788fe8b
 ```
 
 ## 已安装旧候选时升级
 
-对外版本为 `1.0.0-beta.2`，管理窗口、运行清单和安装目录版本仍为 **`1.0.0`**。请同时核对候选编号。本版没有自动升级：包括从 beta.1 升级时，完整旧安装重复点击“安装 / 修复”只补齐入口。
+管理窗口、运行清单和安装目录仍显示运行版本 **`1.0.0`**。请用候选编号 `20261105-7803-rc1` 识别新版。完整旧安装重复点击“安装 / 修复”只会补齐入口，升级请按以下步骤手动进行。
 
 1. 保留旧包，在管理窗口点“暂停皮肤”，等皮肤停止，再关闭所有小睦管理窗口。
 2. 完整解压新包，在新包的 `skin` 文件夹中打开 Windows PowerShell，运行：
@@ -57,17 +59,15 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -SourceRoo
 3. 等待校验与替换完成。旧安装会保存为 `backup-repair-*`，请保留备份。
 4. 重新打开“小睦皮肤管理”，点“重新检测”，通过后主动点“启动 / 继续”。升级后保持暂停，不自动启用。
 
-修复和回退也应使用另一份可信的完整解压包，勿以已安装目录自身作为来源。详细步骤见 [USAGE.md](integration-v1/release-v1/USAGE.md)。
+修复和回退也应使用另一份可信的完整解压包，勿以已安装目录自身作为来源。详细步骤见 7803 解压包中的 `skin\USAGE.md`。
 
 ## 当前验证范围
 
-2026-11-02补验：最终Beta.2安装包在维护机隔离目录完成21/21项安装与修复检查，入口模块的3个测试快捷方式精确回滚；现用Codex的皮肤暂停、无重启重新挂接恢复通过。现用安装与最终公开包并非逐文件相同，未据此宣称完整端到端验收。搜索、设置和右键菜单不在本轮范围，详见[验收记录](qa/RELEASE-READINESS.md#维护机补充验收2026-11-02)。
+- 维护者在真实 Codex 26.1029.7803.0 中确认这次启动体验、设置页、搜索弹窗和聊天右键菜单正常。
+- 发布的同一份 ZIP 通过了 9 项本机隔离检查，覆盖首次与重复安装、损坏检测、修复和快捷方式恢复。
+- **尚未在独立 Windows 11 普通用户环境验收完整安装、登录和启动流程。**
 
-本次最终 Beta.2 ZIP 在全新的英文 Windows Server 2022 管理员测试机上 **26/26 项通过**：实际安装、中文入口回读、缺依赖启动拦截、暂停、恢复、重复操作和损坏修复。32 个包内文件完成逐项校验。[完整运行](https://github.com/lucifergzsz414/xiaomu-codex-skin/actions/runs/41209958097) · [原样结果 JSON](qa/results/beta2-archive-20261031.json)。
-
-皮肤 `skin.js` 与此前本机 Store `26.1027.3384.0` 验证的版本完全相同，原有冷启动、片头自然结束与右键菜单记录仍保留。Windows 11 普通用户的真实 Codex 启动、画面、系统重启和下载安全提示尚未完成验收；本轮也没有重新实测片头“跳过”或 Esc。独立桌面环境按包内 `CLEAN-TEST-GUIDE.md` 继续记录，26 项结果不代表这些项目已通过。
-
-本仓库与 GitHub Release 以**公开预发布**提供 Beta.2。包内 `RELEASE-CANDIDATE.json` 保留封包时“准备公开发布”的记录；封包后的最终 ZIP 验收见上面的运行链接和 Release 页面。旧 Beta.1 中的“受邀测试”“尚未公开发布”等字段是旧包的历史记录，旧包未覆盖。测试和素材记录中的待完成项继续有效。
+[7803 发布记录](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.0-7803-rc1) · [Beta.2 历史验收记录](qa/RELEASE-READINESS.md)
 
 ## 本地素材演示
 
@@ -77,7 +77,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -SourceRoo
 
 ## 从源码构建
 
-仓库保留原有相对目录，供构建脚本读取固定素材：
+[7803 适配源码](https://github.com/lucifergzsz414/xiaomu-codex-skin/tree/v1.0.0-7803-rc1)随对应标签保留。以下是默认分支的旧版构建说明。
 
 ```text
 integration-v1\
@@ -101,7 +101,7 @@ node .\integration-v1\release-v1\build-release.cjs
 
 生成的皮肤和安装文件位于 `integration-v1\release-v1\package`。构建产物、安装备份、测试输出和本地配置不纳入源码仓库。下载即用请选择 Release ZIP；源码压缩包不能代替完整安装包。
 
-维护者如需生成完整 ZIP，应使用包含历史提交的 Git 克隆并先提交所有源文件，再运行 `powershell.exe -NoProfile -File .\integration-v1\release-v1\prepare-release-candidate.ps1`。封包脚本读取既有验收记录，验证源码关联，并拒绝覆盖同名已封包文件。
+默认分支的封包脚本仅对应 Beta.2。维护者如需复核旧版封包流程，请使用包含历史提交的 Git 克隆并先提交所有源文件，再运行 `powershell.exe -NoProfile -File .\integration-v1\release-v1\prepare-release-candidate.ps1`。封包脚本读取既有验收记录，验证源码关联，并拒绝覆盖同名已封包文件。
 
 ## 来源与反馈
 
@@ -111,4 +111,4 @@ node .\integration-v1\release-v1\build-release.cjs
 
 反馈请提供候选编号、Windows / Store Codex / Node.js 版本、操作步骤和完整错误提示。截图先遮住私人内容；请勿上传聊天正文、登录资料或密钥。
 
-可以使用[皮肤问题反馈表](https://github.com/lucifergzsz414/xiaomu-codex-skin/issues/new?template=skin-problem.yml)填写；不知道的环境信息写“不确定”即可。小范围试用建议见[试用说明](docs/BETA-TRYOUT.md)。
+可以使用[皮肤问题反馈表](https://github.com/lucifergzsz414/xiaomu-codex-skin/issues/new?template=skin-problem.yml)填写；不知道的环境信息写“不确定”即可。旧版试用资料见 [Beta.2 试用记录](https://github.com/lucifergzsz414/xiaomu-codex-skin/blob/6f98a3d796949e39c71980e09d0a5582dedb29c3/docs/BETA-TRYOUT.md)。
