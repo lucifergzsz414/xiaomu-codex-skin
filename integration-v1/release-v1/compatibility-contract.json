@@ -12,7 +12,13 @@
       ],
       [
         "_ComposerLayoutRoot_",
-        "composer-surface-chrome"
+        "composer-surface-chrome",
+        "data-composer-surface-variant"
+      ],
+      [
+        "_ComposerLayoutRoot_",
+        "composer-surface-chrome",
+        "data-composer-radius-variant"
       ],
       [
         "ProseMirror"
