@@ -7,12 +7,20 @@ function failureCode(error){
  const code=/^[A-Z_]{2,50}$/.test(native)?native:error?.code;
  return typeof code==='string'&&/^[A-Z_]{2,50}$/.test(code)?code:'UNAVAILABLE';
 }
+const workspaceMissingMarkers=Object.freeze([
+ 'workspace-sidebar-missing','workspace-sidebar-multiple','workspace-main-missing',
+ 'dot-profile-missing','dot-profile-multiple','dot-artwork-missing',
+ 'dot-messaging-root-missing','dot-messaging-root-multiple','dot-message-list-missing',
+]);
 function createStartupTiming({now=()=>performance.now()}={}){
  const phaseNames=['preparation','identity','target-list','connect','eligibility','ownership','opening','apply','cleanup','loop-sleep'];
  const targetPhases=['connect','eligibility','ownership','opening','apply','cleanup'];
  const phaseTimings=Object.fromEntries(phaseNames.map(name=>[name,{calls:0,totalMs:0,failures:0,timeouts:0}]));
  const milestonesMs={firstTargetsMs:null,firstEligibleMs:null,firstApplyStartedMs:null,firstApplyCompletedMs:null};
  const started=now();let stopped=false,sweepCompletedMs=null,targetFailureCount=0,targetTimeoutCount=0;
+ const missingCounts=Object.fromEntries(workspaceMissingMarkers.map(marker=>[marker,0]));
+ let checks=0,firstCheckMs=null,firstReadySurface=null,lastWaiting=null;
+ const round=value=>value===null?null:Math.round(value*1000)/1000;
  const known=(names,name)=>{if(!names.includes(name))throw new TypeError('Unknown startup timing stage');};
  function begin(phase){
   known(phaseNames,phase);if(stopped)return ()=>{};
@@ -31,12 +39,34 @@ function createStartupTiming({now=()=>performance.now()}={}){
   phaseTimings[phase].failures++;targetFailureCount++;
   if(error?.code==='ETIMEDOUT'||typeof error?.message==='string'&&/\b(?:timeout|timed\s+out)\b/i.test(error.message)){phaseTimings[phase].timeouts++;targetTimeoutCount++;}
  }
+ function observeWorkspace(report){
+  const {surface,missing}=report||{};
+  const ready=surface==='workspace'||surface==='dot';
+  if((!ready&&surface!==null)||!Array.isArray(missing)||missing.length>workspaceMissingMarkers.length||
+   [...missing].some(marker=>!workspaceMissingMarkers.includes(marker))||new Set(missing).size!==missing.length||
+   (ready?missing.length!==0:missing.length===0))throw Error('Invalid workspace readiness report');
+  if(stopped)return ready;
+  const atMs=Math.max(0,now()-started);
+  checks++;
+  if(firstCheckMs===null)firstCheckMs=atMs;
+  if(ready){
+   if(firstReadySurface===null)firstReadySurface=surface;
+  }else{
+   lastWaiting={atMs:round(atMs),missing:[...missing]};
+   for(const marker of missing)missingCounts[marker]++;
+  }
+  return ready;
+ }
+ function workspaceSnapshot(){
+  return {checks,firstCheckMs:round(firstCheckMs),firstTargetsMs:round(milestonesMs.firstTargetsMs),
+   firstEligibleMs:round(milestonesMs.firstEligibleMs),firstReadySurface,
+   lastWaiting:lastWaiting&&{atMs:lastWaiting.atMs,missing:[...lastWaiting.missing]},missingCounts:{...missingCounts}};
+ }
  function stop(){
   if(!stopped){sweepCompletedMs=Math.max(0,now()-started);stopped=true;}
-  const round=value=>value===null?null:Math.round(value*1000)/1000;
-  return {timingSchema:2,phaseTimings:Object.fromEntries(phaseNames.map(name=>[name,{...phaseTimings[name],totalMs:round(phaseTimings[name].totalMs)}])),milestonesMs:Object.fromEntries(Object.entries(milestonesMs).map(([name,value])=>[name,round(value)])),sweepCompletedMs:round(sweepCompletedMs),targetFailureCount,targetTimeoutCount};
+  return {timingSchema:3,phaseTimings:Object.fromEntries(phaseNames.map(name=>[name,{...phaseTimings[name],totalMs:round(phaseTimings[name].totalMs)}])),milestonesMs:Object.fromEntries(Object.entries(milestonesMs).map(([name,value])=>[name,round(value)])),sweepCompletedMs:round(sweepCompletedMs),targetFailureCount,targetTimeoutCount,workspaceReadiness:workspaceSnapshot()};
  }
- return {begin,sync,timeAsync,mark,targetFailure,stop};
+ return {begin,sync,timeAsync,mark,targetFailure,observeWorkspace,workspaceSnapshot,stop};
 }
 function startupDelay({kind,attempt=1,elapsedMs,firstApplied=false,activePages=0}){
  const startup=!firstApplied&&Number.isFinite(elapsedMs)&&elapsedMs>=0&&elapsedMs<60000;
@@ -125,7 +155,31 @@ async function connect(url){
  return {close:()=>ws.close(),call(method,params={}){return new Promise((resolve,reject)=>{const id=++serial;const timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP timeout'));},10000);pending.set(id,{resolve,reject,timer});ws.send(JSON.stringify({id,method,params}));});}};
 }
 async function evaluate(client,expression){const r=await client.call('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error('Renderer check failed');return r.result.value;}
-const eligible=`(document.querySelectorAll('aside.app-shell-left-panel').length===1&&(!!document.querySelector('main:is(.main-surface,[data-app-shell-main-surface],[class*="_MainContentSurface_"])')||!!(window.__XIAOMU_INSTALLED_SESSION_V1__&&window.__XIAOMU_NATIVE_SKIN_V1__)))||(document.querySelectorAll('[data-orbit-profile-identity]').length===1&&!!document.querySelector('[data-orbit-profile-identity] [data-character-artwork]')&&document.querySelectorAll('.messaging-root.messaging-embedded').length===1&&!!document.querySelector('.messaging-root.messaging-embedded .message-list'))`;
+// Keep the regular predicate and the startup observation on the same selectors.
+function checkWorkspace(document,window,diagnose){
+ const sidebar=document.querySelectorAll('aside.app-shell-left-panel').length;
+ const main=(diagnose||sidebar===1)&&(!!document.querySelector('main:is(.main-surface,[data-app-shell-main-surface],[class*="_MainContentSurface_"])')||
+  !!(window.__XIAOMU_INSTALLED_SESSION_V1__&&window.__XIAOMU_NATIVE_SKIN_V1__));
+ if(sidebar===1&&main)return diagnose?{surface:'workspace',missing:[]}:true;
+
+ const profile=document.querySelectorAll('[data-orbit-profile-identity]').length;
+ const artwork=(diagnose||profile===1)&&!!document.querySelector('[data-orbit-profile-identity] [data-character-artwork]');
+ const messaging=(diagnose||artwork)?document.querySelectorAll('.messaging-root.messaging-embedded').length:0;
+ const messageList=(diagnose||messaging===1)&&!!document.querySelector('.messaging-root.messaging-embedded .message-list');
+ if(profile===1&&artwork&&messaging===1&&messageList)return diagnose?{surface:'dot',missing:[]}:true;
+ if(!diagnose)return false;
+
+ const missing=[];
+ if(sidebar!==1)missing.push(sidebar===0?'workspace-sidebar-missing':'workspace-sidebar-multiple');
+ if(!main)missing.push('workspace-main-missing');
+ if(profile!==1)missing.push(profile===0?'dot-profile-missing':'dot-profile-multiple');
+ if(!artwork)missing.push('dot-artwork-missing');
+ if(messaging!==1)missing.push(messaging===0?'dot-messaging-root-missing':'dot-messaging-root-multiple');
+ if(!messageList)missing.push('dot-message-list-missing');
+ return {surface:null,missing};
+}
+const eligible='('+checkWorkspace.toString()+')(document,window,false)';
+const workspaceProbe='('+checkWorkspace.toString()+')(document,window,true)';
 function verifyIdentity(root,identity,compatibility){
  const verifier=path.join(root,'owner-check.exe');
   const archiveInfo=fs.statSync(path.join(path.dirname(identity.executable),'resources','app.asar'),{bigint:true});
@@ -151,7 +205,10 @@ async function run(){
  const gate=()=>startupTiming.sync('identity',()=>verifyIdentity(root,identity,compatibility));
  const health={recoveryCount:0,lastFailure:null,lastRecoveredAtUtc:null};
  const events=[];const record=(event,details={})=>{events.push({atUtc:new Date().toISOString(),event,...details});if(events.length>32)events.shift();fs.writeFileSync(path.join(root,'session-events.json'),JSON.stringify(events,null,2));};
- const status=(state,extra={})=>fs.writeFileSync(path.join(root,'status.json'),JSON.stringify({atUtc:new Date().toISOString(),status:state,...health,...extra},null,2));
+ const status=(state,extra={})=>{
+  const readiness=firstApplied?{}:{workspaceReadiness:startupTiming.workspaceSnapshot()};
+  fs.writeFileSync(path.join(root,'status.json'),JSON.stringify({atUtc:new Date().toISOString(),status:state,...health,...extra,...readiness},null,2));
+ };
  preparationDone();
  try{
   status('connecting');
@@ -178,7 +235,9 @@ async function run(){
     let c=clients.get(target.id);if(!c){try{c=await startupTiming.timeAsync('connect',()=>connect(target.webSocketDebuggerUrl));clients.set(target.id,c);}catch(error){startupTiming.targetFailure('connect',error);continue;}}
     let phase='eligibility';
     try{
-     if(await startupTiming.timeAsync(phase,()=>evaluate(c,eligible))){
+     const readiness=await startupTiming.timeAsync(phase,()=>evaluate(c,firstApplied?eligible:workspaceProbe));
+     const ready=firstApplied?readiness:startupTiming.observeWorkspace(readiness);
+     if(ready){
       startupTiming.mark('firstEligibleMs');phase='ownership';
       const owned=await startupTiming.timeAsync(phase,()=>evaluate(c,`window[${JSON.stringify(marker)}]?.token===${JSON.stringify(token)}`));
       if(owned){if(await startupTiming.timeAsync(phase,()=>evaluate(c,`document.documentElement.getAttribute('data-xiaomu-native-skin')==='v1'`))){activePages++;startupTiming.mark('firstApplyCompletedMs');}}
@@ -208,5 +267,5 @@ async function run(){
   for(const c of clients.values())c.close();status(failed?stopReason:'disabled',{restoredPages:restored});
  }
 }
-module.exports={validTarget,applyExpression,cleanupExpression,verifyIdentity,waitForTargets,createOpeningGate,openingTargetExpression,createStartupTiming,startupDelay};
+module.exports={validTarget,applyExpression,cleanupExpression,verifyIdentity,waitForTargets,createOpeningGate,openingTargetExpression,createStartupTiming,startupDelay,eligible,workspaceProbe};
 if(require.main===module)run().catch(()=>{fs.writeFileSync(path.join(root,'status.json'),JSON.stringify({status:'failed-before-application'}));process.exitCode=1;});

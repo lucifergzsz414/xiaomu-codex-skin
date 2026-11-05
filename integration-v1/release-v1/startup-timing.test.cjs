@@ -1,6 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict');
 const test=require('node:test');
+const vm=require('node:vm');
 const engine=require('./engine.cjs');
 
 function fixture(){let time=1000,reads=0;return {timing:engine.createStartupTiming({now:()=>{reads++;return time;}}),advance:ms=>{time+=ms;},reads:()=>reads};}
@@ -21,7 +22,7 @@ test('phases accumulate durations and calls without changing results',async()=>{
  assert.deepEqual(result.phaseTimings.identity,{calls:2,totalMs:20,failures:0,timeouts:0});
  assert.deepEqual(result.phaseTimings.apply,{calls:1,totalMs:35,failures:0,timeouts:0});
  assert.equal(result.sweepCompletedMs,55);
- assert.equal(result.timingSchema,2);
+ assert.equal(result.timingSchema,3);
  assert.doesNotMatch(JSON.stringify(result),/private\.invalid|fixture-private-input/);
 });
 
@@ -93,4 +94,92 @@ test('only known phase and milestone keys can enter detached numeric metadata',(
  assert.equal(clean.phaseTimings.apply.calls,0);assert.equal(clean.milestonesMs.firstTargetsMs,null);
  function numeric(value){for(const leaf of Object.values(value)){if(leaf&&typeof leaf==='object')numeric(leaf);else assert.ok(leaf===null||typeof leaf==='number'&&Number.isFinite(leaf));}}
  numeric(clean);
+});
+
+test('the startup probe and regular predicate agree across workspace and Dot states',()=>{
+ const legacy = `(document.querySelectorAll('aside.app-shell-left-panel').length===1&&(!!document.querySelector('main:is(.main-surface,[data-app-shell-main-surface],[class*="_MainContentSurface_"])')||!!(window.__XIAOMU_INSTALLED_SESSION_V1__&&window.__XIAOMU_NATIVE_SKIN_V1__)))||(document.querySelectorAll('[data-orbit-profile-identity]').length===1&&!!document.querySelector('[data-orbit-profile-identity] [data-character-artwork]')&&document.querySelectorAll('.messaging-root.messaging-embedded').length===1&&!!document.querySelector('.messaging-root.messaging-embedded .message-list'))`;
+ const expected=new vm.Script(legacy),regular=new vm.Script(engine.eligible),startup=new vm.Script(engine.workspaceProbe);
+ const context=vm.createContext({});
+ const booleans=[false,true],counts=[0,1,2];
+ for(const sidebar of counts)for(const main of booleans)for(const installed of booleans)for(const native of booleans)
+ for(const profile of counts)for(const artwork of booleans)for(const messaging of counts)for(const list of booleans){
+  const collectionLengths={
+   'aside.app-shell-left-panel':sidebar,
+   '[data-orbit-profile-identity]':profile,
+   '.messaging-root.messaging-embedded':messaging,
+  };
+  const singleMarkers={
+   'main:is(.main-surface,[data-app-shell-main-surface],[class*="_MainContentSurface_"])':main,
+   '[data-orbit-profile-identity] [data-character-artwork]':artwork,
+   '.messaging-root.messaging-embedded .message-list':list,
+  };
+  context.document={
+   querySelectorAll(selector){assert.ok(Object.hasOwn(collectionLengths,selector));return {length:collectionLengths[selector]};},
+   querySelector(selector){assert.ok(Object.hasOwn(singleMarkers,selector));return singleMarkers[selector]?{}:null;},
+  };
+  context.window={__XIAOMU_INSTALLED_SESSION_V1__:installed,__XIAOMU_NATIVE_SKIN_V1__:native};
+  const before=expected.runInContext(context);
+  const observation=startup.runInContext(context);
+  assert.equal(regular.runInContext(context),before);
+  assert.equal(observation.surface!==null,before);
+  if(sidebar===1&&(main||installed&&native))assert.equal(observation.surface,'workspace');
+  else if(before)assert.equal(observation.surface,'dot');
+ }
+});
+
+test('the startup probe distinguishes absent and duplicate markers without page content',()=>{
+ const context={
+  document:{
+   querySelectorAll(selector){return {length:selector==='[data-orbit-profile-identity]'?9:0};},
+   querySelector(){return null;},
+  },
+  window:{},
+ };
+ const result=JSON.parse(JSON.stringify(vm.runInNewContext(engine.workspaceProbe,context)));
+ assert.deepEqual(result,{surface:null,missing:['workspace-sidebar-missing','workspace-main-missing',
+  'dot-profile-multiple','dot-artwork-missing','dot-messaging-root-missing','dot-message-list-missing']});
+});
+
+test('waiting snapshots remain bounded and retain first readiness separately from application',()=>{
+ const {timing,advance}=fixture();
+ assert.deepEqual(timing.workspaceSnapshot().lastWaiting,null);
+ assert.equal(timing.workspaceSnapshot().firstTargetsMs,null);
+ timing.mark('firstTargetsMs');advance(4);
+ assert.equal(timing.observeWorkspace({surface:null,missing:['workspace-sidebar-missing','workspace-main-missing']}),false);
+ advance(5);
+ assert.equal(timing.observeWorkspace({surface:null,missing:['workspace-main-missing']}),false);
+ const waiting=timing.workspaceSnapshot();
+ assert.equal(waiting.checks,2);
+ assert.equal(waiting.firstCheckMs,4);
+ assert.equal(waiting.firstTargetsMs,0);
+ assert.equal(waiting.firstEligibleMs,null);
+ assert.equal(waiting.firstReadySurface,null);
+ assert.deepEqual(waiting.lastWaiting,{atMs:9,missing:['workspace-main-missing']});
+ assert.equal(waiting.missingCounts['workspace-main-missing'],2);
+ waiting.lastWaiting.missing.push('private fixture text');waiting.missingCounts['workspace-main-missing']=1000;
+ advance(6);
+ assert.equal(timing.observeWorkspace({surface:'workspace',missing:[],url:'https://private.invalid'}),true);
+ timing.mark('firstEligibleMs');advance(2);
+ timing.observeWorkspace({surface:'dot',missing:[]});
+ timing.mark('firstApplyStartedMs');advance(3);timing.mark('firstApplyCompletedMs');
+ const done=timing.stop();
+ assert.equal(done.workspaceReadiness.firstReadySurface,'workspace');
+ assert.equal(done.workspaceReadiness.firstEligibleMs,15);
+ assert.equal(done.workspaceReadiness.missingCounts['workspace-main-missing'],2);
+ assert.deepEqual(done.workspaceReadiness.lastWaiting,{atMs:9,missing:['workspace-main-missing']});
+ assert.equal(done.milestonesMs.firstApplyCompletedMs,20);
+ assert.doesNotMatch(JSON.stringify(done),/private|https/);
+ timing.observeWorkspace({surface:null,missing:['workspace-main-missing']});
+ assert.deepEqual(timing.workspaceSnapshot(),done.workspaceReadiness);
+});
+
+test('unexpected probe data cannot mark a page as ready or enter logs',()=>{
+ const {timing}=fixture();
+ for(const invalid of [true,null,{surface:'fixture-private',missing:[]},{surface:null,missing:[]},
+  {surface:'workspace',missing:['workspace-main-missing']},{surface:null,missing:['https://private.invalid']},
+  {surface:null,missing:['workspace-main-missing','workspace-main-missing']},
+  {surface:null,missing:Array(1)}])assert.throws(()=>timing.observeWorkspace(invalid),/Invalid workspace readiness report/);
+ assert.equal(timing.workspaceSnapshot().checks,0);
+ assert.equal(timing.workspaceSnapshot().firstReadySurface,null);
+ assert.doesNotMatch(JSON.stringify(timing.workspaceSnapshot()),/private|https/);
 });
