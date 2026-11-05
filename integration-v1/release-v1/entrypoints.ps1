@@ -125,6 +125,49 @@ function Get-XiaomuEntryFiles($Roots){
     }
   }
 }
+function Save-XiaomuEntryState($StatePath,$State) {
+  $temporary=$StatePath+'.'+[guid]::NewGuid().ToString('N')+'.tmp'
+  try{
+    [IO.File]::WriteAllText($temporary,($State|ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))
+    if([IO.File]::Exists($StatePath)){[IO.File]::Replace($temporary,$StatePath,[NullString]::Value)}
+    else{[IO.File]::Move($temporary,$StatePath)}
+  }finally{if([IO.File]::Exists($temporary)){[IO.File]::Delete($temporary)}}
+}
+function Backup-XiaomuEntry($File,$BackupRoot,$ExpectedHash) {
+  $null=New-Item -ItemType Directory -Path $BackupRoot -Force
+  $name=[guid]::NewGuid().ToString('N')+'.lnk'
+  $copy=Join-Path $BackupRoot $name
+  Copy-Item -LiteralPath $File -Destination $copy
+  if((Get-FileHash -LiteralPath $copy -Algorithm SHA256).Hash -cne $ExpectedHash){throw 'Shortcut backup failed.'}
+  return $name
+}
+function Retire-XiaomuCreatedEntry($State,$StatePath,$Entry,$File,$Roots,$BackupRoot,$Link,$LaunchTarget,$LaunchArgs) {
+  if($Entry.created -isnot [bool] -or -not $Entry.created -or $Entry.installedSha256 -cnotmatch '^[0-9A-F]{64}$'){return $false}
+  if($Entry.backup -isnot [string] -or $Entry.backup -cne '' -or $Entry.originalSha256 -isnot [string] -or $Entry.originalSha256 -cne ''){return $false}
+  $canonical=@($Roots|Select-Object -First 2|Where-Object{$_}|ForEach-Object{Join-Path ([IO.Path]::GetFullPath($_)) 'Codex.lnk'})
+  if($File -notin $canonical){return $false}
+  if($Link.TargetPath -ine $LaunchTarget -or $Link.Arguments -cne $LaunchArgs){return $false}
+  $hash=(Get-FileHash -LiteralPath $File -Algorithm SHA256).Hash
+  if($hash -cne $Entry.installedSha256){return $false}
+  $archive=@($State.retired|Where-Object{$_.path -ieq $File -and $_.sha256 -ceq $hash})
+  if($archive.Count -gt 1){return $false}
+  if($archive.Count -eq 0){
+    $name=Backup-XiaomuEntry $File $BackupRoot $hash
+    if(-not $State.PSObject.Properties['retired']){$State|Add-Member -NotePropertyName retired -NotePropertyValue @()}
+    $State.retired+=@{path=$File;backup=$name;sha256=$hash}
+    # Persist the archive receipt before removing the visible link.
+    Save-XiaomuEntryState $StatePath $State
+  }else{
+    if($archive[0].backup -cnotmatch '^[a-f0-9]{32}\.lnk$'){return $false}
+    $copy=Join-Path $BackupRoot $archive[0].backup
+    if(-not (Test-XiaomuEntryPath $copy @($BackupRoot)) -or -not (Test-Path -LiteralPath $copy -PathType Leaf) -or (Get-FileHash -LiteralPath $copy -Algorithm SHA256).Hash -cne $hash){return $false}
+  }
+  if(-not (Test-XiaomuEntryPath $File $Roots) -or -not (Test-Path -LiteralPath $File -PathType Leaf) -or (Get-FileHash -LiteralPath $File -Algorithm SHA256).Hash -cne $hash){return $false}
+  Remove-Item -LiteralPath $File
+  $State.entries=@($State.entries|Where-Object{$_.path -ine $File})
+  Save-XiaomuEntryState $StatePath $State
+  return $true
+}
 function Sync-XiaomuEntrypoints($Root,$Roots,$Executable,$Action){
   $statePath=Join-Path $Root 'entrypoints.json'
   $backupRoot=Join-Path $Root 'entrypoint-backups'
@@ -132,17 +175,30 @@ function Sync-XiaomuEntrypoints($Root,$Roots,$Executable,$Action){
   if(Test-Path -LiteralPath $backupRoot){if(((Get-Item -LiteralPath $backupRoot).Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'Invalid backup directory.'}}
   $state=[pscustomobject]@{schema=1;entries=@()}
   if(Test-Path -LiteralPath $statePath){$state=Get-Content -LiteralPath $statePath -Raw -Encoding utf8|ConvertFrom-Json;if($state.schema -ne 1){throw 'Unknown entrypoint receipt.'}}
-  $result=[ordered]@{mode=$Action;changed=0;unchanged=0;skipped=0;entries=@();scope='current-user desktop, programs, taskbar shortcut files'}
+  $result=[ordered]@{mode=$Action;changed=0;unchanged=0;skipped=0;retired=0;entries=@();scope='current-user desktop, programs, taskbar shortcut files'}
+  $target=Join-Path $env:SystemRoot 'System32\wscript.exe'
+  $arguments='"'+(Join-Path $Root 'launch.vbs')+'"'
   if($Action -eq 'Restore'){
     $remaining=@()
+    $shell=$null
     foreach($entry in @($state.entries)){
       if(-not (Test-XiaomuEntryPath $entry.path $Roots)){$remaining+=$entry;$result.skipped++;continue}
-      if(-not (Test-Path -LiteralPath $entry.path)){$result.skipped++;continue}
+      if(-not (Test-Path -LiteralPath $entry.path)){
+        $archived=@($state.retired|Where-Object{$_.path -ieq $entry.path -and $_.sha256 -ceq $entry.installedSha256})
+        if($entry.created -and $archived.Count -eq 1){$result.unchanged++}else{$result.skipped++}
+        continue
+      }
       $currentHash=(Get-FileHash -LiteralPath $entry.path -Algorithm SHA256).Hash
       if(-not $entry.created -and $currentHash -ceq $entry.originalSha256){$result.unchanged++;continue}
       if($currentHash -cne $entry.installedSha256){$remaining+=$entry;$result.skipped++;continue}
-      if($entry.created){Remove-Item -LiteralPath $entry.path}
-      else{
+      if($entry.created){
+        if(-not $shell){$shell=New-XiaomuShortcutShell}
+        try{$link=$shell.CreateShortcut($entry.path)}catch{$remaining+=$entry;$result.skipped++;continue}
+        if(-not (Retire-XiaomuCreatedEntry $state $statePath $entry $entry.path $Roots $backupRoot $link $target $arguments)){
+          $remaining+=$entry;$result.skipped++;continue
+        }
+        $result.retired++
+      }else{
         if($entry.backup -cnotmatch '^[a-f0-9]{32}\.lnk$'){throw 'Invalid shortcut backup name.'}
         $backup=Join-Path $backupRoot $entry.backup
         if((Get-FileHash -LiteralPath $backup -Algorithm SHA256).Hash -cne $entry.originalSha256){throw 'Shortcut backup changed.'}
@@ -154,46 +210,40 @@ function Sync-XiaomuEntrypoints($Root,$Roots,$Executable,$Action){
     $state.entries=$remaining
   } else {
     $shell=New-XiaomuShortcutShell
-    $paths=@(Get-XiaomuEntryFiles $Roots)
-    # Create conventional entries only where the name is free; never replace an unrelated link by name.
-    foreach($base in @($Roots|Select-Object -First 2)){$canonical=Join-Path $base 'Codex.lnk';if((Test-Path -LiteralPath $base) -and -not (Test-Path -LiteralPath $canonical)){$paths+=$canonical}}
-    foreach($file in @($paths|Select-Object -Unique)){
-      if(-not (Test-XiaomuEntryPath $file $Roots)){$result.skipped++;continue}
-      $created=-not (Test-Path -LiteralPath $file)
-      $link=$shell.CreateShortcut($file)
-      if(-not $created -and -not (Test-XiaomuShortcutTarget $link.TargetPath $link.Arguments $Executable $Root)){continue}
+    foreach($file in @(Get-XiaomuEntryFiles $Roots|Select-Object -Unique)){
+      if(-not (Test-XiaomuEntryPath $file $Roots) -or -not (Test-Path -LiteralPath $file -PathType Leaf)){$result.skipped++;continue}
+      try{$link=$shell.CreateShortcut($file)}catch{$result.skipped++;continue}
       $tracked=@($state.entries|Where-Object {$_.path -ieq $file})
       if($tracked.Count){
-        if(-not $created -and (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash -ceq $tracked[0].installedSha256){$result.unchanged++}else{$result.skipped++}
+        if($Action -eq 'Apply' -and $tracked.Count -eq 1 -and
+          (Retire-XiaomuCreatedEntry $state $statePath $tracked[0] $file $Roots $backupRoot $link $target $arguments)){
+          $result.changed++;$result.retired++;continue
+        }
+        if($tracked.Count -eq 1 -and (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash -ceq $tracked[0].installedSha256){$result.unchanged++}else{$result.skipped++}
         continue
       }
-      $target=Join-Path $env:SystemRoot 'System32\wscript.exe'
-      $arguments='"'+(Join-Path $Root 'launch.vbs')+'"'
-      if(-not $created -and $link.TargetPath -ieq $target -and $link.Arguments -ceq $arguments){$result.unchanged++;continue}
-      $result.entries+=@{path=$file;created=$created}
+      if(-not (Test-XiaomuShortcutTarget $link.TargetPath $link.Arguments $Executable $Root)){continue}
+      if($link.TargetPath -ieq $target -and $link.Arguments -ceq $arguments){$result.unchanged++;continue}
+      $result.entries+=@{path=$file;created=$false}
       if($Action -eq 'Inspect'){continue}
-      $backupName='';$originalSha=''
-      if(-not $created){
-        $null=New-Item -ItemType Directory -Path $backupRoot -Force
-        $backupName=[guid]::NewGuid().ToString('N')+'.lnk'
-        $originalSha=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
-        Copy-Item -LiteralPath $file -Destination (Join-Path $backupRoot $backupName)
-        if((Get-FileHash -LiteralPath (Join-Path $backupRoot $backupName) -Algorithm SHA256).Hash -cne $originalSha){throw 'Shortcut backup failed.'}
-      }
+      $originalSha=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
+      $backupName=Backup-XiaomuEntry $file $backupRoot $originalSha
       try{
         $link.TargetPath=$target;$link.Arguments=$arguments;$link.WorkingDirectory=$Root
         $link.IconLocation=(Join-Path $Root 'xiaomu.ico')+',0';$link.Description='小睦 Codex'
         $link.Save()
         $verify=$shell.CreateShortcut($file)
         if($verify.TargetPath -ine $target -or $verify.Arguments -cne $arguments){throw 'Shortcut verification failed.'}
-      }catch{if(-not $created){Copy-Item -LiteralPath (Join-Path $backupRoot $backupName) -Destination $file};throw}
-      $state.entries+=@{path=$file;created=$created;backup=$backupName;originalSha256=$originalSha;installedSha256=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash}
-      # Save after every verified change so partial installation remains recoverable.
-      [IO.File]::WriteAllText($statePath,($state|ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))
+        $state.entries+=@{path=$file;created=$false;backup=$backupName;originalSha256=$originalSha;installedSha256=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash}
+        Save-XiaomuEntryState $statePath $state
+      }catch{
+        Copy-Item -LiteralPath (Join-Path $backupRoot $backupName) -Destination $file
+        throw
+      }
       $result.changed++
     }
   }
-  if($Action -ne 'Inspect'){[IO.File]::WriteAllText($statePath,($state|ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))}
+  if($Action -ne 'Inspect'){Save-XiaomuEntryState $statePath $state}
   return [pscustomobject]$result
 }
 if($Mode -eq 'Functions'){return}

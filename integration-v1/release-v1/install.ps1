@@ -1,10 +1,16 @@
-﻿param([string]$SourceRoot='', [string]$InstallParent='', [string]$ShortcutDirectory='', [switch]$Repair)
+﻿param([string]$SourceRoot='', [string]$InstallParent='', [string]$ShortcutDirectory='', [switch]$Repair, [string]$ManagementShortcutDirectory='')
 $ErrorActionPreference='Stop'
 $env:PSModulePath="$env:SystemRoot\System32\WindowsPowerShell\v1.0\Modules;$env:ProgramFiles\WindowsPowerShell\Modules"
 $source=if($SourceRoot){[IO.Path]::GetFullPath($SourceRoot)}elseif(Test-Path -LiteralPath (Join-Path $PSScriptRoot 'manifest.json')){$PSScriptRoot}else{Join-Path $PSScriptRoot 'package'}
 $parent=if($InstallParent){[IO.Path]::GetFullPath($InstallParent)}else{Join-Path $env:LOCALAPPDATA 'XiaomuCodexSkin'}
-$desktop=if($ShortcutDirectory){[IO.Path]::GetFullPath($ShortcutDirectory)}else{[Environment]::GetFolderPath('Desktop')}
-if(-not (Test-Path -LiteralPath $desktop -PathType Container)){throw 'Shortcut directory must already exist.'}
+$desktop=if($ShortcutDirectory){[IO.Path]::GetFullPath($ShortcutDirectory)}elseif($InstallParent){Join-Path $parent 'Desktop'}else{[Environment]::GetFolderPath('Desktop')}
+$programs=if($ManagementShortcutDirectory){[IO.Path]::GetFullPath($ManagementShortcutDirectory)}
+  elseif($InstallParent){Join-Path $parent 'Programs'}
+  elseif($ShortcutDirectory){Join-Path $desktop 'Programs'}
+  else{[Environment]::GetFolderPath([Environment+SpecialFolder]::Programs,[Environment+SpecialFolderOption]::DoNotVerify)}
+if(-not $desktop -or -not $programs -or $desktop.TrimEnd('\') -ieq $programs.TrimEnd('\')){throw 'Desktop and management shortcut directories must be distinct.'}
+if(($ShortcutDirectory -or -not $InstallParent) -and -not (Test-Path -LiteralPath $desktop -PathType Container)){throw 'Shortcut directory must already exist.'}
+if((Test-Path -LiteralPath $programs) -and -not (Test-Path -LiteralPath $programs -PathType Container)){throw 'Management shortcut path must be a directory.'}
 $destination=Join-Path $parent '1.0.0'
 if(Test-Path -LiteralPath $parent){if(((Get-Item -LiteralPath $parent).Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'Install parent cannot be a reparse point.'}}
 if(Test-Path -LiteralPath $destination){
@@ -13,7 +19,7 @@ if(Test-Path -LiteralPath $destination){
   if(-not $Repair){$source=$destination}
 }
 if($Repair -and $source.TrimEnd('\') -ieq $destination.TrimEnd('\')){throw 'Repair requires a separate intact package.'}
-foreach($path in @($source,$parent,$desktop)){
+foreach($path in @($source,$parent,$desktop,$programs)){
   $cursor=[IO.Path]::GetFullPath($path)
   while($cursor){if((Test-Path -LiteralPath $cursor) -and ((Get-Item -LiteralPath $cursor -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'Install paths cannot traverse links.'};$cursor=Split-Path $cursor -Parent}
 }
@@ -30,6 +36,21 @@ foreach($property in $manifest.files.PSObject.Properties){
 . (Join-Path $source 'maintenance.ps1')
 $maintenance=Enter-XiaomuMaintenance $destination
 try{
+. (Join-Path $source 'entrypoints.ps1') -Mode Functions
+$shell=New-XiaomuShortcutShell
+$scriptHost=Join-Path $env:SystemRoot 'System32\wscript.exe'
+$entries=@(
+  @{Path=(Join-Path $desktop '小睦 Codex.lnk');Directory=$desktop;Script='launch.vbs'},
+  @{Path=(Join-Path $programs '小睦皮肤管理.lnk');Directory=$programs;Script='manage.vbs'}
+)
+foreach($entry in $entries){
+  if(-not (Test-XiaomuEntryPath $entry.Path @($entry.Directory))){throw 'Invalid dedicated shortcut path.'}
+  if(Test-Path -LiteralPath $entry.Path){
+    $existing=$shell.CreateShortcut($entry.Path)
+    $expectedArgs='"'+(Join-Path $destination $entry.Script)+'"'
+    if($existing.TargetPath -ine $scriptHost -or $existing.Arguments -cne $expectedArgs){throw ('快捷方式名称已被其他入口占用，未覆盖：'+$entry.Path)}
+  }
+}
 if($Repair -and (Test-Path -LiteralPath $destination)){
   $lockPath=Join-Path $destination 'session.lock'
   if((Test-Path -LiteralPath $lockPath) -and ((Get-Item -LiteralPath $lockPath).Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'Invalid session lock.'}
@@ -66,29 +87,27 @@ if($Repair -or -not (Test-Path -LiteralPath $destination)){
     try{[IO.Directory]::Move($staging,$destination)}catch{if($backup -and -not (Test-Path -LiteralPath $destination)){[IO.Directory]::Move($backup,$destination)};throw}
   }catch{throw ('安装未完成。目标：'+$destination+'；旧目录备份：'+$backup+'；暂存：'+$staging+'。'+$_.Exception.Message)}
 }
-$skinName=([string][char]0x5c0f)+[char]0x7766+' Codex'
-$restoreName=([string][char]0x6062)+[char]0x590d+' Codex '+[char]0x539f+[char]0x6837
-. (Join-Path $source 'entrypoints.ps1') -Mode Functions
-$shell=New-XiaomuShortcutShell
-$entries=@(@{Name=$skinName;Script='launch.vbs'},@{Name=$restoreName;Script='restore.vbs'},@{Name='小睦皮肤管理';Script='manage.vbs'})
 $links=@()
 foreach($entry in $entries){
-  $linkPath=Join-Path $desktop ($entry.Name+'.lnk')
-  if(Test-Path -LiteralPath $linkPath){
-    $existing=$shell.CreateShortcut($linkPath)
-    $expectedArgs='"'+(Join-Path $destination $entry.Script)+'"'
-    if($existing.TargetPath -ieq (Join-Path $env:SystemRoot 'System32\wscript.exe') -and $existing.Arguments -ceq $expectedArgs){$links+=$linkPath;continue}
-    throw ('快捷方式名称已被其他入口占用，未覆盖：'+$linkPath)
+  $linkPath=$entry.Path
+  if(-not (Test-XiaomuEntryPath $linkPath @($entry.Directory))){throw 'Invalid dedicated shortcut path.'}
+  if(-not (Test-Path -LiteralPath $entry.Directory -PathType Container)){
+    $null=New-Item -ItemType Directory -Path $entry.Directory -Force
   }
+  $expectedArgs='"'+(Join-Path $destination $entry.Script)+'"'
   $link=$shell.CreateShortcut($linkPath)
-  $link.TargetPath=Join-Path $env:SystemRoot 'System32\wscript.exe'
-  $link.Arguments='"'+(Join-Path $destination $entry.Script)+'"'
-  $link.WorkingDirectory=$destination
-  $link.IconLocation=(Join-Path $destination 'xiaomu.ico')+',0'
-  $link.Description='Xiaomu Codex skin - separate reversible user launcher'
-  $link.Save()
-  $readback=$shell.CreateShortcut($linkPath)
-  if($readback.TargetPath -ine $link.TargetPath -or $readback.Arguments -cne $link.Arguments){throw 'Desktop shortcut verification failed.'}
+  if(Test-Path -LiteralPath $linkPath){
+    if($link.TargetPath -ine $scriptHost -or $link.Arguments -cne $expectedArgs){throw ('快捷方式名称已被其他入口占用，未覆盖：'+$linkPath)}
+  }else{
+    $link.TargetPath=$scriptHost
+    $link.Arguments=$expectedArgs
+    $link.WorkingDirectory=$destination
+    $link.IconLocation=(Join-Path $destination 'xiaomu.ico')+',0'
+    $link.Description='Xiaomu Codex skin - separate reversible user launcher'
+    $link.Save()
+    $readback=$shell.CreateShortcut($linkPath)
+    if($readback.TargetPath -ine $scriptHost -or $readback.Arguments -cne $expectedArgs){throw 'Dedicated shortcut verification failed.'}
+  }
   $links+=$linkPath
 }
 $receipt=[ordered]@{installedAtUtc=[datetime]::UtcNow.ToString('o');version='1.0.0';destination=$destination;repairBackup=$(if($Repair){$backup}else{''});filesVerified=@($manifest.files.PSObject.Properties).Count;shortcuts=$links;officialFilesChanged=$false;codexConfigChanged=$false;startupTaskCreated=$false}
