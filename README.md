@@ -12,7 +12,7 @@
 
 ![小睦素材演示页：浅绿配色与窗边背景，非实机录屏](docs/images/material-preview.png)
 
-上图是素材演示页截图，非真实 Codex 窗口。[本地播放背景和片头](docs/demo/index.html) · [Beta.2 试用记录](https://github.com/lucifergzsz414/xiaomu-codex-skin/blob/6f98a3d796949e39c71980e09d0a5582dedb29c3/docs/BETA-TRYOUT.md)
+上图是素材演示页截图，非真实 Codex 窗口。[本地播放背景和片头](docs/demo/index.html) · [7803 试用说明](docs/BETA-TRYOUT.md)
 
 [十五秒素材短片](docs/demo/beta2-materials-15s.mp4)：现有片头、窗边循环与版本卡的静音剪辑，非实机录屏。[Beta.2 分享文案草稿](docs/SHARE-DRAFT.md)。
 
@@ -111,4 +111,4 @@ node .\integration-v1\release-v1\build-release.cjs
 
 反馈请提供候选编号、Windows / Store Codex / Node.js 版本、操作步骤和完整错误提示。截图先遮住私人内容；请勿上传聊天正文、登录资料或密钥。
 
-可以使用[皮肤问题反馈表](https://github.com/lucifergzsz414/xiaomu-codex-skin/issues/new?template=skin-problem.yml)填写；不知道的环境信息写“不确定”即可。旧版试用资料见 [Beta.2 试用记录](https://github.com/lucifergzsz414/xiaomu-codex-skin/blob/6f98a3d796949e39c71980e09d0a5582dedb29c3/docs/BETA-TRYOUT.md)。
+可以使用[皮肤问题反馈表](https://github.com/lucifergzsz414/xiaomu-codex-skin/issues/new?template=skin-problem.yml)填写；不知道的环境信息写“不确定”即可。试用步骤见 [7803 试用说明](docs/BETA-TRYOUT.md)。旧版资料见 [Beta.2 试用记录](https://github.com/lucifergzsz414/xiaomu-codex-skin/blob/6f98a3d796949e39c71980e09d0a5582dedb29c3/docs/BETA-TRYOUT.md)。
