@@ -60,6 +60,12 @@ function createSidebarSkin() {
       const key=/appearance/.test(slug)?'i-appearance':/terminal/.test(slug)?'i-terminal':/editor/.test(slug)?'i-editor':/permission|sandbox/.test(slug)?'i-shield':/general/.test(slug)?'i-settings':null;
       if (key) decorate(button,key);
     }
+    if(pageSkin.identifySettings?.())for(const control of sidebar.querySelectorAll('button,a')){
+      const label=(control.getAttribute('aria-label')||control.textContent||'').trim();
+      const slug=control.getAttribute('href')?.match(/^\/settings\/([a-z0-9-]+)/)?.[1]||'';
+      const key=/appearance/.test(slug)||/^(外观|Appearance)$/.test(label)?'i-appearance':/terminal/.test(slug)||/^(终端|Terminal)$/.test(label)?'i-terminal':/editor/.test(slug)||/^(编辑器|Editor)$/.test(label)?'i-editor':/permission|sandbox|computer-use|agent/.test(slug)||/^(权限|代理|电脑使用|Permissions|Agent|Computer use)$/.test(label)?'i-shield':/^(通用|常规|General)$/.test(label)||/general-settings/.test(slug)?'i-settings':null;
+      if(key)decorate(control,key);
+    }
     // This menu is mounted outside the sidebar portal, but its own exact
     // setting label identifies the same native action without creating a copy.
     for (const item of document.querySelectorAll('[role="menuitem"]')) if (/^(设置|Settings)$/.test(item.textContent.trim())) decorate(item,'i-settings');

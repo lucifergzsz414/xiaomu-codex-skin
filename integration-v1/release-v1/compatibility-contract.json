@@ -31,7 +31,8 @@
     ],
     "pages": [
       [
-        "data-settings-panel-slug"
+        "data-settings-panel-slug",
+        "data-settings-mobile-header"
       ],
       [
         "general-settings"
@@ -68,6 +69,49 @@
   "menu": {
     "name": "Wxn",
     "length": 12391,
-    "sha256": "0b7d7527c136309985822313072fe9338e2187078dd26f4afcfecbc88cfbec84"
-  }
+    "sha256": "0b7d7527c136309985822313072fe9338e2187078dd26f4afcfecbc88cfbec84",
+    "variants": [
+      {
+        "name": "x",
+        "length": 13441,
+        "sha256": "7489581934e24e5034a8706a984c634febfb243532539aa2d6fb9ba9b0a22a94"
+      }
+    ]
+  },
+  "resourceProfiles": [
+    {
+      "id": "codex-26.1029.7803-reviewed-ui",
+      "bootstrap": {
+        "path": "webview/assets/348410.ae8bb87271.js",
+        "sha256": "fd92f29080e85bf7a9208a4e7e69dc38abe10745552606e638ceea504d199ee0"
+      },
+      "assets": [
+        {
+          "path": "webview/assets/async/515947.f28df1a37f.js",
+          "sha256": "82dde8a4239e6b4043f6f4bd8edd1815f655d245f553292dd9db7e1909b3fb1c",
+          "feature": "overlays"
+        },
+        {
+          "path": "webview/assets/async/654172.31bd962eed.js",
+          "sha256": "0389d1b9edda59e7e798fe7b44b3aeb1e4d2f1a1d6d553349ff2e51d94ff3068",
+          "feature": "overlays"
+        },
+        {
+          "path": "webview/assets/async/107421.74436fcebb.js",
+          "sha256": "0101e53a4e5b5bd44395d40c9fbb6dca9177c389894e4162c76e918fc7bcafd4",
+          "feature": "pages"
+        },
+        {
+          "path": "webview/assets/async/253851.b8a064cd49.js",
+          "sha256": "e75844ab645fd8d1af058fd1598c75178f9c9590abbf9205a294c705f8c7c121",
+          "feature": "pages"
+        },
+        {
+          "path": "webview/assets/async/739641.75be211128.js",
+          "sha256": "d863ec594ca11e34ee9786f33886e4915a0695fbe29d0ed3922b8e71fc318dc0",
+          "feature": "pages"
+        }
+      ]
+    }
+  ]
 }

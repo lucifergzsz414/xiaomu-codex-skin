@@ -45,7 +45,10 @@ for(const [id,body] of Object.entries(hubIcons))icons[id]='data:image/svg+xml;ch
 const menuContract=JSON.parse(read('integration-v1/native-v1/native-menu-contract.json').toString('utf8'));
 if(menuContract.appVersion!=='26.1027.3384.0'||menuContract.functionName!=='Wxn'||menuContract.functionSha256!=='0b7d7527c136309985822313072fe9338e2187078dd26f4afcfecbc88cfbec84'||menuContract.functionLength!==12391||menuContract.layout!=='codex-3384')throw Error('Unreviewed native menu contract');
 const nativeMenu=Object.fromEntries(['appVersion','functionName','functionSha256','functionLength','layout'].map(key=>[key,menuContract[key]]));
-const config = { css, portrait: `data:image/png;base64,${portrait.toString('base64')}`, homeCards, icons, nativeMenu, openingVideo: openingSource };
+read('integration-v1/native-v1/menu-profile-validation.cjs');
+const {reviewedNativeMenus}=require('./menu-profile-validation.cjs');
+const nativeMenus=reviewedNativeMenus(JSON.parse(read('integration-v1/native-v1/native-menu-profiles.json').toString('utf8')));
+const config = { css, portrait: `data:image/png;base64,${portrait.toString('base64')}`, homeCards, icons, nativeMenu, nativeMenus, openingVideo: openingSource };
 const bundle = runtime.replace('__XIAOMU_OPENING_RUNTIME__', () => read('integration-v1/native-v1/opening-player.js').toString('utf8')).replace('__XIAOMU_NATIVE_CONFIG__', () => JSON.stringify(config));
 if (/__(?:BACKGROUND(?:_VIDEO|_MOTION)?|DOT_PORTRAIT|XIAOMU_[A-Z_]+)\b/.test(bundle)) throw Error('Unresolved native bundle input');
 new Function(bundle); // Syntax check; no application access.

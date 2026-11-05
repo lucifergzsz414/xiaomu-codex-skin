@@ -25,7 +25,21 @@ SOFTWARE.
 /* Opt into the fingerprinted native component's own DOM fallback. Original
    items, async preparation, actions, submenus and Radix behavior stay native. */
 function createContextMenuSkin(options={}) {
-  const contract=config.nativeMenu, records=new Map(), marks=new Map(), verified=new WeakSet(), checking=new WeakSet(), forwarded=new WeakSet();
+  if (!options.contract && Array.isArray(config.nativeMenus)) {
+    const profiles = [config.nativeMenu, ...config.nativeMenus].filter(Boolean);
+    const unique = [...new Map(profiles.map(profile => [[profile.functionName, profile.functionLength, profile.functionSha256, profile.layout].join(':'), profile])).values()];
+    if (unique.length) {
+      // Each exact component profile owns its cache layout, records and listeners.
+      // An upgrade may keep an older menu module alongside the new chunk.
+      const skins = unique.map(contract => createContextMenuSkin({...options, contract}));
+      return {
+        sync(){for(const skin of skins)skin.sync();}, reset(){for(const skin of skins)skin.reset();},
+        clear(){for(const skin of skins)skin.clear();}, hasOpenMenu(){return skins.some(skin=>skin.hasOpenMenu());},
+        inspect(){const rows=skins.map(skin=>skin.inspect());return Object.fromEntries(['ready','converted','styled','switches','replays','resets','fallbacks'].map(key=>[key,key==='ready'?rows.some(row=>row.ready):rows.reduce((sum,row)=>sum+row[key],0)]));}
+      };
+    }
+  }
+  const contract=options.contract||config.nativeMenu, records=new Map(), marks=new Map(), verified=new WeakSet(), checking=new WeakSet(), forwarded=new WeakSet();
   const layout=({'codex-6573':{cacheLength:143,nativeIndex:18,closeIndex:63,optionalItems:false},'codex-6621':{cacheLength:98,nativeIndex:13,closeIndex:51,optionalItems:true},'codex-3384':{cacheLength:98,nativeIndex:13,closeIndex:51,optionalItems:true}})[contract?.layout];
   let stopped=false, generation=0, ready=false;
   const activity={switches:0,replays:0,resets:0,fallbacks:0};
@@ -59,7 +73,15 @@ function createContextMenuSkin(options={}) {
     let host=node?.nodeType===1?node:node?.parentElement;
     while(host&&!Object.keys(host).some(k=>k.startsWith('__reactFiber')))host=host.parentElement;
     let fiber=host?.[Object.keys(host).find(k=>k.startsWith('__reactFiber'))];
-    for(let i=0;fiber&&i<180;i++,fiber=fiber.return)if(fiber.type?.name===contract?.functionName)return current(fiber);
+    for(let i=0;fiber&&i<180;i++,fiber=fiber.return){
+      // Rspack reuses short names such as x in unrelated modules. Verify every
+      // plausible ancestor so a same-name descendant cannot hide the real menu.
+      try{
+        if(typeof fiber.type!=='function'||fiber.type.name!==contract?.functionName||Function.prototype.toString.call(fiber.type).length!==contract.functionLength)continue;
+      }catch{continue;}
+      const candidate=current(fiber);verify(candidate);
+      if(candidate&&verified.has(candidate.type))return candidate;
+    }
     return null;
   }
   function verify(fiber){

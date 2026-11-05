@@ -293,9 +293,10 @@
     const settingsNav = [...document.querySelectorAll('aside.app-shell-left-panel button[data-settings-panel-slug="general-settings"]')].filter(node =>
       visible(node.closest('aside.app-shell-left-panel')) && node.offsetWidth > 0 && node.offsetHeight > 0 &&
       !node.closest('[hidden],[inert],[aria-hidden="true"]') && getComputedStyle(node).visibility === 'visible');
-    const isSettings = settingsNav.length === 1;
+    const settingsSurface = pageSkin.identifySettings?.();
+    const isSettings = settingsNav.length === 1 || !!settingsSurface;
     const hub = !isSettings && pageSkin.identifyHub();
-    const candidates = [...document.querySelectorAll(mainSelector)].filter(node => visible(node) && (isSettings || [...node.querySelectorAll(composerSelector)].some(visible)));
+    const candidates = [...document.querySelectorAll(mainSelector)].filter(node => visible(node) && (settingsSurface ? node===settingsSurface.main : isSettings || [...node.querySelectorAll(composerSelector)].some(visible)));
     const focused = candidates.filter(node => [...node.querySelectorAll(composerSelector)].some(composer => visible(composer) && composer.contains(document.activeElement)));
     let active = candidates.length === 1 ? candidates[0] : focused.length === 1 ? focused[0] : null;
     if(hub)active=hub.main;

@@ -12,6 +12,15 @@ function selectReplyDecorations(main) {
     visible(node) && !node.closest('.messaging-root,[data-user-message-bubble="true"],[data-conversation-role="user"]') &&
     !node.parentElement?.closest('[data-markdown-text-style="assistant-message"]')).slice(0,8);
 }
+function selectSettingsSurface(doc, isVisible, route) {
+  const match=/^\/settings\/([a-z0-9-]+)(?:\/|$)/.exec(route||'');
+  if(!match)return null;
+  // The native sidebar remains mounted when responsive CSS hides it.
+  const sidebars=[...doc.querySelectorAll('aside.app-shell-left-panel')];
+  if(sidebars.length!==1)return null;
+  const mains=[...doc.querySelectorAll('main:is(.main-surface,[data-app-shell-main-surface],[class*="_MainContentSurface_"])')].filter(main=>isVisible(main)&&[...main.querySelectorAll('[data-settings-mobile-header]')].some(isVisible));
+  return mains.length===1?{main:mains[0],slug:match[1],sidebar:sidebars[0]}:null;
+}
 function createPageSkin() {
   const marks=new Map(),portraits=new Map();let titleHost=null,titleNote=null,titleImage=null,titleKey='';
   function mark(node,value) { if (!node || node.hasAttribute('data-xiaomu-native-page-part')) return;node.setAttribute('data-xiaomu-native-page-part',value);marks.set(node,value); }
@@ -35,15 +44,16 @@ function createPageSkin() {
     const mains=[...document.querySelectorAll('main[data-app-shell-main-surface="default"]')].filter(n=>inLayout(n)&&n.closest('[data-app-shell-page-surface="true"]'));
     return mains.length===1?{main:mains[0],key,sidebar:sidebars[0]}:null;
   }
+  function identifySettings(){const route=window.location.hash.startsWith('#/')?window.location.hash.slice(1).split('?')[0]:window.location.pathname;return selectSettingsSurface(document,visible,route);}
   function clear() {clearTitle();for(const image of portraits.values())image.remove();portraits.clear();for(const[node,value]of marks)if(node.getAttribute('data-xiaomu-native-page-part')===value)node.removeAttribute('data-xiaomu-native-page-part');marks.clear();}
   function sync(main,kind) {
     if(!main){clear();return;}
     for(const[node,value]of marks)if(!node.isConnected||!main.contains(node)){if(node.getAttribute('data-xiaomu-native-page-part')===value)node.removeAttribute('data-xiaomu-native-page-part');marks.delete(node);}
     if(kind==='settings') {
       for(const image of portraits.values())image.remove();portraits.clear();
-      const headings=[...main.querySelectorAll('h1')].filter(visible),heading=headings.length===1?headings[0]:null;
+      const preferred=[...main.querySelectorAll('[data-settings-mobile-header] h1')].filter(node=>visible(node)&&!node.classList.contains('sr-only')),headings=preferred.length?preferred:[...main.querySelectorAll('h1')].filter(node=>visible(node)&&!node.classList.contains('sr-only')),heading=headings.length===1?headings[0]:null;
       const selected=[...document.querySelectorAll('aside.app-shell-left-panel button[data-settings-panel-slug]')].find(n=>n.getAttribute('aria-current')==='page'||n.classList.contains('bg-primary-ghost-hover'));
-      const slug=selected?.getAttribute('data-settings-panel-slug')||'general-settings';
+      const slug=selected?.getAttribute('data-settings-panel-slug')||identifySettings()?.slug||'general-settings';
       if(heading && (titleHost!==heading.parentElement||titleKey!==slug||!titleNote?.isConnected||!titleImage?.isConnected)) {
         clearTitle();titleHost=heading.parentElement;titleKey=slug;mark(titleHost,'settings-title');
         const category=/appearance/.test(slug)?0:/agent|computer|permission|browser|cloud/.test(slug)?2:/git|worktree|review|storage|data|editor/.test(slug)?1:0;
@@ -86,5 +96,5 @@ function createPageSkin() {
       }
     }
   }
-  return {sync,clear,identifyHub};
+  return {sync,clear,identifyHub,identifySettings};
 }
