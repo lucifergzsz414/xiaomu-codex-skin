@@ -1,29 +1,32 @@
 name: 小睦皮肤问题反馈
-description: 记录安装、外观或暂停恢复时遇到的问题，也欢迎其他版本的反馈。
+description: 反馈 7803 兼容测试版的安装、外观和操作问题，也接受旧版反馈。
 title: "[反馈] "
 body:
   - type: markdown
     attributes:
       value: |
-        请写实际发生的情况；没有测试过的场景可以写“未测试”，不知道的版本可以写“不确定”。
+        当前试用版为 [7803 兼容测试版](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.0-7803-rc1)，候选编号 **20261105-7803-rc1**，适配 Microsoft Store Codex **26.1029.7803.0**。
+        **尚未在独立 Windows 11 普通用户环境验收完整安装、登录和启动流程。**
+        旧版也可以反馈，请填写实际使用的版本。未尝试的场景可以写“未测试”，不知道的版本可以写“不确定”。
         这里是公开反馈区，请先遮住截图和错误提示里的私人内容。
   - type: input
     id: skin-version
     attributes:
       label: 皮肤版本与候选编号
       description: 以下载包或使用说明中的版本为准；不知道可以写“不确定”。
-      placeholder: 例如 1.0.0-beta.2 / 20261031-3384-rc2
+      placeholder: 例如 20261105-7803-rc1（运行版本 1.0.0）
     validations:
       required: true
   - type: textarea
     id: environment
     attributes:
       label: 使用环境
-      description: Codex 请填写 Microsoft Store 包版本；无法确认的项目写“不确定”即可。
+      description: 请填写实际使用的 Microsoft Store Codex 包版本。独立环境信息可选，无法确认的项目写“不确定”。
       placeholder: |
         Store Codex 版本：
         Windows 版本：
         Node.js 版本：
+        是否在独立 Windows 11 普通用户环境测试（可选）：
     validations:
       required: true
   - type: dropdown
@@ -34,7 +37,10 @@ body:
         - 安装或升级
         - 启动或皮肤自动加载
         - 颜色、背景、图标或布局
-        - 菜单或其他控件操作
+        - 设置页
+        - 搜索弹窗
+        - 聊天右键菜单或子菜单
+        - 其他控件操作
         - 暂停、恢复或修复
         - 其他或不确定
     validations:
