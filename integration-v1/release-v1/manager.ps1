@@ -7,7 +7,12 @@ $stopFile=Join-Path $root 'stop.flag'
 $statusFile=Join-Path $root 'status.json'
 $openingEligible=$false
 $launchRequestedAtUtc=$null
-function Save-State([string]$state){[IO.File]::WriteAllText($statusFile,([ordered]@{atUtc=[datetime]::UtcNow.ToString('o');status=$state}|ConvertTo-Json),[Text.UTF8Encoding]::new($false))}
+function Save-State([string]$state,[string]$failureStage='',[Nullable[int]]$engineExitCode=$null){
+  $value=[ordered]@{atUtc=[datetime]::UtcNow.ToString('o');status=$state}
+  if($failureStage){$value.failureStage=$failureStage}
+  if($null -ne $engineExitCode){$value.engineExitCode=$engineExitCode}
+  [IO.File]::WriteAllText($statusFile,($value|ConvertTo-Json),[Text.UTF8Encoding]::new($false))
+}
 if($Mode -eq 'Stop'){
   [IO.File]::WriteAllText($stopFile,'stop')
   for($i=0;$i -lt 225;$i++){
@@ -88,12 +93,15 @@ if($Mode -eq 'Inspect'){$compatibility=Get-Compatibility;[pscustomobject]@{suppo
 $lock=$null
 . (Join-Path $root 'maintenance.ps1')
 $maintenance=Enter-XiaomuMaintenance $root
+$failureStage='session-lock'
+$engineExitCode=$null
 try{
   for($attempt=0;$attempt -lt 40;$attempt++){
     try{$lock=[IO.File]::Open((Join-Path $root 'session.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None);break}
     catch{if(@(Get-UiRows).Count -gt 0){return};Start-Sleep -Milliseconds 250}
   }
   if(-not $lock){throw 'Another skin session is ending.'}
+  $failureStage='compatibility'
   $compatibility=Get-Compatibility
   [IO.File]::WriteAllText($compatibilityFile,($compatibility|ConvertTo-Json -Depth 5),[Text.UTF8Encoding]::new($false))
   if(-not $compatibility.core){
@@ -108,6 +116,7 @@ try{
   if([IO.File]::Exists($stopFile)){if($Resume){Save-State 'disabled';return};[IO.File]::Delete($stopFile)}
   if($Mode -ne 'Start'){Exit-XiaomuMaintenance $maintenance;$maintenance=$null}
   if($Mode -eq 'Start'){
+    $failureStage='launch'
     try{
       $entryResult=& (Join-Path $root 'entrypoints.ps1') -Mode Apply
       [IO.File]::WriteAllText((Join-Path $root 'entrypoints-last-run.json'),($entryResult -join [Environment]::NewLine),[Text.UTF8Encoding]::new($false))
@@ -142,19 +151,22 @@ try{
       $openingEligible=$true
     }
   }
+  $failureStage='listener-identity'
   $identity=$null
   for($i=0;$i -lt 45;$i++){try{$identity=Get-Identity;break}catch{if($Mode -eq 'Attach'){throw};Start-Sleep -Milliseconds 500}}
   if(-not $identity){Save-State 'exit-normal-codex-before-skin-start';throw 'Exit normal Codex, then use the Xiaomu desktop entry.'}
   if([IO.File]::Exists($stopFile)){Save-State 'disabled';return}
+  $failureStage='engine'
   $node='C:\Program Files\nodejs\node.exe'
   if(-not [IO.File]::Exists($node)){throw 'Node.js runtime is unavailable.'}
   if($launchRequestedAtUtc){$identity|Add-Member -NotePropertyName launchRequestedAtUtc -NotePropertyValue $launchRequestedAtUtc}
   $identity|Add-Member -NotePropertyName openingEligible -NotePropertyValue ([bool]$openingEligible)
   $encoded=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($identity|ConvertTo-Json -Compress)))
   & $node (Join-Path $root 'engine.cjs') $encoded
-  if($LASTEXITCODE -ne 0){throw 'Skin session stopped; inspect status.json.'}
+  $engineExitCode=$LASTEXITCODE
+  if($engineExitCode -ne 0){throw 'Skin session stopped; inspect status.json.'}
 }catch{
-  if($lock){Save-State 'stopped-check-required'}
+  if($lock){try{Save-State 'stopped-check-required' $failureStage $engineExitCode}catch{}}
   if($Mode -eq 'Start'){
     Add-Type -AssemblyName System.Windows.Forms
     $null=[Windows.Forms.MessageBox]::Show('Xiaomu skin could not start. Exit Codex fully, then use the Xiaomu desktop entry. Official Codex files were not changed.','Xiaomu Codex')
