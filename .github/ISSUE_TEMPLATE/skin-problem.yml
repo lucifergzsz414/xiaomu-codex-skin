@@ -1,12 +1,12 @@
 name: 小睦皮肤问题反馈
-description: 反馈 7803 兼容测试版的安装、外观和操作问题，也接受旧版反馈。
+description: 反馈 3517 兼容测试版的安装、外观和操作问题，也接受旧版反馈。
 title: "[反馈] "
 body:
   - type: markdown
     attributes:
       value: |
-        当前试用版为 [7803 兼容测试版](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.0-7803-rc1)，候选编号 **20261105-7803-rc1**，适配 Microsoft Store Codex **26.1029.7803.0**。
-        **尚未在独立 Windows 11 普通用户环境验收完整安装、登录和启动流程。**
+        当前试用版为 [3517 兼容测试版](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.0-3517-rc1)，候选编号 **20261106-3517-rc1**，适配 Microsoft Store Codex **26.1103.3517.0**。
+        聊天搜索弹窗、右键主菜单和子菜单已通过实机验收。**整包冷启动与独立 Windows 11 普通用户环境待验收。**
         旧版也可以反馈，请填写实际使用的版本。未尝试的场景可以写“未测试”，不知道的版本可以写“不确定”。
         这里是公开反馈区，请先遮住截图和错误提示里的私人内容。
   - type: input
@@ -14,7 +14,7 @@ body:
     attributes:
       label: 皮肤版本与候选编号
       description: 以下载包或使用说明中的版本为准；不知道可以写“不确定”。
-      placeholder: 例如 20261105-7803-rc1（运行版本 1.0.0）
+      placeholder: 例如 20261106-3517-rc1（运行版本 1.0.0）
     validations:
       required: true
   - type: textarea
