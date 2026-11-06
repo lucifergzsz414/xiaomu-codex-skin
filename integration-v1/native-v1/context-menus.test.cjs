@@ -38,12 +38,17 @@ function setup({legacy=profile(Legacy),variants=[profile(x)],type=x,decoys=[],ba
 async function ready(fixture){fixture.skin.sync();await new Promise(resolve=>setImmediate(resolve));fixture.skin.sync();}
 test('reviewed profile data preserves legacy menu and exact new fingerprint',()=>{
  const data=JSON.parse(fs.readFileSync(path.join(__dirname,'native-menu-profiles.json'),'utf8'));
- assert.equal(data.schema,1);assert.equal(data.profiles.length,2);
- assert.deepEqual(data.profiles.map(p=>[p.functionName,p.functionLength,p.layout]),[['Wxn',12391,'codex-3384'],['x',13441,'codex-3384']]);
+ assert.equal(data.schema,1);assert.equal(data.profiles.length,3);
+ assert.deepEqual(data.profiles.map(p=>[p.functionName,p.functionLength,p.layout]),[['Wxn',12391,'codex-3384'],['x',13441,'codex-3384'],['t',13422,'codex-3384']]);
  assert.equal(data.profiles[1].functionSha256,'7489581934e24e5034a8706a984c634febfb243532539aa2d6fb9ba9b0a22a94');
 });
 test('new menu profile converts once and preserves its own replay and cleanup',async()=>{
  const f=setup();await ready(f);assert.equal(f.skin.inspect().ready,true);const event=f.open();assert.equal(event.prevented,true);f.flushFrames();assert.equal(f.events.length,1);assert.equal(f.skin.inspect().converted,1);assert.equal(f.skin.inspect().switches,1);f.skin.clear();assert.equal(f.menu.memoizedProps.disableNative,undefined);assert.equal(f.closeCalls,1);assert.equal(f.listeners.contextmenu.length,0);assert.equal(f.listeners.keydown.length,0);
+});
+test('the reviewed property initializer has an inferred name and reuses native menu replay',async()=>{
+ const type=({t:function(e){return e;}}).t;assert.equal(type.name,'t');assert.match(type.toString(),/^function\(/);
+ const f=setup({type,variants:[profile(type)]});await ready(f);assert.equal(f.skin.inspect().ready,true);
+ assert.equal(f.open().prevented,true);f.flushFrames();assert.equal(f.events.length,1);f.skin.clear();
 });
 test('wrong-length same-name descendants never shadow the verified menu ancestor',async()=>{
  const f=setup({decoys:[differentLength]});await ready(f);assert.equal(f.skin.inspect().ready,true);assert.equal(f.open().prevented,true);f.flushFrames();assert.equal(f.events.length,1);f.skin.clear();

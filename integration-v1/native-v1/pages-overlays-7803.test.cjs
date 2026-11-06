@@ -20,6 +20,37 @@ browserTest('settings decorations preserve existing inputs and native actions',a
 browserTest('lookalike native marker on an unrelated route never identifies settings',async()=>{const p=await fixture('/thread/fixture');try{assert.equal(await p.evaluate(()=>pageSkin.identifySettings()),null);}finally{await p.close();}});
 browserTest('narrow settings title and portrait stay inside the main surface',async()=>{const p=await fixture('/settings/general-settings',320);try{assert.equal(await p.evaluate(()=>pageSkin.identifySettings()?.slug),'general-settings');await p.evaluate(()=>pageSkin.sync(document.querySelector('main'),'settings'));const b=await p.locator('main').boundingBox(),i=await p.locator('.xiaomu-settings-chibi').boundingBox();assert.ok(i.x>=b.x&&i.x+i.width<=b.x+b.width);assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);}finally{await p.close();}});
 browserTest('observed command palette decorates and clears without changing its native query',async()=>{const p=await fixture();try{await p.evaluate(()=>{const d=document.createElement('div');d.setAttribute('role','dialog');d.setAttribute('cmdk-dialog','');d.className='command-menu-dialog global-command-menu-dialog';d.innerHTML='<div cmdk-root><input cmdk-input role="combobox"><div cmdk-list><div data-command-menu-search-section="chats" data-command-menu-loading="true"></div></div></div>';document.body.append(d);globalThis.clock=0;Date.now=()=>clock;overlaySkin.sync();});assert.equal(await p.locator('.xiaomu-search-chibi').count(),1);await p.locator('[cmdk-input]').fill('fixture query');await p.evaluate(()=>{clock=5000;overlaySkin.sync();});assert.match(await p.locator('.xiaomu-search-status').textContent(),/还在查/);await p.evaluate(()=>{document.querySelector('[data-command-menu-loading]').removeAttribute('data-command-menu-loading');overlaySkin.sync();});assert.equal(await p.locator('.xiaomu-search-status').isHidden(),true);await p.evaluate(()=>overlaySkin.clear());assert.equal(await p.locator('[cmdk-input]').inputValue(),'fixture query');assert.equal(await p.locator('.xiaomu-search-chibi').count(),0);}finally{await p.close();}});
+browserTest('3517 search dialog decorates only the visible native cmdk combobox',async()=>{
+ const p=await fixture();
+ try{
+  await p.evaluate(()=>{
+   const shared='command-menu-dialog global-command-menu-dialog';
+   const search=shared+' search-command-menu-dialog';
+   const input='<div cmdk-root><input cmdk-input role="combobox" value="native query"></div>';
+   for(const [id,classes,body,hidden] of [
+    ['native-search',search,input,false],
+    ['floating',shared,input,false],
+    ['other-dialog','generic-radix-dialog',input,false],
+    ['incomplete',search,'<input cmdk-input role="combobox">',false],
+    ['hidden-search',search,input,true]
+   ]){
+    const dialog=document.createElement('div');
+    dialog.id=id;
+    dialog.className=classes;
+    dialog.setAttribute('role','dialog');
+    dialog.hidden=hidden;
+    dialog.innerHTML=body;
+    document.body.append(dialog);
+   }
+   overlaySkin.sync();
+  });
+  assert.equal(await p.locator('[data-xiaomu-native-overlay="search"]').count(),1);
+  assert.equal(await p.locator('#native-search .xiaomu-search-chibi').count(),1);
+  await p.evaluate(()=>overlaySkin.clear());
+  assert.equal(await p.locator('#native-search input').inputValue(),'native query');
+  assert.equal(await p.locator('[data-xiaomu-native-overlay="search"]').count(),0);
+ }finally{await p.close();}
+});
 browserTest('generic dialogs never receive chat-search decorations',async()=>{const p=await fixture();try{await p.evaluate(()=>{const d=document.createElement('div');d.setAttribute('role','dialog');d.innerHTML='<input role="combobox">';document.body.append(d);overlaySkin.sync();});assert.equal(await p.locator('.xiaomu-search-chibi').count(),0);}finally{await p.close();}});
 
 browserTest('accessible toolbar titles do not hide the visible settings heading',async()=>{const p=await fixture();try{await p.evaluate(()=>{const h=document.createElement('h1');h.className='sr-only';h.textContent='Accessible toolbar';document.querySelector('main').prepend(h);pageSkin.sync(document.querySelector('main'),'settings');});assert.equal(await p.locator('.xiaomu-settings-chibi').count(),1);}finally{await p.close();}});

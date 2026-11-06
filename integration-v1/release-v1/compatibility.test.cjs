@@ -113,3 +113,15 @@ test('selection is bounded by the existing asset count ceiling',()=>{
  files['webview/assets/100.aaaaaaaaaa.js']=files['webview/assets/100.aaaaaaaaaa.js'].replace('200:"bbbbbbbbbb",300:"cccccccccc",400:"dddddddddd"',map);
  withArchive(files,archive=>assert.throws(()=>inspectArchive(archive,sampleContract)));
 });
+
+test('an explicit anonymous property menu profile requires the exact property and function bytes',()=>{
+ const body='function(e){return "disableNative"+e}';
+ const sha256=require('node:crypto').createHash('sha256').update(body).digest('hex');
+ const contract={...sampleContract,menu:{...sampleContract.menu,variants:[{name:'t',sourceForm:'property',length:body.length,sha256}]}};
+ const menu=source=>assessSources(['fixture-core '+source],contract).capabilities.contextMenus;
+ assert.equal(menu('({t:'+body+'})'),true);
+ for(const source of ['({at:'+body+'})','({t:'+body.replace('+e','-e')+'})',body.replace('function(','function t(')])
+  assert.equal(menu(source),false);
+ const unsupported={...contract,menu:{...contract.menu,variants:[{...contract.menu.variants[0],sourceForm:'unreviewed'}]}};
+ assert.throws(()=>assessSources(['fixture-core'],unsupported),/Invalid menu fingerprint/);
+});

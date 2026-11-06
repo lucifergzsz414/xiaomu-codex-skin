@@ -16,7 +16,7 @@ function createOverlaySkin() {
     if(pending&&elapsed<20000)value.timer=setTimeout(()=>{if(owned.get(node)===value)update(node,value);},Math.max(1,(elapsed<4000?4000:20000)-elapsed));
   }
   function sync(){
-    const dialogs=[...document.querySelectorAll('[role="dialog"][cmdk-dialog].command-menu-dialog.global-command-menu-dialog')].filter(n=>visible(n)&&n.querySelector('[cmdk-root] input[cmdk-input][role="combobox"]'));
+    const dialogs=[...document.querySelectorAll('[role="dialog"][cmdk-dialog].command-menu-dialog.global-command-menu-dialog,[role="dialog"].command-menu-dialog.global-command-menu-dialog.search-command-menu-dialog')].filter(n=>visible(n)&&n.querySelector('[cmdk-root] input[cmdk-input][role="combobox"]'));
     for(const [node,value] of owned)if(!dialogs.includes(node)||!value.image.isConnected)remove(node,value);
     for(const node of dialogs)if(!owned.has(node)&&!node.hasAttribute('data-xiaomu-native-overlay')){
       const image=element('img','','xiaomu-search-chibi');image.src=config.homeCards[0].image;image.alt='';image.setAttribute('aria-hidden','true');image.setAttribute('data-xiaomu-native-decoration','search-chibi');image.draggable=false;

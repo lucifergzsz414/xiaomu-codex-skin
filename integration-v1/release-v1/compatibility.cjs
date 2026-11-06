@@ -8,8 +8,18 @@ function assessSources(sources,contract){
  for(const [feature,groups] of Object.entries(contract.features))capabilities[feature]=groups.every(group=>group.some(token=>sources.some(s=>s.includes(token))));
  const variants=contract.menu?.variants??[];if(!Array.isArray(variants)||variants.length>8)throw Error('Invalid menu variants');
  const menus=[contract.menu,...variants];
- for(const menu of menus)if(!menu||typeof menu.name!=='string'||! /^[A-Za-z_$][\w$]{0,99}$/.test(menu.name)||!Number.isSafeInteger(menu.length)||menu.length<1||menu.length>1000000||typeof menu.sha256!=='string'||! /^[a-f0-9]{64}$/i.test(menu.sha256))throw Error('Invalid menu fingerprint');
- capabilities.contextMenus=capabilities.contextMenus&&menus.some(menu=>sources.some(s=>{const needle='function '+menu.name+'(';let index=s.indexOf(needle);while(index>=0){if(crypto.createHash('sha256').update(s.slice(index,index+menu.length)).digest('hex')===menu.sha256.toLowerCase())return true;index=s.indexOf(needle,index+needle.length)}return false}));
+ for(const menu of menus)if(!menu||typeof menu.name!=='string'||! /^[A-Za-z_$][\w$]{0,99}$/.test(menu.name)||!Number.isSafeInteger(menu.length)||menu.length<1||menu.length>1000000||(menu.sourceForm!==undefined&&menu.sourceForm!=='property')||typeof menu.sha256!=='string'||! /^[a-f0-9]{64}$/i.test(menu.sha256))throw Error('Invalid menu fingerprint');
+ capabilities.contextMenus=capabilities.contextMenus&&menus.some(menu=>sources.some(source=>{
+  const property=menu.sourceForm==='property';
+  const prefix=property?menu.name+':':'';
+  const needle=property?prefix+'function(':'function '+menu.name+'(';
+  for(let at=source.indexOf(needle);at>=0;at=source.indexOf(needle,at+needle.length)){
+   if(property&&(at===0||!'{,'.includes(source[at-1])))continue;
+   const start=at+prefix.length;
+   if(crypto.createHash('sha256').update(source.slice(start,start+menu.length)).digest('hex')===menu.sha256.toLowerCase())return true;
+  }
+  return false;
+ }));
  const disabled=Object.keys(capabilities).filter(k=>!capabilities[k]);
  return {schema:1,core:capabilities.core,capabilities,disabled,mode:!capabilities.core?'unsupported':disabled.length?'degraded':'compatible'};
 }
