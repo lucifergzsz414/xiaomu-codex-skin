@@ -21,8 +21,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -SourceRoo
 
 ## 本轮记录
 
-当前安装中的片头、搜索、右键主菜单与子菜单已实机检查。终端和审批卡片的配色已检查；文件差异及审批执行链路另行记录。
+当前安装中的片头、搜索、右键主菜单与子菜单已实机检查。真实终端和文件差异面板已通过本轮检查；仓库访问审批经用户确认后成功创建工作树。
 
-新整包冷启动、独立 Windows 11 普通用户环境仍待验收。包内 [构建记录](RELEASE-CANDIDATE.json) 区分源码检查与整包检查。
+执行命令审批、新整包冷启动、独立 Windows 11 普通用户环境仍待验收。包内 [构建记录](RELEASE-CANDIDATE.json) 区分源码检查与整包检查。
 
-[完整使用说明](skin/USAGE.md) · [本版改动](skin/RELEASE-NOTES-4239-rc1.md) · [独立环境指南](CLEAN-TEST-GUIDE.md) · [素材来源](skin/ASSET-SOURCES.md)
+[完整使用说明](skin/USAGE.md) · [本版改动](skin/RELEASE-NOTES-4239-rc2.md) · [独立环境指南](CLEAN-TEST-GUIDE.md) · [素材来源](skin/ASSET-SOURCES.md)

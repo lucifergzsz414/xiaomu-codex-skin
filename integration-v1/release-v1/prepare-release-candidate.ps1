@@ -31,7 +31,7 @@ $extras=[ordered]@{
   'START-HERE.md'='START-HERE.md'
   'CLEAN-TEST-GUIDE.md'='CLEAN-TEST-GUIDE.md'
   'clean-environment-check.ps1'='clean-environment-check.ps1'
-  'skin/RELEASE-NOTES-4239-rc1.md'='RELEASE-NOTES-4239-rc1.md'
+  'skin/RELEASE-NOTES-4239-rc2.md'='RELEASE-NOTES-4239-rc2.md'
   'skin/ASSET-SOURCES.md'='ASSET-SOURCES.md'
 }
 foreach($item in $extras.GetEnumerator()){
@@ -52,8 +52,10 @@ $receipt=[ordered]@{
   sourceCandidateAcceptance=[ordered]@{tests=$validation.tests;passed=$validation.passed;failed=$validation.failed;skipped=$validation.skipped;sourceCommit=$sourceCommit;reportSHA256=(Get-FileHash -LiteralPath $ValidationReport -Algorithm SHA256).Hash.ToLowerInvariant();scope='Offline runtime regression tests, including headless synthetic page fixtures; no live Codex restart.'}
   exactArchiveAcceptance='Recorded separately after sealing in archive-smoke-result.json.'
   independentCleanWindowsVerified=$false;standalonePackageColdStartVerified=$false
-  installedOpeningUserConfirmed=$true;terminalVisualVerified=$true;approvalVisualVerified=$true;approvalActionVerified=$false;fileDiffVerified=$false
-  remaining=@('Standalone package cold startup','Independent Windows 11 ordinary-user installation, startup and recovery','File diff and approval action acceptance','Browser download and first-run prompts')
+  installedOpeningUserConfirmed=$true;terminalVisualVerified=$true;repositoryAccessApprovalVisualVerified=$true;repositoryAccessApprovalActionVerified=$true;commandExecutionApprovalVerified=$false;fileDiffVerified=$true
+  nativePanelAcceptanceSHA256=$release.nativePanelAcceptanceSHA256
+  nativePanelAcceptance=[ordered]@{scope='Live Codex 26.1103.4239.0; no restart';terminal='Native PowerShell prompt and readable text; no command entered';approval='Repository access for worktree creation; user allowed and worktree creation completed';diff='Git and UI +4/-2; split/unified; collapse/expand; narrow auto-unified layout; long-line scroll and toolbar visible'}
+  remaining=@('Command execution approval','Standalone package cold startup','Independent Windows 11 ordinary-user installation, startup and recovery','Browser download and first-run prompts')
 }
 [IO.File]::WriteAllText((Join-Path $bundle 'RELEASE-CANDIDATE.json'),($receipt|ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))
 $expected=@($names|ForEach-Object{'skin/'+$_})+@($extras.Keys)+@('RELEASE-CANDIDATE.json')
