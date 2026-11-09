@@ -1,20 +1,21 @@
 name: 小睦皮肤问题反馈
-description: 反馈 3517 兼容测试版的安装、外观和操作问题，也接受旧版反馈。
+description: 反馈 4239 RC2 的安装、外观和操作问题。
 title: "[反馈] "
 body:
   - type: markdown
     attributes:
       value: |
-        当前试用版为 [3517 兼容测试版](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.0-3517-rc1)，候选编号 **20261106-3517-rc1**，适配 Microsoft Store Codex **26.1103.3517.0**。
-        聊天搜索弹窗、右键主菜单和子菜单已通过实机验收。**整包冷启动与独立 Windows 11 普通用户环境待验收。**
-        旧版也可以反馈，请填写实际使用的版本。未尝试的场景可以写“未测试”，不知道的版本可以写“不确定”。
+        当前试用版为 [4239 RC2](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.0-4239-rc2)，候选编号 **20261109-4239-rc2**，适配 Microsoft Store Codex **26.1103.4239.0**。
+        片头、搜索、右键菜单、终端和文件差异已实机检查；仓库访问审批经用户允许后，工作树创建成功。
+        **待验收：命令执行审批、整包冷启动、独立 Windows 11 普通用户环境。**
+        未尝试的场景写“未测试”，不知道的版本写“不确定”。
         这里是公开反馈区，请先遮住截图和错误提示里的私人内容。
   - type: input
     id: skin-version
     attributes:
       label: 皮肤版本与候选编号
       description: 以下载包或使用说明中的版本为准；不知道可以写“不确定”。
-      placeholder: 例如 20261106-3517-rc1（运行版本 1.0.0）
+      placeholder: 例如 20261109-4239-rc2（运行版本 1.0.0）
     validations:
       required: true
   - type: textarea
@@ -36,10 +37,14 @@ body:
       options:
         - 安装或升级
         - 启动或皮肤自动加载
+        - 五秒片头或首页动态背景
         - 颜色、背景、图标或布局
         - 设置页
         - 搜索弹窗
         - 聊天右键菜单或子菜单
+        - 终端
+        - 文件差异面板
+        - 仓库访问或命令执行审批
         - 其他控件操作
         - 暂停、恢复或修复
         - 其他或不确定
