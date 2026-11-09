@@ -146,21 +146,72 @@ function createOpeningGate({root:stateRoot,identity,now=Date.now,fileSystem=fs})
  }
  return {pending,claim};
 }
-const openingTargetExpression=`(() => {try{
- if(document.visibilityState!=='visible'||document.hidden||!document.hasFocus()||navigator.userActivation?.hasBeenActive!==false||document.querySelectorAll('aside.app-shell-left-panel').length!==1||document.querySelector('[data-orbit-profile-identity]'))return false;
+const openingCheckCodes=['eligible','hidden','unfocused','user-interaction','activation-unavailable',
+ 'sidebar-not-ready','dot-surface','main-not-visible','dialog-or-busy','composer-occupied','attachments-present','check-unavailable'];
+const openingWaitCodes=['eligible','hidden','unfocused','main-not-visible','sidebar-not-ready'];
+function openingReadinessDecision(code){return openingCheckCodes.includes(code)?openingWaitCodes.includes(code):undefined;}
+function checkOpeningTarget(waitForForeground=false,allowFocusActivation=false,requireDocumentFocus=true){try{
+ const hidden=document.visibilityState!=='visible'||document.hidden;
+ const unfocused=requireDocumentFocus&&!document.hasFocus();
+ if(!waitForForeground&&hidden)return 'hidden';
+ if(!waitForForeground&&unfocused)return 'unfocused';
+ const activation=navigator.userActivation?.hasBeenActive;
+ if(activation!==false&&!(allowFocusActivation===true&&activation===true))return activation===true?'user-interaction':'activation-unavailable';
+ if(document.querySelectorAll('aside.app-shell-left-panel').length!==1)return 'sidebar-not-ready';
+ if(document.querySelector('[data-orbit-profile-identity]'))return 'dot-surface';
  const main=document.querySelector('main:is(.main-surface,[data-app-shell-main-surface],[class*="_MainContentSurface_"])');
  const visible=node=>{if(!node||node.closest('[hidden],[inert],[aria-hidden="true"]'))return false;const style=getComputedStyle(node),box=node.getBoundingClientRect();return style.display!=='none'&&style.visibility==='visible'&&Number(style.opacity)!==0&&box.width>0&&box.height>0&&box.bottom>0&&box.right>0&&box.top<innerHeight&&box.left<innerWidth;};
- if(!visible(main))return false;
- if([...document.querySelectorAll('[role="dialog"],[role="alertdialog"],[role="menu"]'),...main.querySelectorAll('[aria-busy="true"]')].some(visible))return false;
+ if(!visible(main))return 'main-not-visible';
+ if([...document.querySelectorAll('[role="dialog"],[role="alertdialog"],[role="menu"]'),...main.querySelectorAll('[aria-busy="true"]')].some(visible))return 'dialog-or-busy';
  for(const composer of main.querySelectorAll(':is(.composer-surface-chrome,[class*="_ComposerLayoutRoot_"],[data-composer-surface-variant][data-composer-radius-variant])')){
   if(!visible(composer))continue;
-  for(const editor of composer.querySelectorAll('.ProseMirror[contenteditable="true"],textarea,input[type="text"]'))if(visible(editor)&&((typeof editor.value==='string'&&editor.value.trim())||(editor.textContent||'').trim()||editor.querySelector('img,[contenteditable="false"]')))return false;
-  if([...composer.querySelectorAll('[data-composer-attachments][data-visible-attachments]')].some(visible))return false;
+  for(const editor of composer.querySelectorAll('.ProseMirror[contenteditable="true"],textarea,input[type="text"]'))if(visible(editor)&&((typeof editor.value==='string'&&editor.value.trim())||(editor.textContent||'').trim()||editor.querySelector('img,[contenteditable="false"]')))return 'composer-occupied';
+  if([...composer.querySelectorAll('[data-composer-attachments][data-visible-attachments]')].some(visible))return 'attachments-present';
  }
- return true;
-}catch{return false;}})()`;
+ return hidden?'hidden':unfocused?'unfocused':'eligible';
+}catch{return 'check-unavailable';}}
+const openingTargetProbe='('+checkOpeningTarget.toString()+')()';
+const openingForegroundProbe='('+checkOpeningTarget.toString()+')(true)';
+const openingTargetExpression='('+openingTargetProbe+')==="eligible"';
+function summarizeOpeningPlayer(player){
+ const {state,reason}=player||{};
+ const states=['skipped','waiting','loading','playing','finished'];
+ const reasons=['','not-eligible','guard-conflict','already-consumed','guard-unavailable','missing-media','missing-body',
+  'reduced-motion','hidden','unfocused','cleanup','stalled','skip','escape','ended','media-error','blur','pagehide','timeout','play-rejected',
+  'foreground','native-layout','invalid-focus-grant','focus-wait-expired','interaction-before-start','focus-recheck-blocked'];
+ return states.includes(state)&&reasons.includes(reason)?{state,reason}:null;
+}
 const compatibilityNoticeSource=`if(window[key].capabilities){const labels={sidebar:'侧栏图标',pages:'页面装饰',panels:'终端与文件面板',overlays:'搜索与弹窗',contextMenus:'右键菜单'};const disabled=Object.keys(labels).filter(k=>window[key].capabilities[k]===false);if(disabled.length){const note=document.createElement('div');note.setAttribute('role','status');note.setAttribute('data-xiaomu-compatibility-notice','');note.style.cssText='position:fixed;bottom:12px;right:12px;max-width:calc(100vw - 24px);box-sizing:border-box;padding:10px 12px;border:1px solid #bed0b4;border-radius:12px;background:#fbfcf6;color:#2e4939;font:13px/1.5 sans-serif;z-index:100';const text=document.createElement('span');text.textContent='小睦皮肤已加载；'+disabled.map(k=>labels[k]).join('、')+'暂时保留原样。';const close=document.createElement('button');close.type='button';close.textContent='知道了';close.style.cssText='margin-left:8px;color:inherit;background:transparent;border:0;cursor:pointer';close.onclick=()=>note.remove();note.append(text,close);document.body.append(note);window[key].notice=note;}};`;
-function applyExpression(bundle,token,capabilities=null,guardianSource='',captionSource='',opening=null){const openingContext=opening?.eligible===true&&typeof opening.hostKey==='string'&&/^[a-f0-9]{64}$/.test(opening.hostKey)?{eligible:true,hostKey:opening.hostKey}:null;const openingSetup=openingContext?'(('+openingTargetExpression+')?'+JSON.stringify(openingContext)+':null)':'null';const guardianSetup=guardianSource?'window[key].guardianCompatibility=('+guardianSource+');':'';const captionSetup=captionSource?'window[key].captionContrast=('+captionSource+');':'';return `(() => {const key=${JSON.stringify(marker)},token=${JSON.stringify(token)};if(window[key])return {owned:window[key].token===token,active:!!window.__XIAOMU_NATIVE_SKIN_V1__};if(window.__XIAOMU_NATIVE_SKIN_V1__||document.querySelector('#xiaomu-native-style-v1,html[data-xiaomu-native-skin]'))return {owned:false,conflict:true};window[key]={token,capabilities:${JSON.stringify(capabilities)},opening:${openingSetup}};try{if(window[key].capabilities?.core===false)throw Error("Unsupported core");${guardianSetup}${captionSetup}${bundle}\n;${compatibilityNoticeSource}return {owned:true,active:!!window.__XIAOMU_NATIVE_SKIN_V1__,parts:window.__XIAOMU_NATIVE_SKIN_V1__?.inspect().decoratedParts||[]};}catch(e){window[key]?.guardianCompatibility?.cleanup();window[key]?.captionContrast?.cleanup();window[key]?.notice?.remove();window.__XIAOMU_NATIVE_SKIN_V1__?.cleanup();delete window[key];throw e;}})()`;}
+function applyExpression(bundle,token,capabilities=null,guardianSource='',captionSource='',opening=null){
+ const validHost=opening?.eligible===true&&typeof opening.hostKey==='string'&&/^[a-f0-9]{64}$/.test(opening.hostKey);
+ const waitForForeground=opening?.waitForForeground===true;
+ const validDeadline=!waitForForeground||(Number.isSafeInteger(opening.expiresAt)&&opening.expiresAt>Date.now()&&opening.expiresAt<=Date.now()+60000);
+ const openingContext=validHost&&validDeadline?{eligible:true,hostKey:opening.hostKey,...(waitForForeground?{waitForForeground:true,requireDocumentFocus:false,expiresAt:opening.expiresAt}:{})}:null;
+ const openingSetup=openingContext?(waitForForeground?
+  JSON.stringify(openingWaitCodes)+'.includes(openingCheck)?(()=>{const checkReady=(allowFocusActivation=false)=>('+checkOpeningTarget.toString()+')(false,allowFocusActivation===true,false);return {...'+JSON.stringify(openingContext)+',checkReady,canStart:(allowFocusActivation=false)=>checkReady(allowFocusActivation)==="eligible"};})():null':
+  'openingCheck==="eligible"?'+JSON.stringify(openingContext)+':null'):'null';
+ const openingReport=openingContext?'result.openingDiagnostics={injectionCheck:openingCheck,playerAtApply:window[key].opening?('+summarizeOpeningPlayer.toString()+')(inspected?.opening):null};':'';
+ const guardianSetup=guardianSource?'window[key].guardianCompatibility=('+guardianSource+');':'';
+ const captionSetup=captionSource?'window[key].captionContrast=('+captionSource+');':'';
+ return `(() => {
+  const key=${JSON.stringify(marker)},token=${JSON.stringify(token)};
+  if(window[key])return {owned:window[key].token===token,active:!!window.__XIAOMU_NATIVE_SKIN_V1__};
+  if(window.__XIAOMU_NATIVE_SKIN_V1__||document.querySelector('#xiaomu-native-style-v1,html[data-xiaomu-native-skin]'))return {owned:false,conflict:true};
+  const openingCheck=${openingContext?(waitForForeground?openingForegroundProbe:openingTargetProbe):'null'};
+  window[key]={token,capabilities:${JSON.stringify(capabilities)},opening:${openingSetup}};
+  try{
+   if(window[key].capabilities?.core===false)throw Error("Unsupported core");
+   ${guardianSetup}${captionSetup}${bundle}
+   ;window[key].runtime=window.__XIAOMU_NATIVE_SKIN_V1__;
+   window[key].style=document.getElementById?.('xiaomu-native-style-v1')||null;
+   ${compatibilityNoticeSource}
+   const inspected=window.__XIAOMU_NATIVE_SKIN_V1__?.inspect();
+   const result={owned:true,active:!!window.__XIAOMU_NATIVE_SKIN_V1__,parts:inspected?.decoratedParts||[]};
+   ${openingReport}
+   return result;
+  }catch(e){window[key]?.guardianCompatibility?.cleanup();window[key]?.captionContrast?.cleanup();window[key]?.notice?.remove();window.__XIAOMU_NATIVE_SKIN_V1__?.cleanup();delete window[key];throw e;}
+ })()`;
+}
 function cleanupExpression(token){return `(() => {const key=${JSON.stringify(marker)},owned=window[key];if(!owned||owned.token!==${JSON.stringify(token)})return false;owned.observer?.disconnect();owned.guardianCompatibility?.cleanup();owned.captionContrast?.cleanup();owned.notice?.remove();window.__XIAOMU_NATIVE_SKIN_V1__?.cleanup();delete window[key];return true;})()`;}
 async function connect(url){
  const ws=new WebSocket(url);let serial=0;const pending=new Map();
@@ -172,10 +223,19 @@ async function connect(url){
 async function evaluate(client,expression){const r=await client.call('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error('Renderer check failed');return r.result.value;}
 // Keep the regular predicate and the startup observation on the same selectors.
 function checkWorkspace(document,window,diagnose){
- const sidebar=document.querySelectorAll('aside.app-shell-left-panel').length;
- const main=(diagnose||sidebar===1)&&(!!document.querySelector('main:is(.main-surface,[data-app-shell-main-surface],[class*="_MainContentSurface_"])')||
+ const sidebars=document.querySelectorAll('aside.app-shell-left-panel');
+ const sidebar=sidebars.length;
+ const visible=node=>{try{
+  if(!node?.isConnected||node.closest('[hidden],[inert],[aria-hidden="true"]'))return false;
+  for(let ancestor=node;ancestor;ancestor=ancestor.parentElement){const style=getComputedStyle(ancestor);if(style.display==='none'||style.visibility!=='visible'||Number(style.opacity)===0)return false;}
+  const box=node.getBoundingClientRect();return box.width>0&&box.height>0&&box.bottom>0&&box.right>0&&box.top<innerHeight&&box.left<innerWidth;
+ }catch{return false;}};
+ // A single responsive sidebar may be hidden. During navigation React can
+ // retain the old hidden sidebar beside the one active native settings shell.
+ const uniqueSidebar=sidebar===1||(sidebar>1&&Array.from(sidebars).filter(visible).length===1);
+ const main=(diagnose||uniqueSidebar)&&(!!document.querySelector('main:is(.main-surface,[data-app-shell-main-surface],[class*="_MainContentSurface_"])')||
   !!(window.__XIAOMU_INSTALLED_SESSION_V1__&&window.__XIAOMU_NATIVE_SKIN_V1__));
- if(sidebar===1&&main)return diagnose?{surface:'workspace',missing:[]}:true;
+ if(uniqueSidebar&&main)return diagnose?{surface:'workspace',missing:[]}:true;
 
  const profile=document.querySelectorAll('[data-orbit-profile-identity]').length;
  const artwork=(diagnose||profile===1)&&!!document.querySelector('[data-orbit-profile-identity] [data-character-artwork]');
@@ -185,7 +245,7 @@ function checkWorkspace(document,window,diagnose){
  if(!diagnose)return false;
 
  const missing=[];
- if(sidebar!==1)missing.push(sidebar===0?'workspace-sidebar-missing':'workspace-sidebar-multiple');
+ if(!uniqueSidebar)missing.push(sidebar===0?'workspace-sidebar-missing':'workspace-sidebar-multiple');
  if(!main)missing.push('workspace-main-missing');
  if(profile!==1)missing.push(profile===0?'dot-profile-missing':'dot-profile-multiple');
  if(!artwork)missing.push('dot-artwork-missing');
@@ -195,6 +255,13 @@ function checkWorkspace(document,window,diagnose){
 }
 const eligible='('+checkWorkspace.toString()+')(document,window,false)';
 const workspaceProbe='('+checkWorkspace.toString()+')(document,window,true)';
+function hasOwnedSkin(document,window,token){try{
+ const owned=window.__XIAOMU_INSTALLED_SESSION_V1__,runtime=window.__XIAOMU_NATIVE_SKIN_V1__;
+ return typeof token==='string'&&!!token&&owned?.token===token&&owned.runtime===runtime&&
+  typeof runtime?.inspect==='function'&&typeof runtime.cleanup==='function'&&runtime.inspect()?.active===true&&
+  !!owned.style?.isConnected&&document.getElementById('xiaomu-native-style-v1')===owned.style&&document.head.contains(owned.style);
+}catch{return false;}}
+function managedEligibility(token){return '(('+hasOwnedSkin.toString()+')(document,window,'+JSON.stringify(token)+')||('+eligible+'))';}
 function verifyIdentity(root,identity,compatibility){
  const verifier=path.join(root,'owner-check.exe');
   const archiveInfo=fs.statSync(path.join(path.dirname(identity.executable),'resources','app.asar'),{bigint:true});
@@ -217,6 +284,7 @@ async function run(){
  const verifier=path.join(root,'owner-check.exe');if(createHash('sha256').update(fs.readFileSync(verifier)).digest('hex')!==manifest.files['owner-check.exe'])throw Error('Owner verifier integrity failed');
  const token=randomUUID();const clients=new Map();let failed=false;let stopReason='stopped';
  const openingGate=createOpeningGate({root,identity});
+ const openingDiagnostics={initialCheck:null,grant:'not-requested',injectionCheck:null,playerAtApply:null};
  const gate=()=>startupTiming.sync('identity',()=>verifyIdentity(root,identity,compatibility));
  const health={recoveryCount:0,lastFailure:null,lastRecoveredAtUtc:null};
  const events=[];const record=(event,details={})=>{events.push({atUtc:new Date().toISOString(),event,...details});if(events.length>32)events.shift();writeSessionMetadata(root,'session-events.json',events);};
@@ -250,7 +318,7 @@ async function run(){
     let c=clients.get(target.id);if(!c){try{c=await startupTiming.timeAsync('connect',()=>connect(target.webSocketDebuggerUrl));clients.set(target.id,c);}catch(error){startupTiming.targetFailure('connect',error);continue;}}
     let phase='eligibility';
     try{
-     const readiness=await startupTiming.timeAsync(phase,()=>evaluate(c,firstApplied?eligible:workspaceProbe));
+     const readiness=await startupTiming.timeAsync(phase,()=>evaluate(c,firstApplied?managedEligibility(token):workspaceProbe));
      const ready=firstApplied?readiness:startupTiming.observeWorkspace(readiness);
      if(ready){
       startupTiming.mark('firstEligibleMs');phase='ownership';
@@ -260,11 +328,27 @@ async function run(){
        if(fs.existsSync(path.join(root,'stop.flag')))break;
        let opening=null;
        if(!firstApplied&&openingGate.pending()){
-        phase='opening';let ordinaryWorkspace=false;try{ordinaryWorkspace=await startupTiming.timeAsync(phase,()=>evaluate(c,openingTargetExpression));}catch(error){startupTiming.targetFailure(phase,error);}
+        phase='opening';
+        let initialCheck='check-unavailable', ordinaryWorkspace=false;
+        try{
+         const report=await startupTiming.timeAsync(phase,()=>evaluate(c,openingForegroundProbe));
+         ordinaryWorkspace=openingReadinessDecision(report);
+         if(ordinaryWorkspace!==undefined)initialCheck=report;
+        }catch(error){startupTiming.targetFailure(phase,error);}
         opening=openingGate.claim(ordinaryWorkspace);
+        if(opening)opening={...opening,waitForForeground:true,expiresAt:Date.parse(identity.launchRequestedAtUtc)+60000};
+        openingDiagnostics.initialCheck=initialCheck;
+        openingDiagnostics.grant=opening?'issued':ordinaryWorkspace===undefined?'not-requested':'not-issued';
        }
        phase='apply';startupTiming.mark('firstApplyStartedMs');
-       const result=await startupTiming.timeAsync(phase,()=>evaluate(c,applyExpression(bundle,token,compatibility.capabilities,guardianSource,captionSource,opening)));
+       let result;
+       try{result=await startupTiming.timeAsync(phase,()=>evaluate(c,applyExpression(bundle,token,compatibility.capabilities,guardianSource,captionSource,opening)));}
+       catch(error){if(opening)openingDiagnostics.injectionCheck='apply-unavailable';throw error;}
+       if(opening){
+        const report=result.openingDiagnostics;
+        openingDiagnostics.injectionCheck=openingCheckCodes.includes(report?.injectionCheck)?report.injectionCheck:'apply-unavailable';
+        openingDiagnostics.playerAtApply=summarizeOpeningPlayer(report?.playerAtApply);
+       }
        if(result.owned&&result.active){activePages++;startupTiming.mark('firstApplyCompletedMs');}if(result.conflict)conflicts++;
       }
      }
@@ -273,7 +357,8 @@ async function run(){
    }
    if(activePages&&!firstApplied){
     firstApplied=true;const launch=Date.parse(identity.launchRequestedAtUtc||'');
-    pendingStartupSample={atUtc:new Date().toISOString(),controllerToFirstApplyMs:Date.now()-controllerStartedAtMs,launchToFirstApplyMs:Number.isFinite(launch)?Date.now()-launch:null,packageVersion:compatibility.packageVersion,metric:'skin injection completed; visual first-paint acceptance is separate',...startupTiming.stop()};
+    if(openingDiagnostics.initialCheck===null)openingDiagnostics.initialCheck=identity.openingEligible===true?'launch-window-unavailable':'not-cold-start';
+    pendingStartupSample={atUtc:new Date().toISOString(),controllerToFirstApplyMs:Date.now()-controllerStartedAtMs,launchToFirstApplyMs:Number.isFinite(launch)?Date.now()-launch:null,packageVersion:compatibility.packageVersion,metric:'skin injection completed; visual first-paint acceptance is separate',...startupTiming.stop(),openingDiagnostics};
    }
    if(pendingStartupSample&&writeSessionMetadata(root,'startup-timing.json',pendingStartupSample))pendingStartupSample=null;
    status(activePages?'active':'waiting-for-native-workspace',{activePages,conflicts,version:manifest.version,packageVersion:compatibility.packageVersion,compatibility:compatibility.mode,disabled:compatibility.disabled});
@@ -286,7 +371,7 @@ async function run(){
   for(const c of clients.values())c.close();status(failed?stopReason:'disabled',{restoredPages:restored});
  }
 }
-module.exports={validTarget,applyExpression,cleanupExpression,verifyIdentity,waitForTargets,createOpeningGate,openingTargetExpression,createStartupTiming,startupDelay,eligible,workspaceProbe,writeSessionMetadata};
+module.exports={validTarget,applyExpression,cleanupExpression,verifyIdentity,waitForTargets,createOpeningGate,openingTargetExpression,openingTargetProbe,openingForegroundProbe,openingReadinessDecision,createStartupTiming,startupDelay,eligible,workspaceProbe,managedEligibility,writeSessionMetadata};
 if(require.main===module)run().catch(error=>{
  const atUtc=new Date().toISOString();
  const code=failureCode(error);
