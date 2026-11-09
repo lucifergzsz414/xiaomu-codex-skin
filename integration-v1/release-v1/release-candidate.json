@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "candidateId": "20261109-4239-rc1",
+  "releaseLabel": "4239-rc1",
+  "releaseChannel": "local-test",
+  "runtimeVersion": "1.0.0",
+  "validatedCodexVersion": "26.1103.4239.0",
+  "skinSHA256": "3b6d13f805a2fa1294820c223fb87aaf75054b7504a88d0eb5f2a6f36e0e51e8",
+  "engineSHA256": "a59f6102a04cf40b53a3f4023d913f06f0654525eaec6a7a3870588c8d3d9772"
+}
