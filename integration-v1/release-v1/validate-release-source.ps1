@@ -13,7 +13,7 @@ $skinSHA256=(Get-FileHash -LiteralPath (Join-Path $project 'integration-v1\nativ
 $engineSHA256=(Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'engine.cjs') -Algorithm SHA256).Hash.ToLowerInvariant()
 if($skinSHA256 -cne $release.skinSHA256 -or $engineSHA256 -cne $release.engineSHA256){throw 'Runtime pins differ from the accepted candidate.'}
 $tests=@(Get-ChildItem -LiteralPath (Join-Path $project 'integration-v1\native-v1') -Filter '*.test.cjs' -File|ForEach-Object{$_.FullName})+@(Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.test.cjs' -File|ForEach-Object{$_.FullName})
-$tap=(& node --test --test-reporter=tap @tests|Out-String)
+$tap=(& node --test --test-concurrency=1 --test-reporter=tap @tests|Out-String)
 if($LASTEXITCODE -ne 0){throw ('Runtime regression failed: '+$tap)}
 $counts=@{}
 foreach($key in @('tests','pass','fail','skipped')){
@@ -21,7 +21,7 @@ foreach($key in @('tests','pass','fail','skipped')){
   if(-not $match.Success){throw 'Missing runtime regression summary.'}
   $counts[$key]=[int]$match.Groups[1].Value
 }
-if($counts.tests -ne 184 -or $counts.pass -ne 184 -or $counts.fail -ne 0 -or $counts.skipped -ne 0){throw 'Expected 184 passing runtime checks with no skips. Configure the existing Playwright module and Chromium executable.'}
+if($counts.tests -ne 195 -or $counts.pass -ne 195 -or $counts.fail -ne 0 -or $counts.skipped -ne 0){throw 'Expected 195 passing runtime checks with no skips. Configure the existing Playwright module and Chromium executable.'}
 $report=[ordered]@{schema=1;candidateId=$release.candidateId;sourceCommit=$sourceCommit;tests=$counts.tests;passed=$counts.pass;failed=$counts.fail;skipped=$counts.skipped;skinSHA256=$skinSHA256;engineSHA256=$engineSHA256;scope='Offline runtime checks and headless synthetic page fixtures';atUtc=[datetime]::UtcNow.ToString('o')}
 $output=[IO.Path]::GetFullPath($OutputFile)
 $null=New-Item -ItemType Directory -Path (Split-Path $output -Parent) -Force

@@ -1,13 +1,14 @@
 {
   "schema": 1,
-  "verifiedDate": "2026-11-02",
+  "verifiedDate": "2026-11-12",
   "package": {
-    "releaseLabel": "1.0.0-beta.2",
-    "candidateId": "20261031-3384-rc2",
-    "zipSHA256": "fc70bf3b564e89cea6644f66d4565ca0d98659e2c9a75f09844de5489cc3e1cb",
-    "skinSHA256": "6ddb217b9193233bd2027b925d9972a442cf68306f63cd0d63b79680ad44eaed"
+    "releaseLabel": "6628-rc1",
+    "candidateId": "20261112-6628-rc1",
+    "zipSHA256": null,
+    "skinSHA256": "ab180e6690fd20b4a1c976fa41482f6d82d5a937325ac1cd79ef82da2925ccfe",
+    "verificationStage": "current build inputs and prepared package; archive not sealed"
   },
-  "scope": "Current build inputs and static comparison with final public archive; not a complete publication of original production receipts",
+  "scope": "Current build inputs and byte-exact embedded-asset comparison with the 6628 local candidate; original production records are retained by the maintainer, not published in full",
   "entries": [
     {
       "id": "q-idle",
@@ -25,16 +26,21 @@
         {
           "type": "byte-identical-reuse",
           "source": "xiaomu-desktop/src/renderer/react/assets/status-moods/平静.png"
+        },
+        {
+          "type": "planned-output-name-match",
+          "recordCategory": "desktop asset-regeneration manifest",
+          "recordSHA256": "26acdb753703a0ecf7ec5a590e3c314f8ba22f97f393cb0a9e3282cab2ac5e8d",
+          "note": "Manifest target matches the reused desktop path; it is a plan rather than an independent per-output receipt. Generation origin is recorded separately from maintainer confirmation",
+          "generationResultVerified": false
         }
       ],
       "unresolved": [
-        "original creator",
-        "first publication URL",
-        "generation batch if any",
-        "redistribution permission"
+        "underlying character, reference and redistribution rights remain subject to the existing project notices"
       ],
-      "exactBytesEmbeddedInFinalSkin": true,
-      "installedManagerPortraitByteIdentical": true
+      "exactBytesEmbeddedInCurrentSkin": true,
+      "preparedManagerPortraitByteIdentical": true,
+      "declaredGenerationOrigin": "current project conversation; maintainer-confirmed 2026-11-12"
     },
     {
       "id": "q-reading",
@@ -50,15 +56,20 @@
         {
           "type": "byte-identical-reuse",
           "source": "xiaomu-desktop/src/renderer/react/assets/status-moods/学习.png"
+        },
+        {
+          "type": "planned-output-name-match",
+          "recordCategory": "desktop asset-regeneration manifest",
+          "recordSHA256": "26acdb753703a0ecf7ec5a590e3c314f8ba22f97f393cb0a9e3282cab2ac5e8d",
+          "note": "Manifest target matches the reused desktop path; it is a plan rather than an independent per-output receipt. Generation origin is recorded separately from maintainer confirmation",
+          "generationResultVerified": false
         }
       ],
       "unresolved": [
-        "original creator",
-        "first publication URL",
-        "generation batch if any",
-        "redistribution permission"
+        "underlying character, reference and redistribution rights remain subject to the existing project notices"
       ],
-      "exactBytesEmbeddedInFinalSkin": true
+      "exactBytesEmbeddedInCurrentSkin": true,
+      "declaredGenerationOrigin": "current project conversation; maintainer-confirmed 2026-11-12"
     },
     {
       "id": "q-work",
@@ -74,15 +85,20 @@
         {
           "type": "byte-identical-reuse",
           "source": "xiaomu-desktop/src/renderer/react/assets/status-moods/工作中.png"
+        },
+        {
+          "type": "planned-output-name-match",
+          "recordCategory": "desktop asset-regeneration manifest",
+          "recordSHA256": "26acdb753703a0ecf7ec5a590e3c314f8ba22f97f393cb0a9e3282cab2ac5e8d",
+          "note": "Manifest target matches the reused desktop path; it is a plan rather than an independent per-output receipt. Generation origin is recorded separately from maintainer confirmation",
+          "generationResultVerified": false
         }
       ],
       "unresolved": [
-        "original creator",
-        "first publication URL",
-        "generation batch if any",
-        "redistribution permission"
+        "underlying character, reference and redistribution rights remain subject to the existing project notices"
       ],
-      "exactBytesEmbeddedInFinalSkin": true
+      "exactBytesEmbeddedInCurrentSkin": true,
+      "declaredGenerationOrigin": "current project conversation; maintainer-confirmed 2026-11-12"
     },
     {
       "id": "q-think",
@@ -98,15 +114,20 @@
         {
           "type": "byte-identical-reuse",
           "source": "xiaomu-desktop/src/renderer/react/assets/思考组件.png"
+        },
+        {
+          "type": "planned-output-name-match",
+          "recordCategory": "desktop asset-regeneration manifest",
+          "recordSHA256": "26acdb753703a0ecf7ec5a590e3c314f8ba22f97f393cb0a9e3282cab2ac5e8d",
+          "note": "Manifest target matches the reused desktop path; it is a plan rather than an independent per-output receipt. Generation origin is recorded separately from maintainer confirmation",
+          "generationResultVerified": false
         }
       ],
       "unresolved": [
-        "original creator",
-        "first publication URL",
-        "generation batch if any",
-        "redistribution permission"
+        "underlying character, reference and redistribution rights remain subject to the existing project notices"
       ],
-      "exactBytesEmbeddedInFinalSkin": true
+      "exactBytesEmbeddedInCurrentSkin": true,
+      "declaredGenerationOrigin": "current project conversation; maintainer-confirmed 2026-11-12"
     },
     {
       "id": "home-poster",
@@ -121,7 +142,8 @@
         {
           "name": "quiet-loop-v1/source.png",
           "sha256": "a702d5bdf764225ec5512638f704e7e59da6607b4053e0e935cc07b6056d6161",
-          "recordLocation": "maintainer-held production project; not published"
+          "recordLocation": "maintainer-held production project; not published",
+          "declaredGenerationOrigin": "current project conversation; maintainer-confirmed 2026-11-12"
         },
         {
           "type": "local-composite",
@@ -134,14 +156,15 @@
             "name": "xiaomu-background-v4-window-curtain-review.mp4",
             "sha256": "8be5f9c289de6a88a521106d56b241397c06126b20e5702d7a363c1178ec82a9"
           },
-          "additionalPaidGenerationCallsInComposite": 0
+          "additionalPaidGenerationCallsInComposite": 0,
+          "recordSHA256": "72c927dd61cc7c2c92e2d06d3585e4056db440d4adbdbde881f0a313c45f1eef"
         }
       ],
       "unresolved": [
-        "complete initial illustration origin and applicable rights",
-        "complete final environment-video origin and applicable rights"
+        "complete final environment-video origin and applicable rights",
+        "underlying character, reference and redistribution rights remain subject to the existing project notices"
       ],
-      "exactBytesEmbeddedInFinalSkin": true
+      "exactBytesEmbeddedInCurrentSkin": true
     },
     {
       "id": "home-loop",
@@ -156,7 +179,8 @@
         {
           "name": "quiet-loop-v1/source.png",
           "sha256": "a702d5bdf764225ec5512638f704e7e59da6607b4053e0e935cc07b6056d6161",
-          "recordLocation": "maintainer-held production project; not published"
+          "recordLocation": "maintainer-held production project; not published",
+          "declaredGenerationOrigin": "current project conversation; maintainer-confirmed 2026-11-12"
         },
         {
           "type": "local-composite",
@@ -169,21 +193,22 @@
             "name": "xiaomu-background-v4-window-curtain-review.mp4",
             "sha256": "8be5f9c289de6a88a521106d56b241397c06126b20e5702d7a363c1178ec82a9"
           },
-          "additionalPaidGenerationCallsInComposite": 0
+          "additionalPaidGenerationCallsInComposite": 0,
+          "recordSHA256": "72c927dd61cc7c2c92e2d06d3585e4056db440d4adbdbde881f0a313c45f1eef"
         }
       ],
       "unresolved": [
-        "complete initial illustration origin and applicable rights",
-        "complete final environment-video origin and applicable rights"
+        "complete final environment-video origin and applicable rights",
+        "underlying character, reference and redistribution rights remain subject to the existing project notices"
       ],
-      "exactBytesEmbeddedInFinalSkin": true,
       "media": {
         "durationSeconds": 8,
         "width": 1440,
         "height": 812,
         "framesPerSecond": 30,
         "silent": true
-      }
+      },
+      "exactBytesEmbeddedInCurrentSkin": true
     },
     {
       "id": "opening-pv",
@@ -208,7 +233,19 @@
           ],
           "rawOutputSHA256": "f9102f3b5c2f6fae37f6e230f9a22477f5a2250ac09d9ebd027bdc871a679f16",
           "automaticRetries": 0,
-          "evidence": "maintainer-held quote and generation receipt; raw records not published"
+          "evidence": "maintainer-held quote and generation receipt; raw records not published",
+          "referenceNames": [
+            "shot-01-room-bg-identity.png",
+            "shot-02-pick-bg-identity.png",
+            "shot-03-gaze-bg-identity.png"
+          ],
+          "localReferenceFilesHashMatched": true,
+          "generationResultRecordSHA256": "33a41fab1e2bee2452e1ad5339a75a8cecc0db5a8fcdc9b812e3e144006f97b9",
+          "quoteRecordSHA256": "648da136eb18ec071647aa5c4563330d7e9eba949860db4a57c3141667b431bf",
+          "generationsSubmitted": 1,
+          "chargedCredits": 250,
+          "referenceGenerationOrigin": "current project conversation; maintainer-confirmed 2026-11-12",
+          "independentPerReferenceGenerationReceiptsLocated": false
         },
         {
           "type": "local-video-postproduction",
@@ -222,11 +259,9 @@
         }
       ],
       "unresolved": [
-        "complete generation receipts and source record for the three reference images",
         "terms applicable to this Updream generation",
         "reference character and instrument redistribution basis"
       ],
-      "exactBytesEmbeddedInFinalSkin": true,
       "media": {
         "durationSeconds": 5,
         "width": 1920,
@@ -237,8 +272,11 @@
       "acceptance": {
         "rawClipAccepted": true,
         "wordmarkAndFadeSeparatelyAccepted": false,
-        "wordmarkAndFadeRecordStatus": "pending-user-review"
-      }
+        "wordmarkAndFadeRecordStatus": "pending-user-review",
+        "recordDate": "2026-10-30",
+        "scope": "Historical production-review fields only; not a current runtime acceptance result"
+      },
+      "exactBytesEmbeddedInCurrentSkin": true
     },
     {
       "id": "manager-icon",
@@ -254,6 +292,13 @@
         {
           "type": "local-file-reuse",
           "embeddedBy": "build-control-host.cjs /win32icon"
+        },
+        {
+          "type": "candidate-source-exclusion",
+          "candidate": "desktop tray-icon.ico",
+          "candidateSHA256": "38decaff1f889b0c24dfa0ce7006275265bab469d8e1859e02b877195de099e8",
+          "matches": false,
+          "note": "A differently hashed icon does not establish the current icon origin"
         }
       ],
       "unresolved": [
@@ -261,7 +306,7 @@
         "conversion production record",
         "creator and redistribution basis"
       ],
-      "exactInstalledFileMatch": true
+      "exactPreparedPackageFileMatch": true
     },
     {
       "id": "page-svg",
@@ -298,8 +343,8 @@
     {
       "id": "entry-svg",
       "path": "integration-v1/native-v1/build-native.cjs",
-      "sha256": "5213df98fd0f490641c2b9332524cf08560da2b1d7810ef8c7a96730d998e0e7",
-      "bytes": 6677,
+      "sha256": "f7542dcdf1814ce7541828946cdf5437fc5a5e748547b2bdb816b8c63a2241b4",
+      "bytes": 6896,
       "kind": "source-container",
       "uses": [
         "inline functional SVG icons"
@@ -349,5 +394,31 @@
   "privatePathsIncluded": false,
   "serviceTaskOrAccountIdentifiersIncluded": false,
   "releaseZipModified": false,
-  "newPaidGenerationCalls": 0
+  "newPaidGenerationCalls": 0,
+  "historicalPackageVerification": {
+    "verifiedDate": "2026-11-02",
+    "package": {
+      "releaseLabel": "1.0.0-beta.2",
+      "candidateId": "20261031-3384-rc2",
+      "zipSHA256": "fc70bf3b564e89cea6644f66d4565ca0d98659e2c9a75f09844de5489cc3e1cb",
+      "skinSHA256": "6ddb217b9193233bd2027b925d9972a442cf68306f63cd0d63b79680ad44eaed"
+    }
+  },
+  "maintainerProvenanceConfirmation": {
+    "date": "2026-11-12",
+    "evidenceLevel": "maintainer-provided provenance in the current project conversation",
+    "statement": "The four Q images, window-side base illustration and three rain-PV reference images were all generated in this conversation",
+    "appliesTo": [
+      "q-idle",
+      "q-reading",
+      "q-work",
+      "q-think",
+      "home-poster base illustration",
+      "home-loop base illustration",
+      "opening-pv three reference images"
+    ],
+    "independentPerImageGenerationReceiptsLocated": false,
+    "missingReceiptsRequireMaintainerResubmission": false,
+    "scope": "Generation and processing origin only; does not establish the absence of external references or change underlying character, reference, platform or third-party rights"
+  }
 }

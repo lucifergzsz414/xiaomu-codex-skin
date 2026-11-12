@@ -26,12 +26,12 @@ if($LASTEXITCODE -ne 0 -or $sourceCommit -cnotmatch '^[a-f0-9]{40}$'){throw 'A c
 $dirty=& git -C $project status --porcelain --untracked-files=normal
 if($LASTEXITCODE -ne 0 -or $dirty){throw 'Commit the publication sources before sealing the package.'}
 $validation=Get-Content -LiteralPath $ValidationReport -Raw -Encoding utf8|ConvertFrom-Json
-if($validation.sourceCommit -cne $sourceCommit -or $validation.candidateId -cne $candidateId -or $validation.tests -ne 184 -or $validation.passed -ne 184 -or $validation.failed -ne 0 -or $validation.skipped -ne 0 -or $validation.skinSHA256 -cne $release.skinSHA256 -or $validation.engineSHA256 -cne $release.engineSHA256){throw 'Source validation does not match this committed candidate.'}
+if($validation.sourceCommit -cne $sourceCommit -or $validation.candidateId -cne $candidateId -or $validation.tests -ne 195 -or $validation.passed -ne 195 -or $validation.failed -ne 0 -or $validation.skipped -ne 0 -or $validation.skinSHA256 -cne $release.skinSHA256 -or $validation.engineSHA256 -cne $release.engineSHA256){throw 'Source validation does not match this committed candidate.'}
 $extras=[ordered]@{
   'START-HERE.md'='START-HERE.md'
   'CLEAN-TEST-GUIDE.md'='CLEAN-TEST-GUIDE.md'
   'clean-environment-check.ps1'='clean-environment-check.ps1'
-  'skin/RELEASE-NOTES-4239-rc2.md'='RELEASE-NOTES-4239-rc2.md'
+  'skin/RELEASE-NOTES-6628-rc1.md'='RELEASE-NOTES-6628-rc1.md'
   'skin/ASSET-SOURCES.md'='ASSET-SOURCES.md'
 }
 foreach($item in $extras.GetEnumerator()){
@@ -52,10 +52,12 @@ $receipt=[ordered]@{
   sourceCandidateAcceptance=[ordered]@{tests=$validation.tests;passed=$validation.passed;failed=$validation.failed;skipped=$validation.skipped;sourceCommit=$sourceCommit;reportSHA256=(Get-FileHash -LiteralPath $ValidationReport -Algorithm SHA256).Hash.ToLowerInvariant();scope='Offline runtime regression tests, including headless synthetic page fixtures; no live Codex restart.'}
   exactArchiveAcceptance='Recorded separately after sealing in archive-smoke-result.json.'
   independentCleanWindowsVerified=$false;standalonePackageColdStartVerified=$false
-  installedOpeningUserConfirmed=$true;terminalVisualVerified=$true;repositoryAccessApprovalVisualVerified=$true;repositoryAccessApprovalActionVerified=$true;commandExecutionApprovalVerified=$false;fileDiffVerified=$true
-  nativePanelAcceptanceSHA256=$release.nativePanelAcceptanceSHA256
-  nativePanelAcceptance=[ordered]@{scope='Live Codex 26.1103.4239.0; no restart';terminal='Native PowerShell prompt and readable text; no command entered';approval='Repository access for worktree creation; user allowed and worktree creation completed';diff='Git and UI +4/-2; split/unified; collapse/expand; narrow auto-unified layout; long-line scroll and toolbar visible'}
-  remaining=@('Command execution approval','Standalone package cold startup','Independent Windows 11 ordinary-user installation, startup and recovery','Browser download and first-run prompts')
+  installedHotUpdateVerified=$true;liveCompatibilityVerified=$true;realSearchAndMenuInteractionsVerified=$false
+  installedOpeningUserConfirmed=$false;terminalVisualVerified=$false;repositoryAccessApprovalVisualVerified=$false;repositoryAccessApprovalActionVerified=$false;commandExecutionApprovalVerified=$false;fileDiffVerified=$false
+  localAcceptanceSHA256=$release.localAcceptanceSHA256
+  localAcceptance=[ordered]@{scope='Codex 26.1106.6628.0; existing process hot update and read-only metadata, no UI navigation';compatibility='All six component capabilities enabled; active skin, no conflicts';process='Same Codex process and start time; opening ledger unchanged';draft='User reported no unsent draft before hot update; non-empty draft preservation not exercised'}
+  syntheticSurfaceAcceptance=[ordered]@{scope='Headless synthetic page fixtures, not native live page interaction';home='644/320px cards and original action preservation';settings='320px input/button identity and value preservation';diff='644/320px minimal shadow CSS consumer; not the native formatter'}
+  remaining=@('Current 6628 real search, context-menu and submenu interaction','Command execution approval','Standalone package cold startup','Independent Windows 11 ordinary-user installation, startup and recovery','Browser download and first-run prompts','Outstanding asset provenance and redistribution records')
 }
 [IO.File]::WriteAllText((Join-Path $bundle 'RELEASE-CANDIDATE.json'),($receipt|ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))
 $expected=@($names|ForEach-Object{'skin/'+$_})+@($extras.Keys)+@('RELEASE-CANDIDATE.json')

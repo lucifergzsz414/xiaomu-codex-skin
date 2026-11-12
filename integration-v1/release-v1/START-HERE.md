@@ -1,6 +1,6 @@
-# 小睦 Codex · 4239 测试版
+# 小睦 Codex · 1.0.0 安装候选
 
-浅绿界面、五秒雨景片头、小睦首页与动态背景。适配 Microsoft Store Codex **26.1103.4239.0**。
+浅绿界面、五秒雨景片头、小睦首页与动态背景。适配 Microsoft Store Codex **26.1106.6628.0**，候选编号 **20261112-6628-rc1**。
 
 ## 开始使用
 
@@ -19,10 +19,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -SourceRoo
 
 旧安装完整保留在 `backup-repair-*`。更新后保持暂停；重新检测后主动启用。更新和恢复不会关闭 Codex。
 
-## 本轮记录
+## 当前验收
 
-当前安装中的片头、搜索、右键主菜单与子菜单已实机检查。真实终端和文件差异面板已通过本轮检查；仓库访问审批经用户确认后成功创建工作树。
+本机已在保持 Codex 运行的情况下热更新。组件检测六项通过，皮肤活动状态正常；195 项自动化回归通过，包含搜索、菜单及首页、设置、差异的模拟页面检查。
 
-执行命令审批、新整包冷启动、独立 Windows 11 普通用户环境仍待验收。包内 [构建记录](RELEASE-CANDIDATE.json) 区分源码检查与整包检查。
+当前版本的真实搜索、菜单和审批操作、最终安装包冷启动、独立 Windows 11 普通用户首装仍待验收。素材来源和再分发记录见随包说明。包内 [构建记录](RELEASE-CANDIDATE.json) 区分已完成检查和待验收项；最终 ZIP 的安装、修复与恢复结果另行记录。
 
-[完整使用说明](skin/USAGE.md) · [本版改动](skin/RELEASE-NOTES-4239-rc2.md) · [独立环境指南](CLEAN-TEST-GUIDE.md) · [素材来源](skin/ASSET-SOURCES.md)
+[完整使用说明](skin/USAGE.md) · [本版改动](skin/RELEASE-NOTES-6628-rc1.md) · [独立环境指南](CLEAN-TEST-GUIDE.md) · [素材来源](skin/ASSET-SOURCES.md)

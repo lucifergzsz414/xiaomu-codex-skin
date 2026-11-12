@@ -1,11 +1,11 @@
 {
   "schema": 1,
-  "candidateId": "20261109-4239-rc2",
-  "releaseLabel": "4239-rc2",
+  "candidateId": "20261112-6628-rc1",
+  "releaseLabel": "6628-rc1",
   "releaseChannel": "local-test",
   "runtimeVersion": "1.0.0",
-  "validatedCodexVersion": "26.1103.4239.0",
-  "skinSHA256": "3b6d13f805a2fa1294820c223fb87aaf75054b7504a88d0eb5f2a6f36e0e51e8",
+  "validatedCodexVersion": "26.1106.6628.0",
+  "skinSHA256": "ab180e6690fd20b4a1c976fa41482f6d82d5a937325ac1cd79ef82da2925ccfe",
   "engineSHA256": "a59f6102a04cf40b53a3f4023d913f06f0654525eaec6a7a3870588c8d3d9772",
-  "nativePanelAcceptanceSHA256": "33d56974f00e1ef6756af462718c48e0503a01f8f4954271b041f45638cf7a5e"
+  "localAcceptanceSHA256": "b8bdc124a6d22d06e3525dd67a15819748249af15a7d561a0c2b4b3cad2f3bd5"
 }
