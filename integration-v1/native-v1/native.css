@@ -427,7 +427,7 @@ html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="main"] [data-xiaomu
 /* Settings titles retain their native text and original control associations. */
 /* Command search keeps its native input, cmdk options and keyboard behavior. */
 html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-overlay="search"] { top:max(16px,min(14vh,96px))!important; width:min(520px,calc(100vw - 24px))!important; min-width:0!important; max-height:calc(100dvh - 32px); }
-html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-overlay="search"] [cmdk-root] { position:relative; min-width:0; border:1px solid #bdcfb0; border-radius:14px; background:#fffef9; box-shadow:0 12px 38px #30473824; overflow:hidden; }
+html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-overlay="search"] [data-xiaomu-search-surface] { position:relative; min-width:0; border:1px solid #bdcfb0; border-radius:14px; background:#fffef9; box-shadow:0 12px 38px #30473824; overflow:hidden; }
 html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-overlay="search"] [cmdk-input] { padding-inline-end:64px; border-bottom:1px solid #d3dfca; }
 html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-overlay="search"] [cmdk-list] { max-height:min(54vh,calc(100dvh - 128px)); overflow-y:auto; min-width:0; }
 html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-overlay="search"] [cmdk-item][data-selected="true"] { background-color:#e0ebd7; outline-color:#48694e; }

@@ -81,6 +81,12 @@
         "length": 13422,
         "sha256": "0f9729156979dd4425c1b146d039cb408f13fb1bec44a93aa06f4246e3748cbf",
         "sourceForm": "property"
+      },
+      {
+        "name": "t",
+        "length": 13645,
+        "sha256": "93dfcadba76cb1879a882e8774306c7113e086c47b5acfcecc480aa0959b0791",
+        "sourceForm": "property"
       }
     ]
   },
@@ -139,6 +145,35 @@
         {
           "path": "webview/assets/async/189497.94c1baca79.js",
           "sha256": "49f9a5980fbaa6b58b9da7483dce6db00019a0fac5492d3dd618874484b3d376",
+          "feature": "contextMenus"
+        }
+      ]
+    },
+    {
+      "id": "codex-26.1106.6628-reviewed-ui",
+      "bootstrap": {
+        "path": "webview/assets/348410.1a97dde15f.js",
+        "sha256": "2f366e7066e7dabb445e1e583917f57aa787d04e9c9dcfe684c9c7af47bb0b52"
+      },
+      "assets": [
+        {
+          "path": "webview/assets/async/92243.7ae2a0b971.js",
+          "sha256": "2090b888705be8a3fac914f21b672f27a2c3ce6f854ca1312449c53fbad244d9",
+          "feature": "overlays"
+        },
+        {
+          "path": "webview/assets/async/297963.803dd08792.js",
+          "sha256": "466d37a46c21265577abfdf0f1ff1b2e2f72c9c38226684c45d9c898cedf16c3",
+          "feature": "overlays"
+        },
+        {
+          "path": "webview/assets/async/401845.8b91e60f6b.js",
+          "sha256": "5e8c723c3b0546a591008bf871138467e0eb8d3c756fa1449a1c21daaed3c994",
+          "feature": "overlays"
+        },
+        {
+          "path": "webview/assets/async/514766.2d2f1ddc86.js",
+          "sha256": "943016fbef25cbfe62703ea7ab5ee7d2e9971b8db3681147fb983e7bd12e6f39",
           "feature": "contextMenus"
         }
       ]

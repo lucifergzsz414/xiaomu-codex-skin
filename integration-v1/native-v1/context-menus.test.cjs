@@ -38,9 +38,11 @@ function setup({legacy=profile(Legacy),variants=[profile(x)],type=x,decoys=[],ba
 async function ready(fixture){fixture.skin.sync();await new Promise(resolve=>setImmediate(resolve));fixture.skin.sync();}
 test('reviewed profile data preserves legacy menu and exact new fingerprint',()=>{
  const data=JSON.parse(fs.readFileSync(path.join(__dirname,'native-menu-profiles.json'),'utf8'));
- assert.equal(data.schema,1);assert.equal(data.profiles.length,3);
- assert.deepEqual(data.profiles.map(p=>[p.functionName,p.functionLength,p.layout]),[['Wxn',12391,'codex-3384'],['x',13441,'codex-3384'],['t',13422,'codex-3384']]);
+ assert.equal(data.schema,1);assert.equal(data.profiles.length,4);
+ assert.deepEqual(data.profiles.map(p=>[p.functionName,p.functionLength,p.layout]),[['Wxn',12391,'codex-3384'],['x',13441,'codex-3384'],['t',13422,'codex-3384'],['t',13645,'codex-3384']]);
  assert.equal(data.profiles[1].functionSha256,'7489581934e24e5034a8706a984c634febfb243532539aa2d6fb9ba9b0a22a94');
+ assert.equal(data.profiles[3].appVersion,'26.1106.6628.0');
+ assert.equal(data.profiles[3].functionSha256,'93dfcadba76cb1879a882e8774306c7113e086c47b5acfcecc480aa0959b0791');
 });
 test('new menu profile converts once and preserves its own replay and cleanup',async()=>{
  const f=setup();await ready(f);assert.equal(f.skin.inspect().ready,true);const event=f.open();assert.equal(event.prevented,true);f.flushFrames();assert.equal(f.events.length,1);assert.equal(f.skin.inspect().converted,1);assert.equal(f.skin.inspect().switches,1);f.skin.clear();assert.equal(f.menu.memoizedProps.disableNative,undefined);assert.equal(f.closeCalls,1);assert.equal(f.listeners.contextmenu.length,0);assert.equal(f.listeners.keydown.length,0);
@@ -49,6 +51,16 @@ test('the reviewed property initializer has an inferred name and reuses native m
  const type=({t:function(e){return e;}}).t;assert.equal(type.name,'t');assert.match(type.toString(),/^function\(/);
  const f=setup({type,variants:[profile(type)]});await ready(f);assert.equal(f.skin.inspect().ready,true);
  assert.equal(f.open().prevented,true);f.flushFrames();assert.equal(f.events.length,1);f.skin.clear();
+});
+
+test('same-name old and new property profiles select only the matching component',async()=>{
+ const oldType=({t:function(e){return e;}}).t,newType=({t:function(e){return {...e};}}).t;
+ assert.notEqual(oldType.toString().length,newType.toString().length);
+ for(const type of [oldType,newType]){
+  const f=setup({legacy:profile(oldType),variants:[profile(newType)],type});await ready(f);
+  assert.equal(f.open().prevented,true);f.flushFrames();assert.equal(f.calls,1);assert.equal(f.events.length,1);assert.equal(f.skin.inspect().converted,1);
+  f.skin.clear();assert.equal(f.listeners.contextmenu.length,0);
+ }
 });
 test('wrong-length same-name descendants never shadow the verified menu ancestor',async()=>{
  const f=setup({decoys:[differentLength]});await ready(f);assert.equal(f.skin.inspect().ready,true);assert.equal(f.open().prevented,true);f.flushFrames();assert.equal(f.events.length,1);f.skin.clear();
@@ -71,6 +83,16 @@ test('keyboard opening preserves the original action and submenu payload objects
  f.menu.memoizedProps.items=items;f.menu.memoizedProps.getItems=getItems;await ready(f);
  assert.equal(f.open(true).prevented,true);f.flushFrames();assert.equal(f.events.length,1);
  assert.equal(f.menu.memoizedProps.items,items);assert.equal(f.menu.memoizedProps.items[1].submenu,submenu);assert.equal(f.menu.memoizedProps.getItems,getItems);f.skin.clear();assert.equal(f.menu.memoizedProps.items,items);
+});
+
+test('reviewed fallback retains async preparation, submenu selection and original callbacks',async()=>{
+ const type=({t:function(e){return e;}}).t,f=setup({type,variants:[profile(type)]});
+ const callbacks={getItems:async()=>[],onBeforeOpen:async()=>{},onOpenChange(){},onCloseAutoFocus(){},onAfterClose(){},renderItem(){},renderDropdown(){}};
+ Object.assign(f.menu.memoizedProps,callbacks,{defaultOpenSubmenuId:'copy',awaitBeforeOpen:false,preserveBrowserContextMenu:true});
+ await ready(f);assert.equal(f.open().prevented,true);f.flushFrames();assert.equal(f.events.length,1);
+ for(const [key,value]of Object.entries(callbacks))assert.equal(f.menu.memoizedProps[key],value,key);
+ assert.equal(f.menu.memoizedProps.defaultOpenSubmenuId,'copy');assert.equal(f.menu.memoizedProps.awaitBeforeOpen,false);assert.equal(f.menu.memoizedProps.preserveBrowserContextMenu,true);
+ f.skin.clear();for(const [key,value]of Object.entries(callbacks))assert.equal(f.menu.memoizedProps[key],value,key);
 });
 test('editing and selected text keep the native menu even after profile verification',async()=>{
  const f=setup();await ready(f);f.host.closest=()=>({});assert.equal(f.open().prevented,undefined);assert.equal(f.calls,0);
