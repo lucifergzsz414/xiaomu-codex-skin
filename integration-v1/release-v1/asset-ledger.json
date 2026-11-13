@@ -1,12 +1,12 @@
 {
   "schema": 1,
-  "verifiedDate": "2026-11-12",
+  "verifiedDate": "2026-11-13",
   "package": {
-    "releaseLabel": "6628-rc1",
-    "candidateId": "20261112-6628-rc1",
+    "releaseLabel": "6628-rc2",
+    "candidateId": "20261113-6628-rc2",
     "zipSHA256": null,
-    "skinSHA256": "ab180e6690fd20b4a1c976fa41482f6d82d5a937325ac1cd79ef82da2925ccfe",
-    "verificationStage": "current build inputs and prepared package; archive not sealed"
+    "skinSHA256": "cb15d319d13fed1780c85baa7b6549192417a1883702a06a9b89005d23cd6669",
+    "verificationStage": "Pinned current build inputs; exact archive readback recorded separately after sealing"
   },
   "scope": "Current build inputs and byte-exact embedded-asset comparison with the 6628 local candidate; original production records are retained by the maintainer, not published in full",
   "entries": [

@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "candidateId": "20261113-6628-rc2",
+  "validatedCodexVersion": "26.1106.6628.0",
+  "runtimeSourceCommit": "b9ec83494a847fb0590c5689f9d1e5e576322b4a",
+  "skinSHA256": "cb15d319d13fed1780c85baa7b6549192417a1883702a06a9b89005d23cd6669",
+  "engineSHA256": "a59f6102a04cf40b53a3f4023d913f06f0654525eaec6a7a3870588c8d3d9772",
+  "runtimeRegression": {"tests": 227, "passed": 227, "failed": 0, "skipped": 0},
+  "acceptance": {
+    "independentCleanWindowsVerified": false,
+    "standalonePackageColdStartVerified": false,
+    "installedHotUpdateVerified": true,
+    "liveCompatibilityVerified": true,
+    "realSearchAndMenuInteractionsVerified": true,
+    "realSearchInteractionsVerified": true,
+    "searchScopeMemoryUserConfirmed": true,
+    "realContextMenuInteractionsVerified": true,
+    "installedOpeningUserConfirmed": false,
+    "terminalVisualVerified": false,
+    "repositoryAccessApprovalVisualVerified": false,
+    "repositoryAccessApprovalActionVerified": false,
+    "commandExecutionApprovalVerified": false,
+    "fileDiffVerified": false
+  },
+  "menuEvidence": {
+    "codexVersion": "26.1106.6628.0",
+    "receiptSHA256": "b68fc2b10d906f16e23a7fac3fac7eda7ae10dad0f92ebdb085fde35af9c51d5",
+    "skinSHA256AtCheck": "ab180e6690fd20b4a1c976fa41482f6d82d5a937325ac1cd79ef82da2925ccfe",
+    "contextMenusSourceSHA256": "31786cd9148e75904860233a8d2acdd7e8c96673e8b69c1495ef3fd99612d598",
+    "menuProfilesSHA256": "1f689774810ad93dcb2049121f0809692fa18dbd76763ecc1e65b7549c9ffa9c",
+    "scope": "Earlier native-window check on the same Codex version; menu sources and profiles unchanged in the search repairs; not an exact final-ZIP retest",
+    "mainAndSubmenuNavigation": true,
+    "renameOpenedAndCancelled": true,
+    "copyWorkingDirectoryReadbackMatched": true,
+    "projectSectionForkBusinessActionsExecuted": false
+  },
+  "localAcceptance": {
+    "scope": "Codex 26.1106.6628.0; native search and menu checks plus user-confirmed directory memory",
+    "compatibility": "Six component capabilities enabled; active skin with no reported compatibility conflict",
+    "process": "The running Codex process was retained during the search repairs",
+    "draft": "In-place overlay updates verified native input, selection, focus and composer preservation",
+    "search": "Project-scoped text and filename matches and empty results verified; user confirmed that reopening search retains the selected project in the same chat",
+    "menus": "Same-version native menu record covers readability, rename cancel, keyboard, submenus and copied directory readback; unchanged menu implementation",
+    "queryCleanup": "Owned diagnostic query removed through native persisted state and existing mode cache; renderer and host readback reported zero remaining occurrences"
+  },
+  "syntheticSurfaceAcceptance": {
+    "scope": "Automated fixtures are recorded separately from native surface checks",
+    "home": "644/320px cards and original action preservation",
+    "settings": "320px input/button identity and value preservation",
+    "diff": "644/320px minimal shadow CSS consumer",
+    "searchScope": "Per-chat, host and original-project isolation; native selection and clearing; close/reopen and storage reconstruction"
+  },
+  "remaining": [
+    "Exact final archive installation, repair, pause and restoration checks are recorded after sealing",
+    "Standalone final-package cold startup and opening",
+    "Independent Windows 11 ordinary-user installation, startup and recovery",
+    "Current-version approval, terminal and diff checks not added by the search acceptance",
+    "Browser download and first-run prompts",
+    "Outstanding asset provenance and redistribution records"
+  ]
+}

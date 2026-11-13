@@ -9,6 +9,10 @@ $candidateId=$release.candidateId
 $releaseLabel=$release.releaseLabel
 $stem='xiaomu-codex-skin-'+$candidateId
 if($candidateId -cnotmatch '^\d{8}-\d+-rc\d+$'){throw 'Invalid candidate identity.'}
+if($releaseLabel -isnot [string] -or $releaseLabel -cnotmatch '^\d+-rc\d+$' -or $candidateId.Substring(9) -cne $releaseLabel){throw 'Invalid release label.'}
+$sourceTestCount=$release.sourceTestCount
+if(($sourceTestCount -isnot [int] -and $sourceTestCount -isnot [long]) -or $sourceTestCount -le 0 -or $sourceTestCount -gt [int]::MaxValue){throw 'Invalid source test count.'}
+$releaseNotes='RELEASE-NOTES-'+$releaseLabel+'.md'
 if($manifest.id -cne 'xiaomu-codex-skin' -or $manifest.version -cne $release.runtimeVersion -or $manifest.releaseLabel -cne $releaseLabel -or $manifest.releaseChannel -cne $release.releaseChannel -or $manifest.candidateId -cne $candidateId -or $manifest.validatedCodexVersion -cne $release.validatedCodexVersion){throw 'Unexpected release identity.'}
 if($manifest.files.'skin.js' -cne $release.skinSHA256 -or $manifest.files.'engine.cjs' -cne $release.engineSHA256){throw 'The accepted runtime changed.'}
 $entries=@($manifest.files.PSObject.Properties)
@@ -21,17 +25,35 @@ foreach($name in $names){
 }
 foreach($entry in $entries){if($entry.Value -cnotmatch '^[a-f0-9]{64}$' -or (Get-FileHash -LiteralPath (Join-Path $source $entry.Name) -Algorithm SHA256).Hash -ine $entry.Value){throw ('Package hash mismatch: '+$entry.Name)}}
 $project=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
+$evidenceRelative=$release.localAcceptancePath
+if($evidenceRelative -isnot [string] -or $evidenceRelative -cnotmatch '^[A-Za-z0-9][A-Za-z0-9._/-]*\.json$' -or @($evidenceRelative -split '/'|Where-Object{$_ -in @('','.','..')}).Count){throw 'Invalid local acceptance path.'}
+$evidencePath=[IO.Path]::GetFullPath((Join-Path $project ($evidenceRelative.Replace('/','\'))))
+$projectPrefix=$project.TrimEnd('\')+'\'
+if(-not $evidencePath.StartsWith($projectPrefix,[StringComparison]::OrdinalIgnoreCase)){throw 'Invalid local acceptance path.'}
+$cursor=$evidencePath
+while($cursor -ieq $project -or $cursor.StartsWith($projectPrefix,[StringComparison]::OrdinalIgnoreCase)){
+  $item=Get-Item -LiteralPath $cursor -Force
+  if($item.Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'Linked local acceptance path rejected.'}
+  if($cursor -ieq $project){break}
+  $cursor=Split-Path -Path $cursor -Parent
+}
+if((Get-Item -LiteralPath $evidencePath).PSIsContainer -or $release.localAcceptanceSHA256 -cnotmatch '^[a-f0-9]{64}$' -or (Get-FileHash -LiteralPath $evidencePath -Algorithm SHA256).Hash.ToLowerInvariant() -cne $release.localAcceptanceSHA256){throw 'Local acceptance hash mismatch.'}
+$localEvidence=Get-Content -LiteralPath $evidencePath -Raw -Encoding utf8|ConvertFrom-Json
+if($localEvidence.schema -ne 1 -or $localEvidence.candidateId -cne $candidateId -or $localEvidence.validatedCodexVersion -cne $release.validatedCodexVersion -or $localEvidence.skinSHA256 -cne $release.skinSHA256 -or $localEvidence.engineSHA256 -cne $release.engineSHA256){throw 'Local acceptance identity mismatch.'}
+$acceptanceFields=@('independentCleanWindowsVerified','standalonePackageColdStartVerified','installedHotUpdateVerified','liveCompatibilityVerified','realSearchAndMenuInteractionsVerified','installedOpeningUserConfirmed','terminalVisualVerified','repositoryAccessApprovalVisualVerified','repositoryAccessApprovalActionVerified','commandExecutionApprovalVerified','fileDiffVerified','realSearchInteractionsVerified','searchScopeMemoryUserConfirmed','realContextMenuInteractionsVerified')
+foreach($field in $acceptanceFields){if($localEvidence.acceptance.$field -isnot [bool]){throw ('Invalid local acceptance flag: '+$field)}}
+if($localEvidence.localAcceptance -isnot [pscustomobject] -or $localEvidence.syntheticSurfaceAcceptance -isnot [pscustomobject] -or $localEvidence.remaining -isnot [array] -or @($localEvidence.remaining|Where-Object{$_ -isnot [string] -or [string]::IsNullOrWhiteSpace($_)}).Count){throw 'Invalid local acceptance description.'}
 $sourceCommit=(& git -C $project rev-parse HEAD|Out-String).Trim()
 if($LASTEXITCODE -ne 0 -or $sourceCommit -cnotmatch '^[a-f0-9]{40}$'){throw 'A committed source checkout is required.'}
 $dirty=& git -C $project status --porcelain --untracked-files=normal
 if($LASTEXITCODE -ne 0 -or $dirty){throw 'Commit the publication sources before sealing the package.'}
 $validation=Get-Content -LiteralPath $ValidationReport -Raw -Encoding utf8|ConvertFrom-Json
-if($validation.sourceCommit -cne $sourceCommit -or $validation.candidateId -cne $candidateId -or $validation.tests -ne 195 -or $validation.passed -ne 195 -or $validation.failed -ne 0 -or $validation.skipped -ne 0 -or $validation.skinSHA256 -cne $release.skinSHA256 -or $validation.engineSHA256 -cne $release.engineSHA256){throw 'Source validation does not match this committed candidate.'}
+if($validation.sourceCommit -cne $sourceCommit -or $validation.candidateId -cne $candidateId -or $validation.tests -ne $sourceTestCount -or $validation.passed -ne $sourceTestCount -or $validation.failed -ne 0 -or $validation.skipped -ne 0 -or $validation.skinSHA256 -cne $release.skinSHA256 -or $validation.engineSHA256 -cne $release.engineSHA256){throw 'Source validation does not match this committed candidate.'}
 $extras=[ordered]@{
   'START-HERE.md'='START-HERE.md'
   'CLEAN-TEST-GUIDE.md'='CLEAN-TEST-GUIDE.md'
   'clean-environment-check.ps1'='clean-environment-check.ps1'
-  'skin/RELEASE-NOTES-6628-rc1.md'='RELEASE-NOTES-6628-rc1.md'
+  ('skin/'+$releaseNotes)=$releaseNotes
   'skin/ASSET-SOURCES.md'='ASSET-SOURCES.md'
 }
 foreach($item in $extras.GetEnumerator()){
@@ -51,14 +73,12 @@ $receipt=[ordered]@{
   preparedAtUtc=[datetime]::UtcNow.ToString('o');publicationStatusAtBuild='local-candidate-not-published'
   sourceCandidateAcceptance=[ordered]@{tests=$validation.tests;passed=$validation.passed;failed=$validation.failed;skipped=$validation.skipped;sourceCommit=$sourceCommit;reportSHA256=(Get-FileHash -LiteralPath $ValidationReport -Algorithm SHA256).Hash.ToLowerInvariant();scope='Offline runtime regression tests, including headless synthetic page fixtures; no live Codex restart.'}
   exactArchiveAcceptance='Recorded separately after sealing in archive-smoke-result.json.'
-  independentCleanWindowsVerified=$false;standalonePackageColdStartVerified=$false
-  installedHotUpdateVerified=$true;liveCompatibilityVerified=$true;realSearchAndMenuInteractionsVerified=$false
-  installedOpeningUserConfirmed=$false;terminalVisualVerified=$false;repositoryAccessApprovalVisualVerified=$false;repositoryAccessApprovalActionVerified=$false;commandExecutionApprovalVerified=$false;fileDiffVerified=$false
-  localAcceptanceSHA256=$release.localAcceptanceSHA256
-  localAcceptance=[ordered]@{scope='Codex 26.1106.6628.0; existing process hot update and read-only metadata, no UI navigation';compatibility='All six component capabilities enabled; active skin, no conflicts';process='Same Codex process and start time; opening ledger unchanged';draft='User reported no unsent draft before hot update; non-empty draft preservation not exercised'}
-  syntheticSurfaceAcceptance=[ordered]@{scope='Headless synthetic page fixtures, not native live page interaction';home='644/320px cards and original action preservation';settings='320px input/button identity and value preservation';diff='644/320px minimal shadow CSS consumer; not the native formatter'}
-  remaining=@('Current 6628 real search, context-menu and submenu interaction','Command execution approval','Standalone package cold startup','Independent Windows 11 ordinary-user installation, startup and recovery','Browser download and first-run prompts','Outstanding asset provenance and redistribution records')
+  localAcceptanceSHA256=$release.localAcceptanceSHA256;localAcceptanceSource=$evidenceRelative
+  localAcceptance=$localEvidence.localAcceptance
+  syntheticSurfaceAcceptance=$localEvidence.syntheticSurfaceAcceptance
+  remaining=@($localEvidence.remaining)
 }
+foreach($field in $acceptanceFields){$receipt[$field]=$localEvidence.acceptance.$field}
 [IO.File]::WriteAllText((Join-Path $bundle 'RELEASE-CANDIDATE.json'),($receipt|ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))
 $expected=@($names|ForEach-Object{'skin/'+$_})+@($extras.Keys)+@('RELEASE-CANDIDATE.json')
 if(@($expected|Select-Object -Unique).Count -ne $expected.Count){throw 'Duplicate release path.'}

@@ -1,6 +1,6 @@
-# 小睦 Codex · 1.0.0 安装候选
+# 小睦 Codex · 1.0.0 最终安装候选
 
-浅绿界面、五秒雨景片头、小睦首页与动态背景。适配 Microsoft Store Codex **26.1106.6628.0**，候选编号 **20261112-6628-rc1**。
+浅绿界面、五秒雨景片头、小睦首页与动态背景。适配 Microsoft Store Codex **26.1106.6628.0**，候选编号 **20261113-6628-rc2**。
 
 ## 开始使用
 
@@ -21,8 +21,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -SourceRoo
 
 ## 当前验收
 
-本机已在保持 Codex 运行的情况下热更新。组件检测六项通过，皮肤活动状态正常；195 项自动化回归通过，包含搜索、菜单及首页、设置、差异的模拟页面检查。
+本机已在保持 Codex 运行的情况下热更新。组件检测六项通过，皮肤活动状态正常；运行时 227 项自动化回归通过，项目内搜索和目录重开记忆已实测，同版原生菜单记录保留。封包工具检查计入构建记录。
 
-当前版本的真实搜索、菜单和审批操作、最终安装包冷启动、独立 Windows 11 普通用户首装仍待验收。素材来源和再分发记录见随包说明。包内 [构建记录](RELEASE-CANDIDATE.json) 区分已完成检查和待验收项；最终 ZIP 的安装、修复与恢复结果另行记录。
+最终安装包冷启动和独立 Windows 11 普通用户首装待验收。其他页面及审批记录、素材来源见随包说明。包内 [构建记录](RELEASE-CANDIDATE.json) 区分已完成检查和待验收项；最终 ZIP 的安装、修复与恢复结果另行记录。
 
-[完整使用说明](skin/USAGE.md) · [本版改动](skin/RELEASE-NOTES-6628-rc1.md) · [独立环境指南](CLEAN-TEST-GUIDE.md) · [素材来源](skin/ASSET-SOURCES.md)
+[完整使用说明](skin/USAGE.md) · [本版改动](skin/RELEASE-NOTES-6628-rc2.md) · [独立环境指南](CLEAN-TEST-GUIDE.md) · [素材来源](skin/ASSET-SOURCES.md)
