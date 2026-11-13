@@ -45,11 +45,72 @@ function createSearchLoadingSkin() {
   return {sync,clear,get:inspect};
 }
 
+/* Only native folder scopes are remembered; the adapter owns panel discovery. */
+function createSearchScopeMemory({readPanels,storage}={}) {
+  const seen=new Map(),preferences=new Map();
+  const validString=(value,limit)=>typeof value==='string'&&value.length>0&&value.length<=limit&&!/[\u0000-\u001f]/.test(value);
+  function target(value,hostId){
+    return value&&typeof value==='object'&&validString(value.hostId,256)&&value.hostId===hostId&&validString(value.root,32768)?{hostId:value.hostId,root:value.root}:null;
+  }
+  function read(key,hostId){
+    if(preferences.has(key))return preferences.get(key);
+    let value=null;
+    try{const raw=storage?.getItem(key);if(typeof raw==='string'&&raw.length<=66000)value=target(JSON.parse(raw),hostId);}catch{}
+    if(value)preferences.set(key,value);
+    return value;
+  }
+  function write(key,value){
+    // Retain a null tombstone if storage removal fails, so a cleared choice
+    // cannot reappear from an older persisted value during this session.
+    preferences.set(key,value);
+    try{if(value)storage?.setItem(key,JSON.stringify(value));else storage?.removeItem(key);}catch{}
+  }
+  function clear(){seen.clear();}
+  function sync(){
+    let panels;
+    try{panels=readPanels?.();}catch{clear();return;}
+    if(!Array.isArray(panels)){clear();return;}
+    const current=new Set();
+    for(const panel of panels){
+      if(!panel||!panel.node||typeof panel.node!=='object'||!['text','files'].includes(panel.mode)||typeof panel.applyTarget!=='function'||!validString(panel.routeKey,4096)||!validString(panel.projectKey,4096)||!validString(panel.hostId,256))continue;
+      const choice=panel.target===null?null:target(panel.target,panel.hostId);
+      if(panel.target!==null&&!choice)continue;
+      const key='xiaomu.search-scope.v1:'+JSON.stringify([panel.routeKey,panel.hostId,panel.projectKey]);
+      const value=choice?JSON.stringify(choice):null;
+      current.add(panel.node);
+      let state=seen.get(panel.node);
+      if(!state||state.key!==key||state.mode!==panel.mode||state.generation!==panel.generation){
+        state={key,mode:panel.mode,generation:panel.generation,value,pending:null};seen.set(panel.node,state);
+        // A native selection already present on opening always wins.
+        if(choice){write(key,choice);continue;}
+        const remembered=read(key,panel.hostId);
+        if(remembered){
+          state.pending=JSON.stringify(remembered);
+          try{panel.applyTarget({...remembered});}catch{state.pending=null;}
+        }
+        continue;
+      }
+      if(state.pending){
+        // Native props can remain null until React acknowledges onSelect.
+        if(!choice)continue;
+        const acknowledged=value===state.pending;state.pending=null;state.value=value;
+        if(!acknowledged)write(key,choice);
+      }else if(state.value!==value){state.value=value;write(key,choice);}
+    }
+    for(const node of seen.keys())if(!current.has(node))seen.delete(node);
+  }
+  return {sync,clear};
+}
+
 /* Only the observed native chat command palette, never arbitrary dialogs. */
 function createOverlaySkin() {
   const owned=new Map(),loading=createSearchLoadingSkin();
+  let storage=null,readPanels=()=>[];
+  try{storage=globalThis.localStorage;}catch{}
+  if(typeof createSearchScopeAdapter==='function')readPanels=createSearchScopeAdapter({document,getComputedStyle}).readPanels;
+  const scopeMemory=createSearchScopeMemory({readPanels,storage});
   function remove(node,value){clearTimeout(value.timer);value.input.removeEventListener('input',value.onInput);value.image.remove();value.status.remove();if(value.root.getAttribute('data-xiaomu-search-surface')==='search')value.root.removeAttribute('data-xiaomu-search-surface');if(node.getAttribute('data-xiaomu-native-overlay')==='search')node.removeAttribute('data-xiaomu-native-overlay');owned.delete(node);}
-  function clear(){for(const [node,value] of owned)remove(node,value);loading.clear();}
+  function clear(){for(const [node,value] of owned)remove(node,value);loading.clear();scopeMemory.clear();}
   function update(node,value){
     clearTimeout(value.timer);value.timer=null;
     const query=value.input.value.trim();
@@ -63,6 +124,7 @@ function createOverlaySkin() {
     if(pending&&elapsed<20000)value.timer=setTimeout(()=>{if(owned.get(node)===value)update(node,value);},Math.max(1,(elapsed<4000?4000:20000)-elapsed));
   }
   function sync(){
+    scopeMemory.sync();
     const dialogs=loading.sync();
     for(const [node,value] of owned){const current=dialogs.get(node);if(!current||current.root!==value.root||current.input!==value.input||!value.image.isConnected)remove(node,value);}
     for(const [node,{root,input}] of dialogs)if(!owned.has(node)&&!node.hasAttribute('data-xiaomu-native-overlay')){
