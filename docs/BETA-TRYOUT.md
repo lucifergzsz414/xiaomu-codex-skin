@@ -1,41 +1,44 @@
-# 小睦 Codex 使用与反馈
+# 日常使用与反馈
 
-当前正式版为 **1.0.0**。[下载安装包](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/download/v1.0.0/xiaomu-codex-skin-20261114-2228-v1.0.0.zip) · [发布说明](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.0)
+当前正式版为 **1.0.0**。[下载安装包](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/download/v1.0.0/xiaomu-codex-skin-20261114-2228-v1.0.0.zip) · [发布说明](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.0) · [设计说明](DESIGN.md) · [返回首页](../README.md)
 
-## 开始使用
+## 装好并跑起来
 
-准备 Microsoft Store Codex **26.1111.2228.0**、默认安装目录 `C:\Program Files\nodejs` 下的 **Node.js 22+**，并把 Codex 原生外观设为**浅色**。
+开始前先确认三件事：电脑上装的是 Microsoft Store 版 Codex **26.1111.2228.0**，默认目录 `C:\Program Files\nodejs` 下有 **Node.js 22+**，并且已经在 Codex 原生设置里把外观调成了**浅色**。
 
-完整解压安装包，双击 `skin\manage.vbs`，选择“安装 / 修复”。保存工作并正常退出 Codex，再从桌面「小睦 Codex」打开。管理入口在开始菜单的「小睦皮肤管理」。
+把下载好的压缩包完整解压（原压缩包和解压出来的文件夹建议留着，后续修复会用到），双击里面的 `skin\manage.vbs`，点“安装 / 修复”。接着保存你在 Codex 里的工作并正常退出，再从桌面的「小睦 Codex」图标重新打开，就能看到浅绿主题和小睦首页了。
+
+平时控制皮肤的开关在开始菜单的「小睦皮肤管理」里。
 
 ## 从旧版升级
 
-先在管理窗口暂停皮肤，等待停止并关闭管理窗口。在新包的 `skin` 文件夹中打开 Windows PowerShell，执行：
+装过旧版的话，按下面的步骤升级。旧管理器里的“安装 / 修复”只会补齐入口，不会替换程序文件。
+
+1. 打开「小睦皮肤管理」点“暂停皮肤”，等状态停稳后关掉管理窗口。
+2. 解压新版压缩包，在新包的 `skin` 文件夹里打开 Windows PowerShell，运行：
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -SourceRoot . -Repair
 ```
 
-旧安装保存在 `backup-repair-*`。升级完成后，重新打开管理窗口，检测通过后选择“启动 / 继续”。
+3. 旧安装会被自动收进 `backup-repair-*` 文件夹留作备份。升级刚结束时皮肤会保持暂停，重新打开「小睦皮肤管理」，等它检测通过后点“启动 / 继续”就能切到新版。
 
-## 平时使用
+## 平时怎么用
 
-| 功能 | 使用方式 |
-| --- | --- |
-| 开屏片头 | 每次正常启动播放一次，可点击“跳过”或按 Esc 结束；点击、输入不再提前取消 |
-| 文件与文本搜索 | 在搜索框底部切换类别，再用目录菜单选择项目；同一聊天重开搜索会记住选择 |
-| 右键菜单 | 沿用原菜单选项、子菜单与快捷键 |
-| 暂停皮肤 | 在管理窗口选择“暂停皮肤” |
-| 恢复官方外观 | 在管理窗口选择“恢复官方外观”，Codex 保持打开 |
+装好之后，基本的打字、看代码、改文件都和原来一样，主要多了这几处细节：
 
-包内 `START-HERE.md`、`skin\USAGE.md` 提供完整安装与恢复步骤；独立电脑的四阶段验收方法见 `CLEAN-TEST-GUIDE.md`。本版验证范围统一记录在[验收记录](../qa/RELEASE-READINESS-1.0.0.md)。
+- **开屏片头与窗边背景**：每次从桌面「小睦 Codex」正常启动时，会播放一次五秒静音雨景片头。现在鼠标点击或敲键盘不会误触打断它；想直接进工作区，点画面上的“跳过”或按 Esc 就好。平时切换页面或者网络重连不会重新播片头。首页的八秒静音窗边背景可以手动点暂停/播放，窗口切到后台、拉窄或者系统开了“减少动态效果”时，它也会自己停下。
+- **搜索与右键菜单**：在搜索框底部可以切换搜文件还是搜文本，用旁边的目录菜单选好项目后，同一个聊天里再打开搜索会记住你刚选的目录。右键主菜单、子菜单和快捷键都保留了原本的用法。
+- **暂停与恢复官方外观**：临时想看原版界面，去「小睦皮肤管理」点“暂停皮肤”就行。如果点“恢复官方外观”，皮肤会撤下并恢复受管入口，你正在用的 Codex 窗口会被保留，不会突然关掉；桌面的小睦入口和备份也都在，之后随时能装回来。
 
-## 告诉我们哪里有问题
+包里的 `START-HERE.md` 和 `skin\USAGE.md` 留了完整的安装与恢复说明；如果你想在独立电脑上照着流程做一遍完整排查，可以看包内的 `CLEAN-TEST-GUIDE.md`。1.0.0 已经测过的项目和待实机确认的范围都记在 [验收记录](../qa/RELEASE-READINESS-1.0.0.md) 里。
 
-通过[反馈表](https://github.com/lucifergzsz414/xiaomu-codex-skin/issues/new?template=skin-problem.yml)提供：
+## 遇到问题怎么反馈
 
-- 皮肤、Microsoft Store Codex、Windows 和 Node.js 版本。
-- 操作步骤、实际结果和期望结果。
-- 有帮助的截图或完整错误提示。
+如果用的时候发现哪里颜色不对、按钮错位或者启动报错，可以通过 [反馈表](https://github.com/lucifergzsz414/xiaomu-codex-skin/issues/new?template=skin-problem.yml) 告诉我：
 
-不知道的版本可以写“不确定”。截图先遮住私人内容。需要恢复时，从管理窗口选择“恢复官方外观”，并保留原包和备份以便修复。
+- 大致写一下皮肤、Microsoft Store Codex、Windows 和 Node.js 的版本号；拿不准的直接填“不确定”也没关系。
+- 简单说说刚才做了哪几步、画面实际是什么样。
+- 如果方便附一张截图或者报错文字会很有帮助，传图前记得把自己的项目名、路径和私人代码遮一下。
+
+要是问题影响了手头干活，先在「小睦皮肤管理」里点“恢复官方外观”切回原版继续用，把原压缩包和 `backup-repair-*` 备份留好，方便后面定位修复。
