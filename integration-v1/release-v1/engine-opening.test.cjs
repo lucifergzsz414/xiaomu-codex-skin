@@ -142,9 +142,10 @@ function Invoke-Scenario([bool]$fail){
     assert.equal(gate(root,{pid:1201},{fileSystem:io}).claim(true),null);
     assert.deepEqual(fs.readFileSync(file),bytes);assert.deepEqual(fs.readdirSync(root),['opening-state.json']);
   });
-  check('only focused visible ordinary main workspace matches, never Dot or hidden',()=>{
+  check('visible ordinary main workspace matches without requiring focus, never Dot or hidden',()=>{
     assert.equal(vm.runInNewContext(openingTargetExpression,workspace()),true);
-    for(const changes of [{hidden:true},{visibilityState:'hidden'},{hasFocus:()=>false},
+    assert.equal(vm.runInNewContext(openingTargetExpression,workspace({hasFocus:()=>false})),true);
+    for(const changes of [{hidden:true},{visibilityState:'hidden'},
       {querySelector:selector=>selector.includes('data-orbit-profile-identity')?{}:null},
       {querySelectorAll:()=>[]}]) assert.equal(vm.runInNewContext(openingTargetExpression,workspace(changes)),false);
     const small=workspace();small.getComputedStyle=()=>({display:'none',visibility:'visible',opacity:'1'});

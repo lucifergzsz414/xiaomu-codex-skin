@@ -40,7 +40,7 @@ function createContextMenuSkin(options={}) {
     }
   }
   const contract=options.contract||config.nativeMenu, records=new Map(), marks=new Map(), verified=new WeakSet(), checking=new WeakSet(), forwarded=new WeakSet();
-  const layout=({'codex-6573':{cacheLength:143,nativeIndex:18,closeIndex:63,optionalItems:false},'codex-6621':{cacheLength:98,nativeIndex:13,closeIndex:51,optionalItems:true},'codex-3384':{cacheLength:98,nativeIndex:13,closeIndex:51,optionalItems:true}})[contract?.layout];
+  const layout=({'codex-6573':{cacheLength:143,nativeIndex:18,closeIndex:63,optionalItems:false},'codex-6621':{cacheLength:98,nativeIndex:13,closeIndex:51,optionalItems:true},'codex-3384':{cacheLength:98,nativeIndex:13,closeIndex:51,optionalItems:true},'codex-2228':{cacheLength:98,nativeIndex:13,closeIndex:51,optionalItems:true,actionState:true}})[contract?.layout];
   let stopped=false, generation=0, ready=false;
   const activity={switches:0,replays:0,resets:0,fallbacks:0};
   const digest=options.digest|| (async source=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(source)))].map(n=>n.toString(16).padStart(2,'0')).join(''));
@@ -107,8 +107,12 @@ function createContextMenuSkin(options={}) {
     return Array.isArray(value)?value.slice():layout?.optionalItems&&value==null?(value===undefined?null:undefined):value;
   }
   function state(fiber){
-    const h=fiber?.memoizedState;
-    return cache(fiber)&&(Array.isArray(h?.memoizedState)||layout.optionalItems&&h?.memoizedState==null)&&typeof h?.queue?.dispatch==='function'&&h.next?.memoizedState===null&&typeof h.next.queue?.dispatch==='function'&&typeof h.next.next?.memoizedState?.create==='function'&&h.next.next.next?.memoizedState&&'current'in h.next.next.next.memoizedState&&h.next.next.next.next?.memoizedState&&'current'in h.next.next.next.next.memoizedState?h:null;
+    const h=fiber?.memoizedState,firstRef=h?.next?.next?.next,following=firstRef?.next;
+    // 2228 tracks the active asynchronous menu action between its two refs.
+    // Only that exact fingerprint/layout admits the additional state hook.
+    if(layout?.actionState&&(!(following?.memoizedState===null||typeof following?.memoizedState==='string')||typeof following?.queue?.dispatch!=='function'))return null;
+    const lastRef=layout?.actionState?following?.next:following;
+    return cache(fiber)&&(Array.isArray(h?.memoizedState)||layout.optionalItems&&h?.memoizedState==null)&&typeof h?.queue?.dispatch==='function'&&h.next?.memoizedState===null&&typeof h.next.queue?.dispatch==='function'&&typeof h.next.next?.memoizedState?.create==='function'&&firstRef?.memoizedState&&'current'in firstRef.memoizedState&&lastRef?.memoizedState&&'current'in lastRef.memoizedState?h:null;
   }
   function restore(record){
     const d=Object.getOwnPropertyDescriptor(record.props,'disableNative');

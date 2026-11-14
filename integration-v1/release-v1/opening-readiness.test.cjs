@@ -60,28 +60,28 @@ test('nonboolean decisions cannot consume an opening',()=>withArea(root=>{
  for(const value of [undefined,null,'true',1,{}])assert.equal(gate.claim(value),null);
  assert.equal(gate.pending(),true);assert.deepEqual(fs.readdirSync(root),[]);
 }));
-test('trusted click or typing history suppresses the startup overlay',()=>assert.equal(matches({activated:true}),false));
-test('an unavailable user activation API fails closed',()=>assert.equal(matches({activationAvailable:false}),false));
+test('startup opening ignores previous activation and typing history',()=>assert.equal(matches({activated:true}),true));
+test('startup opening does not depend on the user activation API',()=>assert.equal(matches({activationAvailable:false}),true));
 test('an empty automatically focused composer remains eligible',()=>assert.equal(matches({editorFocused:true}),true));
-test('a restored rich text draft suppresses the opening without changing it',()=>{
- const ctx=workspace({draft:'fixture draft'});assert.equal(vm.runInNewContext(openingTargetExpression,ctx),false);
+test('a restored rich text draft permits the opening without changing it',()=>{
+ const ctx=workspace({draft:'fixture draft'});assert.equal(vm.runInNewContext(openingTargetExpression,ctx),true);
  assert.equal(ctx.editor.textContent,'fixture draft');
 });
-test('composer attachments and textarea drafts suppress the opening',()=>{
- assert.equal(matches({attachment:true}),false);assert.equal(matches({outerAttachment:true}),false);
- assert.equal(matches({textarea:'fixture input'}),false);
+test('composer attachments and textarea drafts do not suppress the opening',()=>{
+ assert.equal(matches({attachment:true}),true);assert.equal(matches({outerAttachment:true}),true);
+ assert.equal(matches({textarea:'fixture input'}),true);
 });
 test('an empty native attachment wrapper with decorative children does not suppress the opening',()=>{
  assert.equal(matches({decorativeAttachmentWrapper:true}),true);
- assert.equal(matches({decorativeAttachmentWrapper:true,outerAttachment:true}),false);
+ assert.equal(matches({decorativeAttachmentWrapper:true,outerAttachment:true}),true);
 });
 test('hidden composers do not turn an unrelated old draft into a blocker',()=>assert.equal(matches({draft:'hidden fixture',hiddenComposer:true}),true));
-test('visible dialogs and menus block the opening, hidden ones do not',()=>{
- assert.equal(matches({blockers:[node()]}),false);
+test('native dialogs and menus do not suppress the startup opening',()=>{
+ assert.equal(matches({blockers:[node()]}),true);
  assert.equal(matches({blockers:[node({style:{display:'none',visibility:'visible',opacity:'1'}})]}),true);
 });
-test('visible busy native controls block the opening, hidden ones do not',()=>{
- assert.equal(matches({busy:[node()]}),false);
+test('busy native controls do not suppress the startup opening',()=>{
+ assert.equal(matches({busy:[node()]}),true);
  assert.equal(matches({busy:[node({style:{display:'none',visibility:'visible',opacity:'1'}})]}),true);
 });
 test('checking unavailable DOM state fails closed without blocking the skin',()=>{
@@ -90,18 +90,18 @@ test('checking unavailable DOM state fails closed without blocking the skin',()=
  const result=vm.runInNewContext(applyExpression('window.__XIAOMU_NATIVE_SKIN_V1__={inspect:()=>({})};','fixture',null,'','',{eligible:true,hostKey:'c'.repeat(64)}),ctx);
  assert.equal(result.active,true);assert.equal(ctx.window.__XIAOMU_INSTALLED_SESSION_V1__.opening,null);
 });
-test('a user gesture during transfer prevents playback at actual injection',()=>{
+test('a user gesture during transfer preserves playback at actual injection',()=>{
  const ctx=workspace();assert.equal(vm.runInNewContext(openingTargetExpression,ctx),true);
  const expression=applyExpression('window.__XIAOMU_NATIVE_SKIN_V1__={inspect:()=>({})};','fixture',null,'','',{eligible:true,hostKey:'d'.repeat(64)});
  ctx.navigator.userActivation.hasBeenActive=true;
  const result=vm.runInNewContext(expression,ctx);assert.equal(result.active,true);
- assert.equal(ctx.window.__XIAOMU_INSTALLED_SESSION_V1__.opening,null);
+ assert.equal(ctx.window.__XIAOMU_INSTALLED_SESSION_V1__.opening.hostKey,'d'.repeat(64));
 });
-test('a draft created during transfer also prevents playback at actual injection',()=>{
+test('a draft created during transfer permits playback and remains unchanged',()=>{
  const ctx=workspace();assert.equal(vm.runInNewContext(openingTargetExpression,ctx),true);
  const expression=applyExpression('window.__XIAOMU_NATIVE_SKIN_V1__={inspect:()=>({})};','fixture',null,'','',{eligible:true,hostKey:'e'.repeat(64)});
  ctx.editor.textContent='new fixture draft';vm.runInNewContext(expression,ctx);
- assert.equal(ctx.window.__XIAOMU_INSTALLED_SESSION_V1__.opening,null);
+ assert.equal(ctx.window.__XIAOMU_INSTALLED_SESSION_V1__.opening.hostKey,'e'.repeat(64));
  assert.equal(ctx.editor.textContent,'new fixture draft');
 });
 
@@ -109,15 +109,15 @@ test('opening diagnostics identify blocked conditions with fixed codes',()=>{
  const cases=[
   ['eligible',workspace()],
   ['hidden',workspace()],
-  ['unfocused',workspace()],
-  ['user-interaction',workspace({activated:true})],
-  ['activation-unavailable',workspace({activationAvailable:false})],
+  ['eligible',workspace()],
+  ['eligible',workspace({activated:true})],
+  ['eligible',workspace({activationAvailable:false})],
   ['sidebar-not-ready',workspace()],
   ['dot-surface',workspace()],
   ['main-not-visible',workspace()],
-  ['dialog-or-busy',workspace({blockers:[node()]})],
-  ['composer-occupied',workspace({draft:'private fixture draft'})],
-  ['attachments-present',workspace({outerAttachment:true})],
+  ['eligible',workspace({blockers:[node()]})],
+  ['eligible',workspace({draft:'private fixture draft'})],
+  ['eligible',workspace({outerAttachment:true})],
   ['check-unavailable',workspace()],
  ];
  cases[1][1].document.visibilityState='hidden';
@@ -131,7 +131,7 @@ test('opening diagnostics identify blocked conditions with fixed codes',()=>{
   assert.equal(vm.runInNewContext(openingTargetExpression,ctx),reason==='eligible');
  }
 });
-test('opening diagnostics identify injection recheck rejection without draft content',()=>{
+test('opening diagnostics permit an occupied draft without recording its content',()=>{
  const ctx=workspace();
  assert.equal(vm.runInNewContext(openingTargetExpression,ctx),true);
  const grant={eligible:true,hostKey:'f'.repeat(64)};
@@ -139,9 +139,9 @@ test('opening diagnostics identify injection recheck rejection without draft con
  ctx.editor.textContent='private fixture draft';
  const result=vm.runInNewContext(expression,ctx);
  assert.equal(result.active,true);
- assert.equal(result.openingDiagnostics?.injectionCheck,'composer-occupied');
+ assert.equal(result.openingDiagnostics?.injectionCheck,'eligible');
  assert.equal(result.openingDiagnostics?.playerAtApply,null);
- assert.equal(ctx.window.__XIAOMU_INSTALLED_SESSION_V1__.opening,null);
+ assert.equal(ctx.window.__XIAOMU_INSTALLED_SESSION_V1__.opening.hostKey,grant.hostKey);
  assert.doesNotMatch(JSON.stringify(result.openingDiagnostics),/private fixture draft|f{64}/);
 });
 test('opening diagnostics retain only fixed player state and reason fields',()=>{
@@ -155,14 +155,14 @@ test('opening diagnostics retain only fixed player state and reason fields',()=>
  assert.equal(rejected.openingDiagnostics?.playerAtApply,null);
 });
 
-test('foreground deferral validates every work guard while the native window is unfocused',()=>{
+test('foreground deferral ignores activation, drafts and dialogs while the native window is visible',()=>{
  const ctx=workspace();ctx.document.hasFocus=()=>false;
- assert.equal(vm.runInNewContext(openingForegroundProbe,ctx),'unfocused');
+ assert.equal(vm.runInNewContext(openingForegroundProbe,ctx),'eligible');
  const cases=[
-  [{activated:true},'user-interaction'],
-  [{draft:'existing fixture work'},'composer-occupied'],
-  [{outerAttachment:true},'attachments-present'],
-  [{blockers:[node()]},'dialog-or-busy'],
+  [{activated:true},'eligible'],
+  [{draft:'existing fixture work'},'eligible'],
+  [{outerAttachment:true},'eligible'],
+  [{blockers:[node()]},'eligible'],
  ];
  for(const [options,reason] of cases){
   const background=workspace(options);background.document.hasFocus=()=>false;
@@ -181,8 +181,8 @@ test('deferred opening keeps its deadline and checks visibility without requirin
  ctx.document.hidden=true;assert.equal(opening.canStart(),false);
  ctx.document.hidden=false;
  ctx.document.hasFocus=()=>true;assert.equal(opening.canStart(),true);
- ctx.editor.textContent='new local fixture work';assert.equal(opening.canStart(),false);
- assert.equal(result.openingDiagnostics.injectionCheck,'unfocused');
+ ctx.editor.textContent='new local fixture work';assert.equal(opening.canStart(),true);
+ assert.equal(result.openingDiagnostics.injectionCheck,'eligible');
  assert.equal(result.openingDiagnostics.playerAtApply.state,'waiting');
 });
 test('malformed or expired foreground deadlines cannot fall back to immediate playback',()=>{
@@ -193,20 +193,20 @@ test('malformed or expired foreground deadlines cannot fall back to immediate pl
  }
 });
 
-test('only an explicit neutral-focus allowance bypasses activation history at final recheck',()=>{
+test('final recheck is independent of activation history and obsolete allowance arguments',()=>{
  const ctx=workspace();ctx.document.hasFocus=()=>false;
  const grant={eligible:true,hostKey:'d'.repeat(64),waitForForeground:true,expiresAt:Date.now()+30000};
  vm.runInNewContext(applyExpression('window.__XIAOMU_NATIVE_SKIN_V1__={inspect:()=>({})};','fixture',null,'','',grant),ctx);
  const opening=ctx.window.__XIAOMU_INSTALLED_SESSION_V1__.opening;
  ctx.document.hasFocus=()=>true;ctx.navigator.userActivation.hasBeenActive=true;
- for(const allowance of [undefined,false,1,'true',{}])assert.equal(opening.canStart(allowance),false);
+ for(const allowance of [undefined,false,1,'true',{}])assert.equal(opening.canStart(allowance),true);
  assert.equal(opening.canStart(true),true);
  ctx.document.hasFocus=()=>false;assert.equal(opening.canStart(true),true);
  ctx.document.hasFocus=()=>true;ctx.document.hidden=true;assert.equal(opening.canStart(true),false);
- ctx.document.hidden=false;ctx.navigator={};assert.equal(opening.canStart(true),false);
+ ctx.document.hidden=false;ctx.navigator={};assert.equal(opening.canStart(true),true);
 });
 
-test('neutral-focus allowance retains all current work guards',()=>{
+test('final recheck ignores work state but still requires a mountable native workspace',()=>{
  const cases=[
   ['draft',ctx=>{ctx.editor.textContent='fixture draft';}],
   ['attachment',ctx=>{ctx.editor.querySelector=()=>({});}],
@@ -222,7 +222,7 @@ test('neutral-focus allowance retains all current work guards',()=>{
   vm.runInNewContext(applyExpression('window.__XIAOMU_NATIVE_SKIN_V1__={inspect:()=>({})};','fixture',null,'','',grant),ctx);
   const opening=ctx.window.__XIAOMU_INSTALLED_SESSION_V1__.opening;
   ctx.document.hasFocus=()=>true;ctx.navigator.userActivation.hasBeenActive=true;block(ctx);
-  assert.equal(opening.canStart(true),false,name);
+  assert.equal(opening.canStart(true),['draft','attachment','dialog','busy'].includes(name),name);
  }
 });
 
@@ -251,6 +251,6 @@ test('deferred injection retains a grant through native layout transitions',()=>
   assert.equal(result.openingDiagnostics.playerAtApply.reason,'native-layout');
   ctx.main.style.display='block';ctx.document.querySelectorAll=original;
   assert.equal(opening.checkReady(),'eligible');assert.equal(opening.canStart(),true);
-  ctx.editor.textContent='restored fixture draft';assert.equal(opening.checkReady(),'composer-occupied');
+  ctx.editor.textContent='restored fixture draft';assert.equal(opening.checkReady(),'eligible');
  }
 });

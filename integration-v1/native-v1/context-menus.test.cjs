@@ -17,10 +17,10 @@ function setup({legacy=profile(Legacy),variants=[profile(x)],type=x,decoys=[],ba
  const listeners={contextmenu:[],keydown:[]},frames=[],host=new Element(),menus=[],events=[];
  let calls=0,closeCalls=0;
  const activeProfile=type===Legacy?legacy:(variants.find(p=>p.functionName===type.name)||profile(type));
- const [length,nativeIndex,closeIndex]=({'codex-6573':[143,18,63],'codex-6621':[98,13,51],'codex-3384':[98,13,51]})[activeProfile.layout];
+ const [length,nativeIndex,closeIndex]=({'codex-6573':[143,18,63],'codex-6621':[98,13,51],'codex-3384':[98,13,51],'codex-2228':[98,13,51]})[activeProfile.layout];
  const cache=Array(length).fill(null);cache[nativeIndex]=true;cache[closeIndex]=()=>{closeCalls++;menu.memoizedState.next.memoizedState=null;};
  const menu={type,memoizedProps:{children:{props:{}}},flags:0,updateQueue:{memoCache:{data:[cache]}},child:null,return:null};
- function hook(items){return {memoizedState:items,queue:{dispatch:update=>{calls++;menu.memoizedState=hook(update(menu.memoizedState.memoizedState));cache[nativeIndex]=menu.memoizedProps.disableNative!==true;}},next:{memoizedState:null,queue:{dispatch(){}},next:{memoizedState:{create(){}},next:{memoizedState:{current:null},next:{memoizedState:{current:undefined}}}}}};}
+ function hook(items){const lastRef={memoizedState:{current:undefined}},actionState={memoizedState:null,queue:{dispatch(){}},next:lastRef};return {memoizedState:items,queue:{dispatch:update=>{calls++;menu.memoizedState=hook(update(menu.memoizedState.memoizedState));cache[nativeIndex]=menu.memoizedProps.disableNative!==true;}},next:{memoizedState:null,queue:{dispatch(){}},next:{memoizedState:{create(){}},next:{memoizedState:{current:null},next:activeProfile.layout==='codex-2228'?actionState:lastRef}}}};}
  menu.memoizedState=hook([]);if(badCache)cache.pop();
  const root={tag:3,stateNode:{current:null},flags:0};root.stateNode.current=root;menu.return=root;root.child=menu;
  let inner=menu;for(const decoy of decoys){const f={type:decoy,flags:0,return:inner};inner.child=f;inner=f;}
@@ -38,11 +38,31 @@ function setup({legacy=profile(Legacy),variants=[profile(x)],type=x,decoys=[],ba
 async function ready(fixture){fixture.skin.sync();await new Promise(resolve=>setImmediate(resolve));fixture.skin.sync();}
 test('reviewed profile data preserves legacy menu and exact new fingerprint',()=>{
  const data=JSON.parse(fs.readFileSync(path.join(__dirname,'native-menu-profiles.json'),'utf8'));
- assert.equal(data.schema,1);assert.equal(data.profiles.length,4);
- assert.deepEqual(data.profiles.map(p=>[p.functionName,p.functionLength,p.layout]),[['Wxn',12391,'codex-3384'],['x',13441,'codex-3384'],['t',13422,'codex-3384'],['t',13645,'codex-3384']]);
+ assert.equal(data.schema,1);assert.equal(data.profiles.length,5);
+ assert.deepEqual(data.profiles.map(p=>[p.functionName,p.functionLength,p.layout]),[['Wxn',12391,'codex-3384'],['x',13441,'codex-3384'],['t',13422,'codex-3384'],['t',13645,'codex-3384'],['t',13984,'codex-2228']]);
  assert.equal(data.profiles[1].functionSha256,'7489581934e24e5034a8706a984c634febfb243532539aa2d6fb9ba9b0a22a94');
  assert.equal(data.profiles[3].appVersion,'26.1106.6628.0');
  assert.equal(data.profiles[3].functionSha256,'93dfcadba76cb1879a882e8774306c7113e086c47b5acfcecc480aa0959b0791');
+ assert.equal(data.profiles[4].appVersion,'26.1111.2228.0');
+ assert.equal(data.profiles[4].functionSha256,'a0579b13acff8c4484196d7670dad4e528566592ec717d537b1d94fee52c015a');
+});
+
+test('2228 action-state hook keeps native callback payloads and menu cleanup intact',async()=>{
+ const type=({t:function(e){return e;}}).t,f=setup({type,variants:[profile(type,'codex-2228')]});
+ const onSelect=()=>{},items=[{id:'copy',submenu:[{id:'copy-file',onSelect}]}];f.menu.memoizedProps.items=items;
+ await ready(f);assert.equal(f.skin.inspect().ready,true);assert.equal(f.open().prevented,true);f.flushFrames();
+ assert.equal(f.events.length,1);assert.equal(f.menu.memoizedProps.items,items);assert.equal(f.menu.memoizedProps.items[0].submenu[0].onSelect,onSelect);
+ f.skin.clear();assert.equal(f.closeCalls,1);assert.equal(f.menu.memoizedProps.disableNative,undefined);assert.equal(f.listeners.contextmenu.length,0);
+});
+
+test('2228 rejects missing action-state dispatch and a legacy hook chain',async()=>{
+ const type=({t:function(e){return e;}}).t;
+ for(const malformed of ['dispatch','legacy']){
+  const f=setup({type,variants:[profile(type,'codex-2228')]});
+  const firstRef=f.menu.memoizedState.next.next.next;
+  if(malformed==='dispatch')firstRef.next.queue=null;else firstRef.next=firstRef.next.next;
+  await ready(f);assert.equal(f.open().prevented,undefined);assert.equal(f.calls,0);assert.equal(f.menu.memoizedProps.disableNative,undefined);f.skin.clear();
+ }
 });
 test('new menu profile converts once and preserves its own replay and cleanup',async()=>{
  const f=setup();await ready(f);assert.equal(f.skin.inspect().ready,true);const event=f.open();assert.equal(event.prevented,true);f.flushFrames();assert.equal(f.events.length,1);assert.equal(f.skin.inspect().converted,1);assert.equal(f.skin.inspect().switches,1);f.skin.clear();assert.equal(f.menu.memoizedProps.disableNative,undefined);assert.equal(f.closeCalls,1);assert.equal(f.listeners.contextmenu.length,0);assert.equal(f.listeners.keydown.length,0);

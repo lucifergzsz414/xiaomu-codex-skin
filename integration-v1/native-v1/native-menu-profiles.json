@@ -28,6 +28,13 @@
       "functionSha256": "93dfcadba76cb1879a882e8774306c7113e086c47b5acfcecc480aa0959b0791",
       "functionLength": 13645,
       "layout": "codex-3384"
+    },
+    {
+      "appVersion": "26.1111.2228.0",
+      "functionName": "t",
+      "functionSha256": "a0579b13acff8c4484196d7670dad4e528566592ec717d537b1d94fee52c015a",
+      "functionLength": 13984,
+      "layout": "codex-2228"
     }
   ]
 }

@@ -3,18 +3,17 @@ function createOpeningPlayer(context, onStateChange = () => {}) {
   const guardKey = '__XIAOMU_OPENING_SEEN_V1__';
   let overlay = null, video = null, skip = null;
   let state = 'skipped', reason = 'not-eligible', finished = false;
-  let interruptedBy = null;
   let deadline = 0, stallTimer = 0, attempt = 0, movedFocus = false;
   let previousFocus = null, reducedMotion = null;
   const listeners = [], foregroundListeners = [];
-  let foregroundDeadline = 0, foregroundFrame = 0, layoutRetry = 0, allowFocusActivation = false;
+  let foregroundDeadline = 0, foregroundFrame = 0, layoutRetry = 0;
   const waitForForeground = context?.waitForForeground === true;
   const requireDocumentFocus = context?.requireDocumentFocus !== false;
   const expiresAt = context?.expiresAt;
   const hostKey = context?.eligible === true && typeof context.hostKey === 'string' && /^[a-f0-9]{64}$/.test(context.hostKey)
     ? context.hostKey : null;
   const api = {
-    inspect: () => ({ mounted: !!overlay?.isConnected, state, reason, ...(hostKey ? {hostKey} : {}), ...(interruptedBy ? {interruptedBy} : {}) }),
+    inspect: () => ({ mounted: !!overlay?.isConnected, state, reason, ...(hostKey ? {hostKey} : {}) }),
     dispose: () => finish('cleanup'),
   };
   function skipBeforeMount(why) { finished = true; state = 'skipped'; reason = why; return api; }
@@ -57,8 +56,8 @@ function createOpeningPlayer(context, onStateChange = () => {}) {
   }
   function foregroundReadiness() {
     try {
-      return typeof context.checkReady === 'function' ? context.checkReady(allowFocusActivation) :
-        context.canStart(allowFocusActivation) === true ? 'eligible' : 'blocked';
+      return typeof context.checkReady === 'function' ? context.checkReady() :
+        context.canStart() === true ? 'eligible' : 'blocked';
     } catch { return 'blocked'; }
   }
   function canWaitForLayout(code) {
@@ -91,37 +90,14 @@ function createOpeningPlayer(context, onStateChange = () => {}) {
         startPlayback();
       });
     }
-    function onPendingInteraction(event) {
-      // Renderer initialization events do not represent someone starting work.
-      if (event.isTrusted === false) return;
-      if (event.type === 'keydown' && ['Shift','Control','Alt','Meta'].includes(event.key)) return;
-      if (event.type === 'pointerdown' && event.isTrusted === true && event.button === 0 &&
-          event.isPrimary !== false && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey &&
-          !allowFocusActivation) {
-        const controls = 'button,a,input,textarea,select,label,summary,form,[contenteditable]:not([contenteditable="false"]),' +
-          '[role="button"],[role="link"],[role="textbox"],[role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"],' +
-          '[role="combobox"],[role="checkbox"],[role="radio"],[role="switch"],[role="tab"],[role="slider"],[role="spinbutton"],[role="option"],[role="treeitem"],' +
-          '.composer-surface-chrome,[class*="_ComposerLayoutRoot_"],[data-composer-surface-variant][data-composer-radius-variant]';
-        try {
-          const path = typeof event.composedPath === 'function' ? event.composedPath() : [event.target];
-          const elements = path.filter(node => typeof node?.closest === 'function');
-          if (elements.length && !elements.some(node => node.closest(controls))) {
-            // A single blank-area click may be the gesture bringing the window forward.
-            allowFocusActivation = true;
-            scheduleForeground();
-            return;
-          }
-        } catch {}
-      }
-      interruptedBy = ['pointerdown','keydown','beforeinput','input'].includes(event.type) ? event.type : 'unknown';
-      finish('interaction-before-start');
-    }
     listen(window, 'focus', scheduleForeground, undefined, foregroundListeners);
     listen(window, 'blur', scheduleForeground, undefined, foregroundListeners);
     listen(document, 'visibilitychange', scheduleForeground, undefined, foregroundListeners);
-    for (const event of ['pointerdown', 'keydown', 'beforeinput', 'input']) {
-      listen(document, event, onPendingInteraction, true, foregroundListeners);
-    }
+    listen(document, 'keydown', event => {
+      if (event.key === 'Escape' && event.isTrusted !== false) {
+        event.preventDefault?.(); event.stopPropagation?.(); finish('escape');
+      }
+    }, true, foregroundListeners);
     listen(window, 'pagehide', () => finish('pagehide'), undefined, foregroundListeners);
     listen(reducedMotion, 'change', () => { if (reducedMotion.matches) finish('reduced-motion'); }, undefined, foregroundListeners);
     foregroundDeadline = setTimeout(() => finish('focus-wait-expired'), expiresAt - Date.now());

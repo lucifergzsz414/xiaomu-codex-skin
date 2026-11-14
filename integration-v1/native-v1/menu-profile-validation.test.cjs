@@ -1,7 +1,16 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const registry=require('./native-menu-profiles.json');
 const {reviewedNativeMenus}=require('./menu-profile-validation.cjs');
-test('builder accepts the exact legacy and reviewed new menu fingerprints',()=>{const profiles=reviewedNativeMenus(registry);assert.deepEqual(profiles.map(profile=>[profile.functionName,profile.functionLength]),[['Wxn',12391],['x',13441],['t',13422],['t',13645]]);assert.notEqual(profiles,registry.profiles);});
+test('builder accepts the exact legacy and reviewed new menu fingerprints',()=>{const profiles=reviewedNativeMenus(registry);assert.deepEqual(profiles.map(profile=>[profile.functionName,profile.functionLength]),[['Wxn',12391],['x',13441],['t',13422],['t',13645],['t',13984]]);assert.notEqual(profiles,registry.profiles);});
+
+test('builder requires the reviewed 2228 fingerprint and its separate hook layout',()=>{
+ const profile=registry.profiles.find(profile=>profile.appVersion==='26.1111.2228.0');
+ assert.ok(profile);
+ assert.equal(profile.layout,'codex-2228');
+ for(const update of [{functionSha256:'0'.repeat(64)},{functionLength:13983},{layout:'codex-3384'}]){
+  const clone=JSON.parse(JSON.stringify(registry));Object.assign(clone.profiles[4],update);assert.throws(()=>reviewedNativeMenus(clone));
+ }
+});
 
 test('builder rejects modified or missing 6628 fingerprint without weakening legacy checks',()=>{
  for(const update of [{functionSha256:'0'.repeat(64)},{functionLength:13644},{appVersion:'26.1106.6629.0'},{layout:'codex-6628'}]){

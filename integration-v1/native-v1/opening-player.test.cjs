@@ -63,8 +63,8 @@ function fixture({focused=true,hidden=false,ready=true}={}){
   cancelAnimationFrame(id){frames.delete(id);},
  });
  const create=vm.runInContext(source+';createOpeningPlayer',context);
- function deferred(overrides={}){return {eligible:true,hostKey:'a'.repeat(64),waitForForeground:true,expiresAt:now+10000,canStart:allowActivation=>{readinessChecks.push(allowActivation);return readiness;},...overrides};}
- function checked(overrides={}){return deferred({checkReady:allowActivation=>{layoutChecks.push({allowActivation,at:now});if(layoutReason instanceof Error)throw layoutReason;return layoutReason;},...overrides});}
+ function deferred(overrides={}){return {eligible:true,hostKey:'a'.repeat(64),waitForForeground:true,expiresAt:now+10000,canStart:(allowActivation=false)=>{readinessChecks.push(allowActivation);return readiness;},...overrides};}
+ function checked(overrides={}){return deferred({checkReady:(allowActivation=false)=>{layoutChecks.push({allowActivation,at:now});if(layoutReason instanceof Error)throw layoutReason;return layoutReason;},...overrides});}
  function element(tag,attributes={}){const value=new Element(tag);for(const [name,text] of Object.entries(attributes))value.setAttribute(name,text);return value;}
  function pointer(target=document.body,overrides={}){
   return {isTrusted:true,button:0,isPrimary:true,shiftKey:false,ctrlKey:false,altKey:false,metaKey:false,target,composedPath(){const result=[];for(let item=target;item;item=item.parent)result.push(item);return [...result,document,window];},...overrides};
@@ -104,6 +104,16 @@ test('a deferred background grant waits without mounting or preloading video',()
  assert.equal(player.inspect().state,'waiting');assert.equal(player.inspect().reason,'foreground');
  assert.equal(player.inspect().mounted,false);assert.equal(f.created.length,0);
 });
+
+test('normal startup playback is not cancelled by controls, typing, paste or scrolling while waiting',()=>{
+ for(const type of ['pointerdown','keydown','beforeinput','input','paste','wheel','touchmove']){
+  const f=fixture({focused:false,hidden:true});const player=f.create(f.deferred({requireDocumentFocus:false}));
+  f.document.emit(type,type==='pointerdown'?f.pointer(f.element('button')):{key:'a',isTrusted:true});
+  f.show();f.frame();
+  assert.equal(player.inspect().state,'loading',type);assert.equal(f.video().playCalls,1,type);
+  player.dispose();assert.equal(f.listeners(),0);assert.equal(f.timers.size,0);
+ }
+});
 test('first foreground coalesces events, captures focus at mount and plays once',()=>{
  const f=fixture({focused:false});const player=f.create(f.deferred());
  const editor={isConnected:true,focus(){f.document.activeElement=this;}};
@@ -119,11 +129,12 @@ test('focus after the startup expiry never mounts the opening',()=>{
  assert.equal(player.inspect().reason,'focus-wait-expired');assert.equal(f.created.length,0);
  assert.equal(f.listeners(),0);assert.equal(f.frames.size,0);
 });
-test('pending user activity cancels before foreground playback',()=>{
+test('pending user activity preserves the single foreground playback',()=>{
  for(const name of ['pointerdown','keydown','beforeinput','input']){
   const f=fixture({focused:false});const player=f.create(f.deferred());
   f.show();f.document.emit(name,name==='pointerdown'?f.pointer(f.element('button')):{key:'a',isTrusted:true});f.frame();
-  assert.equal(player.inspect().reason,'interaction-before-start');assert.equal(f.created.length,0);assert.equal(f.listeners(),0);
+  assert.equal(player.inspect().state,'loading');assert.equal(f.video().playCalls,1);
+  player.dispose();assert.equal(f.listeners(),0);
  }
 });
 
@@ -135,16 +146,16 @@ test('a neutral focus click permits playback in either focus event order',()=>{
   if(!focusFirst)f.show();
   f.frame();
   assert.equal(player.inspect().state,'loading');assert.equal(f.video().playCalls,1);
-  assert.deepEqual(f.readinessChecks,[true]);
+  assert.deepEqual(f.readinessChecks,[false]);
   player.dispose();assert.equal(f.listeners(),0);assert.equal(f.timers.size,0);
  }
 });
 
-test('a neutral click schedules playback when the window has focused without another focus event',()=>{
+test('window visibility schedules playback independently of a neutral click',()=>{
  const f=fixture({focused:false});const player=f.create(f.deferred());
- f.setFocused(true);f.document.emit('pointerdown',f.pointer());
+ f.setFocused(true);f.document.emit('pointerdown',f.pointer());f.show();
  assert.equal(f.frames.size,1);f.frame();
- assert.equal(player.inspect().state,'loading');assert.deepEqual(f.readinessChecks,[true]);
+ assert.equal(player.inspect().state,'loading');assert.deepEqual(f.readinessChecks,[false]);
 });
 
 test('foreground without a neutral click retains the strict readiness check',()=>{
@@ -163,7 +174,7 @@ test('synthetic pointer and input events neither cancel nor authorize activation
  }
 });
 
-test('controls, editors and composer descendants cancel a pending opening',()=>{
+test('controls, editors and composer descendants do not cancel a startup opening',()=>{
  const cases=[
   ['button',{}],['a',{href:'/thread'}],['input',{}],['textarea',{}],['select',{}],['form',{}],['label',{}],['summary',{}],
   ['div',{contenteditable:'true'}],['div',{contenteditable:''}],['div',{contenteditable:'plaintext-only'}],
@@ -175,62 +186,65 @@ test('controls, editors and composer descendants cancel a pending opening',()=>{
   const f=fixture({focused:false});const player=f.create(f.deferred());
   const control=f.element(tag,attributes),child=f.element('span');control.append(child);
   f.document.emit('pointerdown',f.pointer(child));f.show();f.frame();
-  assert.equal(player.inspect().reason,'interaction-before-start',`${tag} ${JSON.stringify(attributes)}`);
-  assert.equal(f.created.length,0);assert.equal(f.listeners(),0);
+  assert.equal(player.inspect().state,'loading',`${tag} ${JSON.stringify(attributes)}`);
+  assert.equal(f.video().playCalls,1);player.dispose();assert.equal(f.listeners(),0);
  }
 });
 
-test('a noneditable neutral surface remains eligible and a missing target does not',()=>{
+test('startup playback is independent of the click target',()=>{
  const f=fixture({focused:false});const player=f.create(f.deferred());
  f.document.emit('pointerdown',f.pointer(f.element('div',{contenteditable:'false',tabindex:'-1'})));f.show();f.frame();
- assert.equal(player.inspect().state,'loading');assert.deepEqual(f.readinessChecks,[true]);
+ assert.equal(player.inspect().state,'loading');assert.deepEqual(f.readinessChecks,[false]);
  const empty=fixture({focused:false});const skipped=empty.create(empty.deferred());
  empty.document.emit('pointerdown',empty.pointer(null,{composedPath:undefined}));empty.show();empty.frame();
- assert.equal(skipped.inspect().reason,'interaction-before-start');assert.equal(empty.created.length,0);
+ assert.equal(skipped.inspect().state,'loading');assert.equal(empty.video().playCalls,1);
 });
 
-test('SVG children and composed shadow paths still identify actionable controls',()=>{
+test('SVG children and composed shadow paths do not cancel startup playback',()=>{
  for(const shadow of [false,true]){
   const f=fixture({focused:false});const player=f.create(f.deferred());
   const button=f.element('button'),svg=f.element('svg');
   if(!shadow)button.append(svg);
   f.document.emit('pointerdown',f.pointer(svg,shadow?{composedPath:()=>[svg,button,f.document.body,f.document,f.window]}:{}));
-  f.show();f.frame();assert.equal(player.inspect().reason,'interaction-before-start');assert.equal(f.created.length,0);
+  f.show();f.frame();assert.equal(player.inspect().state,'loading');assert.equal(f.video().playCalls,1);
  }
 });
 
-test('only one unmodified primary left click can authorize the focus transition',()=>{
+test('pointer button, modifiers and repeated clicks do not suppress startup playback',()=>{
  const invalid=[{button:1},{button:2},{isPrimary:false},{shiftKey:true},{ctrlKey:true},{altKey:true},{metaKey:true},{isTrusted:undefined}];
  for(const overrides of invalid){
   const f=fixture({focused:false});const player=f.create(f.deferred());
   f.document.emit('pointerdown',f.pointer(f.document.body,overrides));f.show();f.frame();
-  assert.equal(player.inspect().reason,'interaction-before-start',JSON.stringify(overrides));assert.equal(f.created.length,0);
+  assert.equal(player.inspect().state,'loading',JSON.stringify(overrides));assert.equal(f.video().playCalls,1);
  }
  const f=fixture({focused:false});const player=f.create(f.deferred());
  f.document.emit('pointerdown',f.pointer());f.document.emit('pointerdown',f.pointer());f.show();f.frame();
- assert.equal(player.inspect().reason,'interaction-before-start');assert.equal(f.created.length,0);
+ assert.equal(player.inspect().state,'loading');assert.equal(f.video().playCalls,1);
 });
 
-test('modifier keys preserve pending focus while meaningful keys cancel',()=>{
+test('keyboard input preserves playback and Escape explicitly skips',()=>{
  for(const key of ['Shift','Control','Alt','Meta']){
   const f=fixture({focused:false});const player=f.create(f.deferred());
   f.document.emit('keydown',{key,isTrusted:true});f.show();f.frame();
   assert.equal(player.inspect().state,'loading',key);assert.deepEqual(f.readinessChecks,[false]);
  }
- for(const key of ['Escape','Enter','a','ArrowDown']){
+ for(const key of ['Enter','a','ArrowDown']){
   const f=fixture({focused:false});const player=f.create(f.deferred());
   f.document.emit('keydown',{key,isTrusted:true});f.show();f.frame();
-  assert.equal(player.inspect().reason,'interaction-before-start',key);assert.equal(f.created.length,0);
+  assert.equal(player.inspect().state,'loading',key);assert.equal(f.video().playCalls,1);
  }
+ const f=fixture({focused:false});const player=f.create(f.deferred());
+ f.document.emit('keydown',{key:'Escape',isTrusted:true});f.show();f.frame();
+ assert.equal(player.inspect().reason,'escape');assert.equal(f.created.length,0);assert.equal(f.listeners(),0);
 });
 
-test('neutral focus click cannot bypass new drafts or modals',()=>{
+test('neutral clicks do not bypass an unavailable mounting surface',()=>{
  const f=fixture({focused:false});const player=f.create(f.deferred());
  f.document.emit('pointerdown',f.pointer());f.setReady(false);f.show();f.frame();
- assert.equal(player.inspect().reason,'focus-recheck-blocked');assert.deepEqual(f.readinessChecks,[true]);
+ assert.equal(player.inspect().reason,'focus-recheck-blocked');assert.deepEqual(f.readinessChecks,[false]);
  assert.equal(f.created.length,0);assert.equal(f.listeners(),0);
 });
-test('a new draft or modal blocks the deferred foreground recheck',()=>{
+test('an unavailable mounting surface stops the deferred foreground recheck',()=>{
  const f=fixture({focused:false});const player=f.create(f.deferred());
  f.setReady(false);f.show();f.frame();
  assert.equal(player.inspect().reason,'focus-recheck-blocked');assert.equal(f.created.length,0);assert.equal(f.listeners(),0);
@@ -358,14 +372,16 @@ test('unknown, nonstring and thrown layout results stop rather than polling',()=
  }
 });
 
-test('intentional interaction during layout wait cancels its retry timer',()=>{
+test('interaction during layout wait preserves retries until the native surface is ready',()=>{
  for(const name of ['pointerdown','keydown','beforeinput','input']){
   const f=fixture();f.setLayoutReason('main-not-visible');const player=f.create(f.checked());f.frame();
   const checks=f.layoutChecks.length;
   f.document.emit(name,name==='pointerdown'?f.pointer(f.element('button')):{key:'a',isTrusted:true});
-  assert.equal(player.inspect().reason,'interaction-before-start',name);
-  assert.equal(f.listeners(),0);assert.equal(f.timers.size,0);assert.equal(f.frames.size,0);
-  f.setLayoutReason('eligible');f.advance(1000);f.frame();assert.equal(f.layoutChecks.length,checks);assert.equal(f.created.length,0);
+  assert.equal(player.inspect().reason,'native-layout',name);
+  assert.ok(f.listeners()>0);assert.ok(f.timers.size>0);
+  f.setLayoutReason('eligible');f.advance(100);f.frame();
+  assert.equal(f.layoutChecks.length,checks+1);assert.equal(player.inspect().state,'loading');assert.equal(f.video().playCalls,1);
+  player.dispose();assert.equal(f.listeners(),0);assert.equal(f.timers.size,0);
  }
 });
 
@@ -384,14 +400,14 @@ test('disposing native-layout wait removes the poll, expiry and event listeners'
  assert.equal(f.listeners(),0);assert.equal(f.timers.size,0);assert.equal(f.frames.size,0);
 });
 
-test('a neutral focus click allowance remains valid through layout retries',()=>{
+test('layout retries do not require a focus-click allowance',()=>{
  const f=fixture({focused:false});f.setLayoutReason('main-not-visible');const player=f.create(f.checked());
  assert.equal(f.layoutChecks.length,0);
  f.document.emit('pointerdown',f.pointer());f.show();f.frame();
- assert.equal(player.inspect().reason,'native-layout');assert.equal(f.layoutChecks.at(-1).allowActivation,true);
+ assert.equal(player.inspect().reason,'native-layout');assert.equal(f.layoutChecks.at(-1).allowActivation,false);
  f.setLayoutReason('sidebar-not-ready');f.advance(100);f.frame();
  f.setLayoutReason('eligible');f.advance(100);f.frame();
- assert.equal(player.inspect().state,'loading');assert.ok(f.layoutChecks.every(check=>check.allowActivation===true));
+ assert.equal(player.inspect().state,'loading');assert.ok(f.layoutChecks.every(check=>check.allowActivation===false));
  assert.equal(f.readinessChecks.length,0);
 });
 
@@ -442,8 +458,8 @@ test('another webview taking focus does not end allowed playback but hiding the 
  assert.equal(f.listeners(),0);assert.equal(f.timers.size,0);assert.equal(f.frames.size,0);
 });
 
-test('focus-independent playback still rejects an occupied composer',()=>{
- const f=fixture({focused:false});f.setLayoutReason('composer-occupied');
+test('focus-independent playback still stops when the mounting check fails',()=>{
+ const f=fixture({focused:false});f.setLayoutReason('check-unavailable');
  const player=f.create(f.checked({requireDocumentFocus:false}));f.frame();
  assert.equal(player.inspect().reason,'focus-recheck-blocked');assert.equal(f.created.length,0);
  assert.equal(f.listeners(),0);assert.equal(f.timers.size,0);assert.equal(f.frames.size,0);
@@ -460,15 +476,18 @@ test('focus-independent layout waits retain reduced-motion and absolute-deadline
  }
 });
 
-test('pending cancellation exposes only the fixed event type and no input content',()=>{
+test('pending playback neither records nor changes input content',()=>{
  for(const name of ['pointerdown','keydown','beforeinput','input']){
   const f=fixture({focused:false});const player=f.create(f.deferred());
   const target=f.element('textarea');target.value='private-fixture-content';
   f.document.emit(name,name==='pointerdown'?f.pointer(target):{isTrusted:true,key:'private-fixture-content',data:'private-fixture-content',target});
   const result=player.inspect();
-  assert.equal(result.reason,'interaction-before-start');assert.equal(result.interruptedBy,name);
+  assert.equal(result.reason,'foreground');assert.equal(result.state,'waiting');
+  assert.equal(Object.hasOwn(result,'interruptedBy'),false);assert.equal(target.value,'private-fixture-content');
   assert.equal(JSON.stringify(result).includes('private-fixture-content'),false);
   assert.equal(Object.hasOwn(result,'key'),false);assert.equal(Object.hasOwn(result,'data'),false);assert.equal(Object.hasOwn(result,'target'),false);
+  f.show();f.frame();assert.equal(player.inspect().state,'loading');
+  assert.equal(target.value,'private-fixture-content');player.dispose();
   assert.equal(f.listeners(),0);assert.equal(f.timers.size,0);
  }
 });

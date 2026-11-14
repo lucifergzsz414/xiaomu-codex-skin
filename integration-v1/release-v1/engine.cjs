@@ -150,25 +150,15 @@ const openingCheckCodes=['eligible','hidden','unfocused','user-interaction','act
  'sidebar-not-ready','dot-surface','main-not-visible','dialog-or-busy','composer-occupied','attachments-present','check-unavailable'];
 const openingWaitCodes=['eligible','hidden','unfocused','main-not-visible','sidebar-not-ready'];
 function openingReadinessDecision(code){return openingCheckCodes.includes(code)?openingWaitCodes.includes(code):undefined;}
-function checkOpeningTarget(waitForForeground=false,allowFocusActivation=false,requireDocumentFocus=true){try{
+function checkOpeningTarget(waitForForeground=false){try{
  const hidden=document.visibilityState!=='visible'||document.hidden;
- const unfocused=requireDocumentFocus&&!document.hasFocus();
  if(!waitForForeground&&hidden)return 'hidden';
- if(!waitForForeground&&unfocused)return 'unfocused';
- const activation=navigator.userActivation?.hasBeenActive;
- if(activation!==false&&!(allowFocusActivation===true&&activation===true))return activation===true?'user-interaction':'activation-unavailable';
  if(document.querySelectorAll('aside.app-shell-left-panel').length!==1)return 'sidebar-not-ready';
  if(document.querySelector('[data-orbit-profile-identity]'))return 'dot-surface';
  const main=document.querySelector('main:is(.main-surface,[data-app-shell-main-surface],[class*="_MainContentSurface_"])');
  const visible=node=>{if(!node||node.closest('[hidden],[inert],[aria-hidden="true"]'))return false;const style=getComputedStyle(node),box=node.getBoundingClientRect();return style.display!=='none'&&style.visibility==='visible'&&Number(style.opacity)!==0&&box.width>0&&box.height>0&&box.bottom>0&&box.right>0&&box.top<innerHeight&&box.left<innerWidth;};
  if(!visible(main))return 'main-not-visible';
- if([...document.querySelectorAll('[role="dialog"],[role="alertdialog"],[role="menu"]'),...main.querySelectorAll('[aria-busy="true"]')].some(visible))return 'dialog-or-busy';
- for(const composer of main.querySelectorAll(':is(.composer-surface-chrome,[class*="_ComposerLayoutRoot_"],[data-composer-surface-variant][data-composer-radius-variant])')){
-  if(!visible(composer))continue;
-  for(const editor of composer.querySelectorAll('.ProseMirror[contenteditable="true"],textarea,input[type="text"]'))if(visible(editor)&&((typeof editor.value==='string'&&editor.value.trim())||(editor.textContent||'').trim()||editor.querySelector('img,[contenteditable="false"]')))return 'composer-occupied';
-  if([...composer.querySelectorAll('[data-composer-attachments][data-visible-attachments]')].some(visible))return 'attachments-present';
- }
- return hidden?'hidden':unfocused?'unfocused':'eligible';
+ return hidden?'hidden':'eligible';
 }catch{return 'check-unavailable';}}
 const openingTargetProbe='('+checkOpeningTarget.toString()+')()';
 const openingForegroundProbe='('+checkOpeningTarget.toString()+')(true)';
@@ -188,7 +178,7 @@ function applyExpression(bundle,token,capabilities=null,guardianSource='',captio
  const validDeadline=!waitForForeground||(Number.isSafeInteger(opening.expiresAt)&&opening.expiresAt>Date.now()&&opening.expiresAt<=Date.now()+60000);
  const openingContext=validHost&&validDeadline?{eligible:true,hostKey:opening.hostKey,...(waitForForeground?{waitForForeground:true,requireDocumentFocus:false,expiresAt:opening.expiresAt}:{})}:null;
  const openingSetup=openingContext?(waitForForeground?
-  JSON.stringify(openingWaitCodes)+'.includes(openingCheck)?(()=>{const checkReady=(allowFocusActivation=false)=>('+checkOpeningTarget.toString()+')(false,allowFocusActivation===true,false);return {...'+JSON.stringify(openingContext)+',checkReady,canStart:(allowFocusActivation=false)=>checkReady(allowFocusActivation)==="eligible"};})():null':
+  JSON.stringify(openingWaitCodes)+'.includes(openingCheck)?(()=>{const checkReady=()=>('+checkOpeningTarget.toString()+')(false);return {...'+JSON.stringify(openingContext)+',checkReady,canStart:()=>checkReady()==="eligible"};})():null':
   'openingCheck==="eligible"?'+JSON.stringify(openingContext)+':null'):'null';
  const openingReport=openingContext?'result.openingDiagnostics={injectionCheck:openingCheck,playerAtApply:window[key].opening?('+summarizeOpeningPlayer.toString()+')(inspected?.opening):null};':'';
  const guardianSetup=guardianSource?'window[key].guardianCompatibility=('+guardianSource+');':'';
