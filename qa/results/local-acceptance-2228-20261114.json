@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "candidateId": "20261114-2228-v1.0.0",
+  "validatedCodexVersion": "26.1111.2228.0",
+  "runtimeSourceCommit": "8f96a4cf98cf694c3ae05ba17a2e529ec0ddd222",
+  "skinSHA256": "fb93504595eded012f7d08408a69ec61dbc035d9c53bd40f28441de94fbc0356",
+  "engineSHA256": "4d61e6ebb7cc02a49167338c91756281b036203797c1d10026aa47f4e80a0a4a",
+  "runtimeRegression": {"tests": 241, "passed": 241, "failed": 0, "skipped": 0, "scope": "Runtime and headless fixtures before stable sealer checks"},
+  "acceptance": {
+    "independentCleanWindowsVerified": false,
+    "standalonePackageColdStartVerified": false,
+    "installedHotUpdateVerified": true,
+    "liveCompatibilityVerified": true,
+    "realSearchAndMenuInteractionsVerified": false,
+    "realSearchInteractionsVerified": false,
+    "searchScopeMemoryUserConfirmed": false,
+    "realContextMenuInteractionsVerified": false,
+    "installedOpeningUserConfirmed": false,
+    "terminalVisualVerified": false,
+    "repositoryAccessApprovalVisualVerified": false,
+    "repositoryAccessApprovalActionVerified": false,
+    "commandExecutionApprovalVerified": false,
+    "fileDiffVerified": false
+  },
+  "localAcceptance": {
+    "scope": "Codex 26.1111.2228.0; in-place update and read-only native metadata inspection",
+    "compatibility": "All six component capabilities enabled; exact native menu component fingerprint ready",
+    "process": "Existing Codex and skin controller process identities retained; no restart or UI input",
+    "draft": "Original renderer objects, input, selection, focus, composer and route preserved by in-place update checks",
+    "menus": "New component fingerprint and hook layout matched; actual main-menu and submenu gestures not performed",
+    "opening": "Direct one-shot startup policy covered by fixtures; next normal launch will use it; no current-session replay or new live playback",
+    "contractUpdate": "Maintenance installation retains active contract until its old session exits; fresh package contains the reviewed current contract"
+  },
+  "historicalAcceptance": {
+    "codexVersion": "26.1106.6628.0",
+    "scope": "Earlier search interactions, project directory reopen memory and menu interactions; not current-version acceptance",
+    "record": "qa/results/local-acceptance-6628-20261113.json"
+  },
+  "syntheticSurfaceAcceptance": {
+    "scope": "Automated fixtures are separate from real-window interactions",
+    "home": "Existing narrow and normal-width homepage fixtures with original actions preserved",
+    "settings": "Existing input and button identity/value preservation fixtures",
+    "diff": "Existing narrow and normal-width CSS consumer fixtures",
+    "searchScope": "Per-chat project selection memory and loading-state fixtures retained",
+    "nativeMenus": "Exact codex-2228 hook layout, native callbacks, replay and cleanup fixtures",
+    "opening": "Activation, chat input, occupied composer and ordinary dialogs do not cancel; explicit skip, Esc and host deduplication retained",
+    "pendingCompatibility": "PS5 and PS7 isolated commit, damaged input rejection, backup and rollback fixtures"
+  },
+  "remaining": [
+    "Exact final ZIP installation, upgrade, repair, pause and restoration receipt is recorded after sealing",
+    "Final-package cold startup and actual opening playback",
+    "Independent Windows 11 ordinary-user installation, startup and recovery",
+    "Current-version real search, menu gestures and visual page checks were not added during this no-UI update",
+    "Download and first-run prompts"
+  ]
+}

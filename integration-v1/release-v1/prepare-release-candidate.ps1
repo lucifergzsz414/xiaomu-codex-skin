@@ -8,8 +8,16 @@ $release=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'release-candidate.js
 $candidateId=$release.candidateId
 $releaseLabel=$release.releaseLabel
 $stem='xiaomu-codex-skin-'+$candidateId
-if($candidateId -cnotmatch '^\d{8}-\d+-rc\d+$'){throw 'Invalid candidate identity.'}
-if($releaseLabel -isnot [string] -or $releaseLabel -cnotmatch '^\d+-rc\d+$' -or $candidateId.Substring(9) -cne $releaseLabel){throw 'Invalid release label.'}
+if($candidateId -isnot [string]){throw 'Invalid candidate identity.'}
+if($releaseLabel -isnot [string]){throw 'Invalid release label.'}
+if($release.releaseChannel -ceq 'stable'){
+  $versionPattern='(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)'
+  if($releaseLabel -cnotmatch ('^'+$versionPattern+'$') -or $release.runtimeVersion -cne $releaseLabel){throw 'Invalid release label.'}
+  if($candidateId -cnotmatch ('^\d{8}-\d+-v'+[regex]::Escape($releaseLabel)+'$')){throw 'Invalid candidate identity.'}
+}else{
+  if($candidateId -cnotmatch '^\d{8}-\d+-rc\d+$'){throw 'Invalid candidate identity.'}
+  if($releaseLabel -cnotmatch '^\d+-rc\d+$' -or $candidateId.Substring(9) -cne $releaseLabel){throw 'Invalid release label.'}
+}
 $sourceTestCount=$release.sourceTestCount
 if(($sourceTestCount -isnot [int] -and $sourceTestCount -isnot [long]) -or $sourceTestCount -le 0 -or $sourceTestCount -gt [int]::MaxValue){throw 'Invalid source test count.'}
 $releaseNotes='RELEASE-NOTES-'+$releaseLabel+'.md'

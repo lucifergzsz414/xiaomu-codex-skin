@@ -1,13 +1,13 @@
 {
   "schema": 1,
-  "candidateId": "20261113-6628-rc2",
-  "releaseLabel": "6628-rc2",
-  "releaseChannel": "local-test",
+  "candidateId": "20261114-2228-v1.0.0",
+  "releaseLabel": "1.0.0",
+  "releaseChannel": "stable",
   "runtimeVersion": "1.0.0",
-  "validatedCodexVersion": "26.1106.6628.0",
-  "skinSHA256": "cb15d319d13fed1780c85baa7b6549192417a1883702a06a9b89005d23cd6669",
-  "engineSHA256": "a59f6102a04cf40b53a3f4023d913f06f0654525eaec6a7a3870588c8d3d9772",
-  "localAcceptanceSHA256": "37004d21f528ea8a935d0a5a1c95711d30459754030f00e68b0297c038f39aff",
-  "sourceTestCount": 231,
-  "localAcceptancePath": "qa/results/local-acceptance-6628-20261113.json"
+  "validatedCodexVersion": "26.1111.2228.0",
+  "skinSHA256": "fb93504595eded012f7d08408a69ec61dbc035d9c53bd40f28441de94fbc0356",
+  "engineSHA256": "4d61e6ebb7cc02a49167338c91756281b036203797c1d10026aa47f4e80a0a4a",
+  "localAcceptanceSHA256": "9c512e5fd1925ac132e7507950b5b6ecb609844fe47f06445e54509653f0495c",
+  "sourceTestCount": 244,
+  "localAcceptancePath": "qa/results/local-acceptance-2228-20261114.json"
 }
