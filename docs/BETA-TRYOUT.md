@@ -1,6 +1,6 @@
 # 日常使用与反馈
 
-当前正式版为 **1.0.2**。[下载安装包](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/download/v1.0.2/xiaomu-codex-skin-20261115-2228-v1.0.2.zip) · [发布说明](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.2) · [设计说明](DESIGN.md) · [返回首页](../README.md)
+当前正式版为 **1.0.3**。[下载安装包](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/download/v1.0.3/xiaomu-codex-skin-20261115-2228-v1.0.3.zip) · [发布说明](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.3) · [设计说明](DESIGN.md) · [返回首页](../README.md)
 
 ## 装好并跑起来
 
@@ -10,13 +10,15 @@
 
 ## 更新到新版
 
-管理窗口里点“检查更新”，看到新版本后点“下载并更新”。无需登录 GitHub，也不用安装额外命令行工具；管理器会下载、校验并备份旧安装，更新后重新打开窗口。
+从 1.0.1、1.0.2 或更早版本升级时，先下载并完整解压 1.0.3，关闭旧管理窗口，再双击新包的 `skin\manage.vbs`，点“安装 / 修复”。Codex 可以保持打开，运行中的任务会保留。这次从新包进入，把修正后的更新程序一起装好。
+
+装好 1.0.3 后，管理窗口里点“检查更新”，看到新版本再点“下载并更新”。无需登录 GitHub，也不用安装额外命令行工具；管理器会下载、校验并备份旧安装，更新后重新打开窗口。
 
 这时皮肤会保持暂停，等检测通过后点“启动 / 继续”启用。更新会保留 Codex 窗口和运行中的任务。管理器只在点击时查新版本，不会在日常启动时联网检查。
 
-如果旧管理器里还没有更新按钮，这次先下载并解压 1.0.2，关闭旧管理窗口，再双击新包的 `skin\manage.vbs`，点“安装 / 修复”。完成后就换上了带更新按钮的管理器，以后直接在里面升级。
+旧版发布和安装包保留在 [全部发布](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases) 中。
 
-管理窗口会显示产品版本 1.0.2。这次主要是让桌面启动和管理更方便，原有外观、片头、背景与更新流程照旧。
+管理窗口会显示产品版本 1.0.3。本版修正更新时的目录占用，启动失败时先释放占用，再显示中文原因并留下精简记录。原有外观、片头和背景照旧。
 
 ## 平时怎么用
 
@@ -26,7 +28,7 @@
 - **搜索与右键菜单**：在搜索框底部切换文件或文本搜索，再用目录菜单选项目。同一个聊天里再次打开搜索，会记住所选目录。右键主菜单、子菜单和快捷键保留原本的用法。
 - **暂停与恢复官方外观**：临时想看原版界面，在「小睦皮肤管理」点“暂停皮肤”。点“恢复官方外观”还会恢复受管入口，Codex 窗口、专用小睦入口和备份都会保留。
 
-包里的 `START-HERE.md` 和 `skin\USAGE.md` 有完整的安装、手动更新与恢复步骤；独立电脑测试可看 `CLEAN-TEST-GUIDE.md`。本次验证记录集中在 [1.0.2 更新说明](../integration-v1/release-v1/RELEASE-NOTES-1.0.2.md)。
+包里的 `START-HERE.md` 和 `skin\USAGE.md` 有完整的安装、手动更新与恢复步骤；独立电脑测试可看 `CLEAN-TEST-GUIDE.md`。本次验证记录集中在 [1.0.3 更新说明](../integration-v1/release-v1/RELEASE-NOTES-1.0.3.md)。
 
 ## 遇到问题怎么反馈
 

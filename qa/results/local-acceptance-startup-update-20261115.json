@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "candidateId": "20261115-2228-v1.0.3",
+  "validatedCodexVersion": "26.1111.2228.0",
+  "runtimeSourceCommit": "76a34400180d0b6299b98dd85fd9f30e0619e15f",
+  "skinSHA256": "fb93504595eded012f7d08408a69ec61dbc035d9c53bd40f28441de94fbc0356",
+  "engineSHA256": "4d61e6ebb7cc02a49167338c91756281b036203797c1d10026aa47f4e80a0a4a",
+  "acceptance": {
+    "independentCleanWindowsVerified": false,
+    "standalonePackageColdStartVerified": false,
+    "installedHotUpdateVerified": false,
+    "liveCompatibilityVerified": false,
+    "realSearchAndMenuInteractionsVerified": false,
+    "realSearchInteractionsVerified": false,
+    "searchScopeMemoryUserConfirmed": false,
+    "realContextMenuInteractionsVerified": false,
+    "installedOpeningUserConfirmed": false,
+    "terminalVisualVerified": false,
+    "repositoryAccessApprovalVisualVerified": false,
+    "repositoryAccessApprovalActionVerified": false,
+    "commandExecutionApprovalVerified": false,
+    "fileDiffVerified": false
+  },
+  "localAcceptance": {
+    "scope": "Startup and management-update fixes applied to a local preview without restarting Codex or operating the desktop",
+    "integrity": "All twenty-four installed managed files passed hash verification; twenty-one runtime components and the current session state remained unchanged",
+    "startupFix": "Startup failures release the session and maintenance locks before showing the error dialog, and keep bounded fixed failure metadata",
+    "updateFix": "Detached update handoff explicitly uses the worker staging directory instead of the installation being replaced",
+    "manualWarmRelaunchUserConfirmed": true,
+    "manualAcceptance": "After receiving normal close-and-reopen instructions for the locally applied preview, the user confirmed no problems",
+    "candidateBoundary": "The manual confirmation applies to the local preview with these fixes; exact final ZIP checks are recorded after sealing"
+  },
+  "historicalAcceptance": {
+    "codexVersion": "26.1111.2228.0",
+    "record": "qa/results/local-acceptance-desktop-manager-20261115.json",
+    "scope": "Existing skin, engine, compatibility and three-shortcut installation behavior retained from 1.0.2"
+  },
+  "syntheticSurfaceAcceptance": {
+    "scope": "Isolated regressions and headless fixtures, separate from real-window interactions",
+    "updateHandoff": "Two additional real subprocess regressions cover launch from an installation working directory and safe update handoff",
+    "startupFailure": "Four additional checks cover lock release before a modal failure dialog, durable fixed failure metadata and failed metadata writes",
+    "retainedCoverage": "Existing runtime, homepage, settings, search, menu, opening, installer, repair, recovery and updater regressions retained"
+  },
+  "remaining": [
+    "Final exact ZIP acceptance is recorded separately after sealing",
+    "Final full-package cold start and actual opening playback",
+    "Independent Windows 11 ordinary-user installation, startup and recovery"
+  ]
+}

@@ -4,13 +4,13 @@
 
 ## 可复制正文
 
-给平时在用 Windows 版 Codex 的同好分享一个自己整理的非官方外观主题：**小睦 Codex Skin（1.0.2 正式版）**。
+给平时在用 Windows 版 Codex 的同好分享一个自己整理的非官方外观主题：**小睦 Codex Skin（1.0.3 正式版）**。
 
 整体是柔和的浅绿和奶白配色，把 Q 版小睦放在首页卡片、侧栏欢迎区和签名里，配了一段八秒静音循环的窗边背景，每次正常启动还会播一次五秒静音雨景片头，赶时间可以点“跳过”或按 Esc。输入、右键菜单和快捷键还是熟悉的用法，文件差异也保留清楚的红绿。搜索文件或文本时，会按当前聊天记住选过的项目目录。
 
-这次 1.0.2 把两个常用入口都放到了桌面：「小睦 Codex」负责启动，「小睦皮肤管理」负责暂停、恢复、修复和更新，开始菜单也保留管理入口。浅绿主题、片头和背景照旧。
+这次 1.0.3 主要修了启动和更新：更新程序从独立目录接手，减少安装目录被占用的问题；启动失败时会先放开占用，再显示中文原因。相同修正已经在本机试过关闭后重新打开，皮肤正常加载。桌面的启动和管理入口、浅绿主题、片头与背景照旧。
 
-已经有更新按钮的朋友，在「小睦皮肤管理」里点“检查更新”→“下载并更新”就能升级。下载、校验和旧版备份会自动完成，不用登录 GitHub；更新后点“启动 / 继续”启用，Codex 里的任务会保留。旧管理器没有更新按钮的朋友，这次下载新包、关闭旧管理窗口，再打开新包的 `skin\manage.vbs` 点“安装 / 修复”，以后就在管理窗口里升级。
+从 1.0.1、1.0.2 或更早版本升级的朋友，这次先下载并解压新包，关闭旧管理窗口，再打开新包的 `skin\manage.vbs` 点“安装 / 修复”，把更新程序一起换好；Codex 可以保持打开，运行中的任务会保留。之后可以直接在「小睦皮肤管理」里检查更新、下载并升级；下载、校验和旧版备份会自动完成，不用登录 GitHub。更新后点“启动 / 继续”启用，Codex 里的任务会保留。
 
 当前适配环境：
 
@@ -20,8 +20,8 @@
 
 安装包和说明在这里。遇到颜色、布局、启动或更新问题，欢迎提个反馈，截图记得遮住私人代码和目录：
 
-- [下载 1.0.2 安装包](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/download/v1.0.2/xiaomu-codex-skin-20261115-2228-v1.0.2.zip)
-- [1.0.2 发布说明](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.2)
+- [下载 1.0.3 安装包](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/download/v1.0.3/xiaomu-codex-skin-20261115-2228-v1.0.3.zip)
+- [1.0.3 发布说明](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.3)
 - [仓库主页与使用说明](https://github.com/lucifergzsz414/xiaomu-codex-skin)
 - [问题反馈表](https://github.com/lucifergzsz414/xiaomu-codex-skin/issues/new?template=skin-problem.yml)
 
