@@ -5,6 +5,7 @@ $env:PSModulePath="$env:SystemRoot\System32\WindowsPowerShell\v1.0\Modules;$env:
 $root=$PSScriptRoot
 $stopFile=Join-Path $root 'stop.flag'
 $statusFile=Join-Path $root 'status.json'
+$startupFailureFile=Join-Path $root 'startup-failure.json'
 $openingEligible=$false
 $launchRequestedAtUtc=$null
 function Save-State([string]$state,[string]$failureStage='',[Nullable[int]]$engineExitCode=$null){
@@ -12,6 +13,29 @@ function Save-State([string]$state,[string]$failureStage='',[Nullable[int]]$engi
   if($failureStage){$value.failureStage=$failureStage}
   if($null -ne $engineExitCode){$value.engineExitCode=$engineExitCode}
   [IO.File]::WriteAllText($statusFile,($value|ConvertTo-Json),[Text.UTF8Encoding]::new($false))
+}
+function Get-StartupFailureInfo($Failure,[string]$Stage){
+  switch -CaseSensitive ($Failure.Exception.Message){
+    'Another skin session is ending.' {return @{code='session-ending';reason='皮肤会话锁尚未释放。'}}
+    'Diagnostic port occupied.' {return @{code='diagnostic-port-busy';reason='调试端口已被占用。'}}
+    'Codex started concurrently.' {return @{code='client-started-concurrently';reason='启动期间检测到 Codex 已打开。'}}
+    'Node.js runtime is unavailable.' {return @{code='node-unavailable';reason='未找到皮肤需要的 Node.js 运行环境。'}}
+    'Exit normal Codex, then use the Xiaomu desktop entry.' {return @{code='listener-unavailable';reason='尚未找到可验证的 Codex 调试连接。'}}
+    'Skin session stopped; inspect status.json.' {return @{code='engine-exited';reason='皮肤运行组件已异常结束。'}}
+  }
+  switch -CaseSensitive ($Stage){
+    'session-lock' {return @{code='session-lock-failed';reason='未能建立皮肤会话锁。'}}
+    'compatibility' {return @{code='compatibility-failed';reason='兼容检查未能完成。'}}
+    'launch' {return @{code='launch-failed';reason='Codex 启动准备未能完成。'}}
+    'listener-identity' {return @{code='listener-identity-failed';reason='未能确认 Codex 调试连接的身份。'}}
+    'engine' {return @{code='engine-failed';reason='皮肤运行组件未能正常完成。'}}
+    default {return @{code='startup-failed';reason='皮肤启动未能完成。'}}
+  }
+}
+function Save-StartupFailure($Failure,[string]$Stage,[string]$Code){
+  if($Stage -cnotin @('session-lock','compatibility','launch','listener-identity','engine')){$Stage='unknown'}
+  $value=[ordered]@{schema=1;atUtc=[datetime]::UtcNow.ToString('o');mode=$Mode;failureStage=$Stage;errorCode=$Code;exceptionHResult=[int]$Failure.Exception.HResult;controllerPid=$PID}
+  [IO.File]::WriteAllText($startupFailureFile,($value|ConvertTo-Json),[Text.UTF8Encoding]::new($false))
 }
 if($Mode -eq 'Stop'){
   [IO.File]::WriteAllText($stopFile,'stop')
@@ -243,10 +267,20 @@ try{
   $engineExitCode=$LASTEXITCODE
   if($engineExitCode -ne 0){throw 'Skin session stopped; inspect status.json.'}
 }catch{
+  $failure=$_
+  $failureInfo=Get-StartupFailureInfo $failure $failureStage
+  $failureSaved=$false
+  try{Save-StartupFailure $failure $failureStage $failureInfo.code;$failureSaved=$true}catch{}
   if($lock){try{Save-State 'stopped-check-required' $failureStage $engineExitCode}catch{}}
+  if($lock){$lock.Dispose();$lock=$null}
+  if($maintenance){Exit-XiaomuMaintenance $maintenance;$maintenance=$null}
   if($Mode -eq 'Start'){
     Add-Type -AssemblyName System.Windows.Forms
-    $null=[Windows.Forms.MessageBox]::Show('Xiaomu skin could not start. Exit Codex fully, then use the Xiaomu desktop entry. Official Codex files were not changed.','Xiaomu Codex')
+    $receiptNote=if($failureSaved){'失败信息已保存在安装目录 startup-failure.json。'}else{'失败信息未能写入安装目录 startup-failure.json。'}
+    $null=[Windows.Forms.MessageBox]::Show(("小睦皮肤未能启动（$($failureInfo.code)）。`r`n$($failureInfo.reason)`r`n$receiptNote"),'小睦 Codex')
   }
   exit 1
-}finally{if($lock){$lock.Dispose()};Exit-XiaomuMaintenance $maintenance}
+}finally{
+  if($lock){$lock.Dispose();$lock=$null}
+  if($maintenance){Exit-XiaomuMaintenance $maintenance;$maintenance=$null}
+}
