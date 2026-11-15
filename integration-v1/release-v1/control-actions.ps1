@@ -231,7 +231,8 @@ function Assert-ControlManagerParent([int]$ProcessId) {
 }
 function Start-ControlHandoff([string]$Worker,[string]$Ticket) {
   $ps=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
-  $null=Start-Process $ps -ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',('"'+$Worker+'"'),'-Action','ApplyUpdate','-HandoffPath',('"'+$Ticket+'"')) -WindowStyle Hidden -PassThru
+  # The detached worker must not hold the installation directory as its cwd during replacement.
+  $null=Start-Process $ps -ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',('"'+$Worker+'"'),'-Action','ApplyUpdate','-HandoffPath',('"'+$Ticket+'"')) -WorkingDirectory (Split-Path $Worker -Parent) -WindowStyle Hidden -PassThru
 }
 function New-ControlUpdateHandoff([string]$Stage,$Release,$Verified,[int]$ProcessId,[string]$StartUtc,[string]$Source) {
   $paths=Get-ControlPaths;Assert-ControlManagerParent $ProcessId;$identity=Get-ControlManagerIdentity $ProcessId $StartUtc $Source

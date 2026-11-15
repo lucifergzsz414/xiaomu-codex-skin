@@ -1,6 +1,6 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{spawnSync}=require('node:child_process');
-const root=__dirname,evidence='E:\\XiaomuCodexSkin\\github\\local-acceptance\\update-manager-20261115',ps5=path.join(process.env.SystemRoot||'C:\\Windows','System32/WindowsPowerShell/v1.0/powershell.exe');
+const root=__dirname,evidence=process.env.XIAOMU_UPDATE_TEST_EVIDENCE||'E:\\XiaomuCodexSkin\\github\\local-acceptance\\update-manager-20261115',ps5=path.join(process.env.SystemRoot||'C:\\Windows','System32/WindowsPowerShell/v1.0/powershell.exe');
 const common=`$ErrorActionPreference='Stop'
 . '${path.join(root,'control-actions.ps1').replaceAll("'","''")}' -Action Functions
 function Assert($Condition,$Label){if(-not $Condition){throw $Label}}
@@ -21,6 +21,53 @@ function Seal($Base){$bundle=Join-Path $Base 'bundle';$checks=[ordered]@{};Get-C
 function ZipRelease($Base){$r=Get-ControlRelease (Release);$r.size=(Get-Item (Join-Path $Base 'package.zip')).Length;$r.sha256=(Get-FileHash (Join-Path $Base 'package.zip')).Hash.ToLowerInvariant();return $r}
 `;
 function run(body){fs.mkdirSync(evidence,{recursive:true});const base=fs.mkdtempSync(path.join(evidence,'worker-test-'));const script=path.join(base,'test.ps1');fs.writeFileSync(script,'\ufeff'+common+`\n$base='${base.replaceAll("'","''")}'\n`+body+"\n'PASS'\n");const env={...process.env,PSModulePath:[path.join(process.env.SystemRoot,'System32/WindowsPowerShell/v1.0/Modules'),path.join(process.env.ProgramFiles,'WindowsPowerShell/Modules')].join(';')};delete env.NODE_TEST_CONTEXT;const result=spawnSync(process.env.XIAOMU_UPDATE_TEST_POWERSHELL||ps5,['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',script],{encoding:'utf8',windowsHide:true,timeout:45000,env});assert.equal(result.status,0,result.stdout+'\n'+result.stderr);assert.match(result.stdout,/PASS/);}
+
+async function handoffWorkdirFixture(production){
+ fs.mkdirSync(evidence,{recursive:true});const base=fs.mkdtempSync(path.join(evidence,production?'handoff-workdir-':'inherited-workdir-'));
+ const old=path.join(base,'fake-old-target'),backup=path.join(base,'backup'),stage=path.join(base,'safe-stage'),profile=path.join(base,'isolated-profile');
+ for(const directory of [old,stage,path.join(profile,'Local'),path.join(profile,'Roaming')])fs.mkdirSync(directory,{recursive:true});
+ fs.writeFileSync(path.join(old,'fixture.txt'),'old installation fixture');
+ const worker=path.join(stage,'apply-update.ps1'),ticket=path.join(stage,'handoff.json'),resultFile=path.join(stage,'result.json'),release=path.join(stage,'parent-exited.flag'),launcher=path.join(stage,'launcher.ps1');
+ fs.writeFileSync(ticket,JSON.stringify({old,backup,resultFile,release}));
+ fs.writeFileSync(worker,`param([string]$Action,[string]$HandoffPath)
+$ErrorActionPreference='Stop'
+$ticket=Get-Content -LiteralPath $HandoffPath -Raw|ConvertFrom-Json
+$result=[ordered]@{ok=$false;pid=$PID;nativeCwd=[Environment]::CurrentDirectory;providerCwd=(Get-Location).Path;action=$Action;errorCode=0;message=''}
+try{
+ $deadline=[datetime]::UtcNow.AddSeconds(15)
+ while(-not (Test-Path -LiteralPath $ticket.release)){if([datetime]::UtcNow -gt $deadline){throw 'launcher did not exit'};Start-Sleep -Milliseconds 25}
+ [IO.Directory]::Move($ticket.old,$ticket.backup)
+ $result.ok=$true
+}catch{$errorDetail=$_.Exception;while($errorDetail.InnerException){$errorDetail=$errorDetail.InnerException};$result.errorCode=$errorDetail.HResult -band 65535;$result.message=$errorDetail.Message}
+$pending=$ticket.resultFile+'.tmp';[IO.File]::WriteAllText($pending,($result|ConvertTo-Json -Compress));[IO.File]::Move($pending,$ticket.resultFile)
+`);
+ const quote=value=>"'"+value.replaceAll("'","''")+"'";
+ const launch=production?`Start-ControlHandoff ${quote(worker)} ${quote(ticket)}`:`$null=Start-Process (Join-Path $env:SystemRoot 'System32\\WindowsPowerShell\\v1.0\\powershell.exe') -ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',('"'+${quote(worker)}+'"'),'-Action','ApplyUpdate','-HandoffPath',('"'+${quote(ticket)}+'"')) -WindowStyle Hidden -PassThru`;
+ fs.writeFileSync(launcher,'\ufeff'+`$ErrorActionPreference='Stop'\n. ${quote(path.join(root,'control-actions.ps1'))} -Action Functions\n${launch}\n`);
+ const env={...process.env,USERPROFILE:profile,LOCALAPPDATA:path.join(profile,'Local'),APPDATA:path.join(profile,'Roaming')};delete env.NODE_TEST_CONTEXT;
+ const parent=spawnSync(process.env.XIAOMU_UPDATE_TEST_POWERSHELL||ps5,['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',launcher],{cwd:old,stdio:'ignore',windowsHide:true,timeout:10000,env});
+ assert.equal(parent.status,0,'isolated handoff launcher exited before the directory move');
+ fs.writeFileSync(release,'parent exited');
+ const deadline=Date.now()+20000;while(!fs.existsSync(resultFile)&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,25));
+ assert.ok(fs.existsSync(resultFile),'real child PowerShell wrote its directory-move result');
+ return {old,backup,stage,result:JSON.parse(fs.readFileSync(resultFile,'utf8'))};
+}
+
+test('Windows child PowerShell reproduces sharing violation with inherited target cwd', {skip:process.platform!=='win32'},async()=>{
+ const fixture=await handoffWorkdirFixture(false);
+ assert.equal(fixture.result.nativeCwd.toLowerCase(),fixture.old.toLowerCase());
+ assert.equal(fixture.result.ok,false);assert.equal(fixture.result.errorCode,32,JSON.stringify(fixture.result));
+ assert.ok(fs.existsSync(path.join(fixture.old,'fixture.txt')));assert.equal(fs.existsSync(fixture.backup),false);
+});
+
+test('updater handoff worker moves old target from a safe stage cwd', {skip:process.platform!=='win32'},async()=>{
+ const fixture=await handoffWorkdirFixture(true);
+ assert.equal(fixture.result.ok,true,JSON.stringify(fixture.result));
+ assert.equal(fixture.result.nativeCwd.toLowerCase(),fixture.stage.toLowerCase());
+ assert.equal(fixture.result.providerCwd.toLowerCase(),fixture.stage.toLowerCase());
+ assert.equal(fixture.result.action,'ApplyUpdate');assert.equal(fs.existsSync(fixture.old),false);
+ assert.equal(fs.readFileSync(path.join(fixture.backup,'fixture.txt'),'utf8'),'old installation fixture');
+});
 test('updater versions distinguish stable, local and numeric order', {skip:process.platform!=='win32'},()=>run(`
 Assert ((ConvertTo-ControlVersion '1.10.0') -gt (ConvertTo-ControlVersion '1.9.0')) 'numeric versions'
 foreach($bad in @('1.0','01.0.0','1.0.0-rc1','1.0.0.1','1.2147483648.0')){Reject {ConvertTo-ControlVersion $bad} ('invalid '+$bad)}
