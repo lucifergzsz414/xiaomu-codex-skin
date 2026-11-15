@@ -4,6 +4,7 @@ param(
   [string]$ReportDirectory=(Join-Path $PSScriptRoot 'acceptance-results')
 )
 $ErrorActionPreference='Stop'
+$env:PSModulePath="$env:SystemRoot\System32\WindowsPowerShell\v1.0\Modules;$env:ProgramFiles\WindowsPowerShell\Modules"
 $checks=New-Object 'System.Collections.Generic.List[object]'
 function Check($name,$value){$checks.Add([pscustomobject]@{name=$name;passed=[bool]$value})}
 function Read-Runtime($Root){
@@ -26,7 +27,10 @@ function Prior-Passed($Name,$Candidate,$RunId){
 }
 try{
   $manifest=Get-Content -LiteralPath (Join-Path $SkinPackage 'manifest.json') -Raw -Encoding utf8|ConvertFrom-Json
-  if($manifest.id -cne 'xiaomu-codex-skin' -or $manifest.version -cne '1.0.0'){throw 'Unexpected package identity.'}
+  $productVersion=$null
+  if($manifest.id -cne 'xiaomu-codex-skin' -or $manifest.version -cnotmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' -or -not [Version]::TryParse([string]$manifest.version,[ref]$productVersion)){throw 'Unexpected package identity.'}
+  $layoutProperty=$manifest.PSObject.Properties['installationLayoutVersion']
+  if(($layoutProperty -and $manifest.installationLayoutVersion -cne '1.0.0') -or (-not $layoutProperty -and $manifest.version -cne '1.0.0')){throw 'Unsupported installation layout.'}
   foreach($entry in $manifest.files.PSObject.Properties){
     if($entry.Name -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]+$' -or $entry.Value -notmatch '^[a-fA-F0-9]{64}$'){throw 'Invalid package manifest.'}
     $file=Get-Item -LiteralPath (Join-Path $SkinPackage $entry.Name)

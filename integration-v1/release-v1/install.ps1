@@ -11,7 +11,9 @@ $programs=if($ManagementShortcutDirectory){[IO.Path]::GetFullPath($ManagementSho
 if(-not $desktop -or -not $programs -or $desktop.TrimEnd('\') -ieq $programs.TrimEnd('\')){throw 'Desktop and management shortcut directories must be distinct.'}
 if(($ShortcutDirectory -or -not $InstallParent) -and -not (Test-Path -LiteralPath $desktop -PathType Container)){throw 'Shortcut directory must already exist.'}
 if((Test-Path -LiteralPath $programs) -and -not (Test-Path -LiteralPath $programs -PathType Container)){throw 'Management shortcut path must be a directory.'}
-$destination=Join-Path $parent '1.0.0'
+# Keep the original directory so existing launchers and recovery records stay valid.
+$installationLayoutVersion='1.0.0'
+$destination=Join-Path $parent $installationLayoutVersion
 if(Test-Path -LiteralPath $parent){if(((Get-Item -LiteralPath $parent).Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'Install parent cannot be a reparse point.'}}
 if(Test-Path -LiteralPath $destination){
   if(((Get-Item -LiteralPath $destination).Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'Install directory cannot be a reparse point.'}
@@ -24,7 +26,10 @@ foreach($path in @($source,$parent,$desktop,$programs)){
   while($cursor){if((Test-Path -LiteralPath $cursor) -and ((Get-Item -LiteralPath $cursor -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'Install paths cannot traverse links.'};$cursor=Split-Path $cursor -Parent}
 }
 $manifest=Get-Content -LiteralPath (Join-Path $source 'manifest.json') -Raw -Encoding utf8|ConvertFrom-Json
-if($manifest.id -cne 'xiaomu-codex-skin' -or $manifest.version -cne '1.0.0'){throw 'Unexpected install package.'}
+$productVersion=$null
+if($manifest.id -cne 'xiaomu-codex-skin' -or $manifest.version -cnotmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' -or -not [Version]::TryParse([string]$manifest.version,[ref]$productVersion)){throw 'Unexpected install package.'}
+$layoutProperty=$manifest.PSObject.Properties['installationLayoutVersion']
+if(($layoutProperty -and $manifest.installationLayoutVersion -cne $installationLayoutVersion) -or (-not $layoutProperty -and $manifest.version -cne '1.0.0')){throw 'Unsupported installation layout.'}
 $names=@($manifest.files.PSObject.Properties.Name)+@('manifest.json')
 foreach($required in @('maintenance.ps1','manager.ps1','restore.ps1','entrypoints.ps1','control-actions.ps1','control-center.ps1','manage.vbs','install.ps1','XiaomuSkinManager.exe','skin.js')){if($required -notin $manifest.files.PSObject.Properties.Name){throw 'Incomplete install manifest.'}}
 foreach($name in $names){if($name -notmatch '^[A-Za-z0-9._-]+$'){throw 'Invalid install entry.'}}
@@ -110,7 +115,7 @@ foreach($entry in $entries){
   }
   $links+=$linkPath
 }
-$receipt=[ordered]@{installedAtUtc=[datetime]::UtcNow.ToString('o');version='1.0.0';destination=$destination;repairBackup=$(if($Repair){$backup}else{''});filesVerified=@($manifest.files.PSObject.Properties).Count;shortcuts=$links;officialFilesChanged=$false;codexConfigChanged=$false;startupTaskCreated=$false}
+$receipt=[ordered]@{installedAtUtc=[datetime]::UtcNow.ToString('o');version=$manifest.version;installationLayoutVersion=$installationLayoutVersion;destination=$destination;repairBackup=$(if($Repair){$backup}else{''});filesVerified=@($manifest.files.PSObject.Properties).Count;shortcuts=$links;officialFilesChanged=$false;codexConfigChanged=$false;startupTaskCreated=$false}
 [IO.File]::WriteAllText((Join-Path $parent 'installation.json'),($receipt|ConvertTo-Json -Depth 4),[Text.UTF8Encoding]::new($false))
 $receipt|ConvertTo-Json -Depth 4
 }finally{Exit-XiaomuMaintenance $maintenance}

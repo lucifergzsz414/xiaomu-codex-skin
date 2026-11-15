@@ -17,5 +17,5 @@ copy(path.join(project,'research/internet-angel/windows/scripts/common-windows.p
 copy(path.join(project,'research/internet-angel/windows/scripts/config-utf8.ps1'),'config-utf8.ps1','3a9ff2daf1cf998a9e1b7bb443845f2fc1f60df8c02171fbde3f8d12e9be3f75');
 copy(path.join(project,'research/internet-angel/LICENSE'),'LICENSE-upstream.txt');
 if(files['engine.cjs']!==release.engineSHA256)throw Error('Release source changed: engine.cjs');
-fs.writeFileSync(path.join(pkg,'manifest.json'),JSON.stringify({id:'xiaomu-codex-skin',version:release.runtimeVersion,releaseChannel:release.releaseChannel,releaseLabel:release.releaseLabel,candidateId:release.candidateId,codexVersion:'component-detected',validatedCodexVersion:release.validatedCodexVersion,installedMethod:'managed-user-shortcuts',files},null,2));
+fs.writeFileSync(path.join(pkg,'manifest.json'),JSON.stringify({id:'xiaomu-codex-skin',version:release.runtimeVersion,installationLayoutVersion:'1.0.0',releaseChannel:release.releaseChannel,releaseLabel:release.releaseLabel,candidateId:release.candidateId,codexVersion:'component-detected',validatedCodexVersion:release.validatedCodexVersion,installedMethod:'managed-user-shortcuts',files},null,2));
 console.log(JSON.stringify({package:pkg,files:Object.keys(files).length}));
