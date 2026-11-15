@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "candidateId": "20261115-2228-v1.0.1",
+  "validatedCodexVersion": "26.1111.2228.0",
+  "runtimeSourceCommit": "4c6f5d7a37c08838d5132dd16392bcef3e81558e",
+  "skinSHA256": "fb93504595eded012f7d08408a69ec61dbc035d9c53bd40f28441de94fbc0356",
+  "engineSHA256": "4d61e6ebb7cc02a49167338c91756281b036203797c1d10026aa47f4e80a0a4a",
+  "runtimeRegression": {
+    "tests": 267,
+    "passed": 267,
+    "failed": 0,
+    "skipped": 0,
+    "sourceCommit": "4c6f5d7a37c08838d5132dd16392bcef3e81558e",
+    "scope": "Offline runtime, headless page, PowerShell 5 management and isolated installer fixtures before final release sealing"
+  },
+  "acceptance": {
+    "independentCleanWindowsVerified": false,
+    "standalonePackageColdStartVerified": false,
+    "installedHotUpdateVerified": false,
+    "liveCompatibilityVerified": false,
+    "realSearchAndMenuInteractionsVerified": false,
+    "realSearchInteractionsVerified": false,
+    "searchScopeMemoryUserConfirmed": false,
+    "realContextMenuInteractionsVerified": false,
+    "installedOpeningUserConfirmed": false,
+    "terminalVisualVerified": false,
+    "repositoryAccessApprovalVisualVerified": false,
+    "repositoryAccessApprovalActionVerified": false,
+    "commandExecutionApprovalVerified": false,
+    "fileDiffVerified": false
+  },
+  "localAcceptance": {
+    "scope": "Management-only local preview update; no Codex restart, skin session restart or desktop interaction",
+    "managementComponents": "Five management components and their manifest replaced with verified backups; nineteen runtime components retained",
+    "processes": "All three observed Codex and skin-engine processes retained their original process identities",
+    "integrity": "Installed worker verified all twenty-four managed files and reported active runtime, compatible modules and ready dependencies",
+    "updateCheck": "Installed preview worker reached the anonymous GitHub latest-stable endpoint and refused a downgrade from local 1.0.1 to public 1.0.0",
+    "download": "Real public 1.0.0 archive passed bounded HTTPS download, GitHub SHA256, thirty-two archive entries and twenty-four managed file validation",
+    "candidateBoundary": "These local observations apply to the management-only preview, not a full installation or cold start of the final 1.0.1 ZIP"
+  },
+  "historicalAcceptance": {
+    "codexVersion": "26.1111.2228.0",
+    "record": "qa/results/local-acceptance-2228-20261114.json",
+    "scope": "Unchanged skin, engine and compatibility behavior; prior observations are retained separately from this release's exact archive acceptance"
+  },
+  "syntheticSurfaceAcceptance": {
+    "scope": "Automated fixtures, separate from real-window interactions",
+    "runtime": "Existing homepage, settings, file difference, search, menus, opening and pending-compatibility regressions retained",
+    "manager": "Twelve management UI checks, including undisplayed WPF XAML load, version promotion, result routing, selected-package identity and handoff arguments",
+    "updater": "Seven PowerShell test groups cover version ordering, fixed release metadata, redirects, archive integrity and unsafe entries, bounded decompression, locked handoff, failure recovery and state isolation",
+    "installer": "Four installer/layout checks cover legacy installation, version 1.0.1 replacement in the existing layout, complete backup, recovery state and invalid-version rejection"
+  },
+  "remaining": [
+    "Final exact ZIP acceptance is recorded separately after sealing",
+    "Real management-window close and reopen during online update; currently covered by isolated handoff tests",
+    "Full final-package cold start and actual opening playback",
+    "Independent Windows 11 ordinary-user installation, startup and recovery"
+  ]
+}

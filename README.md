@@ -1,12 +1,12 @@
 # 小睦 Codex Skin
 
-小睦 Codex Skin 是给 Windows 版 Codex 做的非官方粉丝外观，目前整理到了 1.0.0 正式版。整个界面换上了浅绿底色和奶白卡片，首页有安静的窗边背景，侧栏欢迎区、卡片和头像里也能看到小睦的身影，适合平时喜欢把工作桌面收拾得温和一点的同好。
+小睦 Codex Skin 是给 Windows 版 Codex 做的非官方粉丝外观。浅绿底色、奶白卡片和安静的窗边背景，让平时常开的工作窗口多一点小睦的气息。
 
-日常用到的输入区、代码对比、终端和原本的操作方式都照旧保留，文件夹、代码、终端、设置这些常用图标也维持着大家熟悉的轮廓。上手时可以顺着平时的习惯直接使用，在顺手干活的同时，让眼前常开的窗口多几分柔和耐看的气息。
+输入区、代码对比、终端和原本的操作方式照旧保留，文件夹、代码、终端、设置等常用图标也维持熟悉的轮廓，可以顺着平时的习惯直接使用。
 
-当前版本：**1.0.0 正式版**
+当前版本：**1.0.1 正式版**
 
-[下载安装包](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/download/v1.0.0/xiaomu-codex-skin-20261114-2228-v1.0.0.zip) · [发布说明](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.0) · [日常使用与反馈](docs/BETA-TRYOUT.md) · [设计说明](docs/DESIGN.md) · [历史版本](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases)
+[下载安装包](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/download/v1.0.1/xiaomu-codex-skin-20261115-2228-v1.0.1.zip) · [发布说明](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.1) · [日常使用与反馈](docs/BETA-TRYOUT.md) · [设计说明](docs/DESIGN.md) · [全部发布](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases)
 
 ![浅绿主题与小睦窗边背景素材演示](docs/images/material-preview.png)
 
@@ -17,7 +17,7 @@
 - 从「小睦 Codex」完整启动时，播放一次五秒静音片头；可以点“跳过”或按 Esc。
 - 首页的八秒静音窗边背景可以手动暂停，窗口失焦或收窄时也会自动暂停。
 - 文件与文本搜索会按当前聊天记住所选的项目目录。
-- 桌面入口负责日常启动，开始菜单里的「小睦皮肤管理」集中提供暂停、恢复和修复。
+- 桌面「小睦 Codex」负责日常启动，开始菜单「小睦皮肤管理」集中提供暂停、恢复、修复和更新。
 
 ## 使用前准备
 
@@ -29,34 +29,27 @@
 
 ## 安装与恢复
 
-1. 下载完整安装包，解压后保留原压缩包与解压目录。
+1. 下载完整安装包并解压，保留原压缩包与解压目录。
 2. 双击 `skin\manage.vbs`，选择“安装 / 修复”（详细步骤见包内 `START-HERE.md`）。
 3. 保存手头的工作，正常退出 Codex，再从桌面「小睦 Codex」打开。
 
-平时想暂时切回原版，打开开始菜单的「小睦皮肤管理」即可暂停或恢复。选择“恢复官方外观”会撤下皮肤并恢复受管入口，已经打开的 Codex 窗口不会关闭，专用小睦入口和备份也会保留下来。
+平时想暂时切回原版，打开开始菜单的「小睦皮肤管理」即可暂停或恢复。选择“恢复官方外观”会撤下皮肤并恢复受管入口，已经打开的 Codex 窗口、专用小睦入口和备份都会保留。
 
-## 从旧版升级
+## 更新皮肤
 
-如果你之前装过旧版，请按下面的步骤更新（直接在旧安装上点“安装 / 修复”只会补齐入口，不会替换程序文件）：
+在「小睦皮肤管理」里点“检查更新”，有新版本时再点“下载并更新”。管理器会从 GitHub 下载正式版，自动校验安装包、备份旧安装，完成后重新打开管理窗口；无需登录 GitHub，也不用安装 `gh`。
 
-1. 打开「小睦皮肤管理」暂停皮肤，等它完全停止后关闭管理窗口。
-2. 解压新版本安装包，在新包的 `skin` 文件夹中打开 Windows PowerShell，执行：
+更新后皮肤保持暂停，检测通过后点“启动 / 继续”即可。Codex 窗口和运行中的任务会保留。只有点击按钮时才联网检查，不影响日常启动。
 
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -SourceRoot . -Repair
-```
+**旧管理器没有更新按钮：**这次先下载并解压 1.0.1，关闭旧管理窗口，再打开新包的 `skin\manage.vbs`，点“安装 / 修复”。这一步会换上新管理器，以后就可以在管理窗口里更新。
 
-3. 原来的安装内容会自动备份到 `backup-repair-*`。升级完成后皮肤默认保持暂停状态，重新打开管理窗口，等检测通过后点“启动 / 继续”即可启用。
+需要手动更新时，备用命令和恢复步骤见 [完整使用说明](integration-v1/release-v1/USAGE.md)。管理窗口显示产品版本 1.0.1；安装目录仍沿用 `%LOCALAPPDATA%\XiaomuCodexSkin\1.0.0`，这是目录布局版本。
 
-更多修复与恢复说明见包内 `skin\USAGE.md` 及 [日常使用与反馈](docs/BETA-TRYOUT.md)。
-
-## 验收记录
-
-已完成 244 项源码与无头样例检查，以及 12 项同包安装、升级和恢复流程的隔离检查。整包冷启动和独立 Windows 11 普通用户首装仍待确认；完整记录和其他待确认项目见 [验收记录](qa/RELEASE-READINESS-1.0.0.md)。
+本次改动与验证记录见 [1.0.1 更新说明](integration-v1/release-v1/RELEASE-NOTES-1.0.1.md)。
 
 ## 从源码构建
 
-如果只是日常使用，直接下载上面的 Release 安装包即可。需要自行构建时，可使用 [1.0.0 标签源码](https://github.com/lucifergzsz414/xiaomu-codex-skin/tree/v1.0.0)，在 Windows 下准备 Node.js 22+、Windows PowerShell 和系统自带的 .NET Framework C# 编译器，在仓库根目录依次执行：
+日常使用直接下载上面的 Release 安装包即可。需要自行构建时，可使用 [1.0.1 标签源码](https://github.com/lucifergzsz414/xiaomu-codex-skin/tree/v1.0.1)，在 Windows 下准备 Node.js 22+、Windows PowerShell 和系统自带的 .NET Framework C# 编译器，在仓库根目录依次执行：
 
 ```powershell
 node .\integration-v1\native-v1\build-native.cjs
@@ -69,4 +62,4 @@ node .\integration-v1\release-v1\build-release.cjs
 
 上游辅助脚本沿用 Codex Dream Skin Studio 的 MIT 许可，完整说明见 [第三方与素材说明](THIRD-PARTY-NOTICES.md)、[素材来源](integration-v1/release-v1/ASSET-SOURCES.md) 与 [素材清单](integration-v1/release-v1/asset-ledger.json)。
 
-用的时候如果遇到问题，欢迎通过 [反馈表](https://github.com/lucifergzsz414/xiaomu-codex-skin/issues/new?template=skin-problem.yml) 写下你的版本号、刚才的操作步骤和实际画面表现；附截图前记得先遮住私人内容。
+遇到问题时，欢迎通过 [反馈表](https://github.com/lucifergzsz414/xiaomu-codex-skin/issues/new?template=skin-problem.yml) 写下版本号、操作步骤和实际表现；附截图前记得遮住私人内容。

@@ -1,18 +1,18 @@
 name: 小睦皮肤问题反馈
-description: 反馈小睦 Codex 1.0.0 的安装、外观和操作问题。
+description: 反馈小睦 Codex 1.0.1 的安装、更新、外观和操作问题。
 title: "[反馈] "
 body:
   - type: markdown
     attributes:
       value: |
-        当前正式版为 [1.0.0](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.0)，适配 Microsoft Store Codex **26.1111.2228.0**。
+        当前正式版为 [1.0.1](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.1)，适配 Microsoft Store Codex **26.1111.2228.0**。
         请写实际发生的情况，截图先遮住私人内容。不知道的版本可以填“不确定”。
   - type: input
     id: skin-version
     attributes:
       label: 皮肤版本
       description: 以下载包或使用说明中的版本为准。
-      placeholder: 例如 1.0.0
+      placeholder: 例如 1.0.1
     validations:
       required: true
   - type: textarea
@@ -33,6 +33,7 @@ body:
       label: 问题出现在哪里
       options:
         - 安装或升级
+        - 管理器检查更新或下载更新
         - 启动或皮肤自动加载
         - 五秒片头或首页动态背景
         - 颜色、背景、图标或布局
@@ -51,7 +52,7 @@ body:
     id: what-happened
     attributes:
       label: 做了什么，出现了什么
-      description: 写出操作步骤、实际结果和期望结果。
+      description: 写出操作步骤、实际结果和期望结果；更新问题请附更新前后版本及管理窗口提示。
       placeholder: |
         操作步骤：
         实际结果：
