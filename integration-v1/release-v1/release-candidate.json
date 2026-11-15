@@ -1,13 +1,13 @@
 {
   "schema": 1,
-  "candidateId": "20261115-2228-v1.0.1",
-  "releaseLabel": "1.0.1",
+  "candidateId": "20261115-2228-v1.0.2",
+  "releaseLabel": "1.0.2",
   "releaseChannel": "stable",
-  "runtimeVersion": "1.0.1",
+  "runtimeVersion": "1.0.2",
   "validatedCodexVersion": "26.1111.2228.0",
   "skinSHA256": "fb93504595eded012f7d08408a69ec61dbc035d9c53bd40f28441de94fbc0356",
   "engineSHA256": "4d61e6ebb7cc02a49167338c91756281b036203797c1d10026aa47f4e80a0a4a",
-  "localAcceptanceSHA256": "34834f125ab0f8dd97bf1069efa20865b157c0334249f158c5b98e91b31e3935",
-  "sourceTestCount": 267,
-  "localAcceptancePath": "qa/results/local-acceptance-update-manager-20261115.json"
+  "localAcceptanceSHA256": "dbf570b9a730bccbc00ce8244210056c1a5925f2da67083d8ca2836f76b768f3",
+  "sourceTestCount": 270,
+  "localAcceptancePath": "qa/results/local-acceptance-desktop-manager-20261115.json"
 }

@@ -46,6 +46,7 @@ $shell=New-XiaomuShortcutShell
 $scriptHost=Join-Path $env:SystemRoot 'System32\wscript.exe'
 $entries=@(
   @{Path=(Join-Path $desktop '小睦 Codex.lnk');Directory=$desktop;Script='launch.vbs'},
+  @{Path=(Join-Path $desktop '小睦皮肤管理.lnk');Directory=$desktop;Script='manage.vbs'},
   @{Path=(Join-Path $programs '小睦皮肤管理.lnk');Directory=$programs;Script='manage.vbs'}
 )
 foreach($entry in $entries){

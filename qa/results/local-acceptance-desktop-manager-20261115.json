@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "candidateId": "20261115-2228-v1.0.2",
+  "validatedCodexVersion": "26.1111.2228.0",
+  "skinSHA256": "fb93504595eded012f7d08408a69ec61dbc035d9c53bd40f28441de94fbc0356",
+  "engineSHA256": "4d61e6ebb7cc02a49167338c91756281b036203797c1d10026aa47f4e80a0a4a",
+  "acceptance": {
+    "independentCleanWindowsVerified": false,
+    "standalonePackageColdStartVerified": false,
+    "installedHotUpdateVerified": false,
+    "liveCompatibilityVerified": false,
+    "realSearchAndMenuInteractionsVerified": false,
+    "realSearchInteractionsVerified": false,
+    "searchScopeMemoryUserConfirmed": false,
+    "realContextMenuInteractionsVerified": false,
+    "installedOpeningUserConfirmed": false,
+    "terminalVisualVerified": false,
+    "repositoryAccessApprovalVisualVerified": false,
+    "repositoryAccessApprovalActionVerified": false,
+    "commandExecutionApprovalVerified": false,
+    "fileDiffVerified": false
+  },
+  "localAcceptance": {
+    "scope": "Desktop shortcut addition only; existing installed skin and manager runtime files retained",
+    "desktopManager": "The existing verified Start-menu management shortcut was copied to the Desktop and read back with its installed script target and arguments unchanged",
+    "preservedEntries": "The existing Desktop Codex launcher and Start-menu manager retained their original bytes",
+    "interaction": "No manager window was opened, no desktop UI was controlled, and no Codex or skin-session restart was requested",
+    "candidateBoundary": "The local shortcut addition does not constitute installation or cold-start acceptance of the final 1.0.2 package"
+  },
+  "historicalAcceptance": {
+    "codexVersion": "26.1111.2228.0",
+    "record": "qa/results/local-acceptance-update-manager-20261115.json",
+    "scope": "Unchanged skin, engine and management-update implementation from 1.0.1; final-archive results are recorded separately"
+  },
+  "syntheticSurfaceAcceptance": {
+    "scope": "Automated isolated fixtures, separate from real-window interactions",
+    "runtime": "Existing runtime, page, search, menu, opening and management-update regressions retained",
+    "installer": "Two Desktop entries and one Start-menu management entry; repeat installation preserves link bytes; legacy two-entry layouts gain only the missing Desktop manager",
+    "conflicts": "An unrelated same-name Desktop management shortcut blocks fresh installation or repair before package mutation",
+    "upgrade": "Installation layout remains 1.0.0, with complete previous-directory backups and entrypoint recovery records retained"
+  },
+  "remaining": [
+    "Final exact ZIP checks are recorded separately after sealing",
+    "Real management-window close and reopen during online update; currently covered by isolated handoff tests",
+    "Final-package cold start and actual opening playback",
+    "Independent Windows 11 ordinary-user installation, startup and recovery"
+  ]
+}

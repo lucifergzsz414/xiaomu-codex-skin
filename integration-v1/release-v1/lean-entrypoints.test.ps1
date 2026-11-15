@@ -41,13 +41,14 @@ $receipt=(& $installer @installArgs)|ConvertFrom-Json
 . (Join-Path $source 'entrypoints.ps1') -Mode Functions
 $shell=New-XiaomuShortcutShell
 $launcher=Join-Path $desktop '小睦 Codex.lnk'
+$desktopManagement=Join-Path $desktop '小睦皮肤管理.lnk'
 $management=Join-Path $programs '小睦皮肤管理.lnk'
 $legacyRestore=Join-Path $desktop '恢复 Codex 原样.lnk'
 $scriptHost=Join-Path $env:SystemRoot 'System32\wscript.exe'
 $launchArgs='"'+(Join-Path $destination 'launch.vbs')+'"'
 $manageArgs='"'+(Join-Path $destination 'manage.vbs')+'"'
 $roots=@($desktop,$programs,$taskbar)
-Assert-Pass (@($receipt.shortcuts).Count -eq 2 -and @($receipt.shortcuts)[0] -ieq $launcher -and @($receipt.shortcuts)[1] -ieq $management -and @((Get-ChildItem -LiteralPath $desktop -Filter '*.lnk')).Count -eq 1 -and @((Get-ChildItem -LiteralPath $programs -Filter '*.lnk')).Count -eq 1) 'fresh install creates one Desktop launcher and one Programs manager'
+Assert-Pass (@($receipt.shortcuts).Count -eq 3 -and @($receipt.shortcuts)[0] -ieq $launcher -and @($receipt.shortcuts)[1] -ieq $desktopManagement -and @($receipt.shortcuts)[2] -ieq $management -and @((Get-ChildItem -LiteralPath $desktop -Filter '*.lnk')).Count -eq 2 -and @((Get-ChildItem -LiteralPath $programs -Filter '*.lnk')).Count -eq 1) 'fresh install creates Desktop launcher and manager plus Programs manager'
 $launcherLink=$shell.CreateShortcut($launcher)
 $managementLink=$shell.CreateShortcut($management)
 Assert-Pass ($launcherLink.TargetPath -ieq $scriptHost -and $launcherLink.Arguments -ceq $launchArgs -and $managementLink.TargetPath -ieq $scriptHost -and $managementLink.Arguments -ceq $manageArgs) 'both shortcuts round-trip with exact destinations and arguments'
@@ -66,7 +67,7 @@ catch{$blocked=$_.Exception.Message -ceq 'Management shortcut path must be a dir
 Assert-Pass ($blocked -and (Get-Hash $blockedPrograms) -ceq $blockedHash -and (Get-Hash $manifestPath) -ceq $manifestHash -and @(Get-ChildItem -LiteralPath $installParent -Filter 'backup-repair-*').Count -eq 0) 'a file in the Programs path blocks repair before replacing the installation'
 $isolatedParent=Join-Path $root 'isolated-fallback'
 $fallback=(& $installer -SourceRoot $source -InstallParent $isolatedParent)|ConvertFrom-Json
-Assert-Pass ($fallback.shortcuts[0] -ieq (Join-Path $isolatedParent 'Desktop\小睦 Codex.lnk') -and $fallback.shortcuts[1] -ieq (Join-Path $isolatedParent 'Programs\小睦皮肤管理.lnk')) 'install parent override isolates both shortcut locations'
+Assert-Pass ($fallback.shortcuts[0] -ieq (Join-Path $isolatedParent 'Desktop\小睦 Codex.lnk') -and $fallback.shortcuts[1] -ieq (Join-Path $isolatedParent 'Desktop\小睦皮肤管理.lnk') -and $fallback.shortcuts[2] -ieq (Join-Path $isolatedParent 'Programs\小睦皮肤管理.lnk')) 'install parent override isolates both shortcut locations'
 
 $fakeExe=Join-Path $root 'ChatGPT.exe'
 [IO.File]::WriteAllText($fakeExe,'synthetic target, never execute')

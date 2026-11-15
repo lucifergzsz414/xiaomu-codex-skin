@@ -1,11 +1,11 @@
-# 小睦 Codex · 1.0.1
+# 小睦 Codex · 1.0.2
 
-浅绿界面、小睦首页、动态背景与五秒雨景片头。适配 Microsoft Store Codex **26.1111.2228.0**，构建编号 **20261115-2228-v1.0.1**。
+浅绿界面、小睦首页、动态背景与五秒雨景片头。适配 Microsoft Store Codex **26.1111.2228.0**，构建编号 **20261115-2228-v1.0.2**。
 
 ## 开始使用
 
 1. 安装官方 Store Codex，以及默认目录 `C:\Program Files\nodejs` 下的 Node.js 22 或更高版本。在 Codex 外观设置中选择浅色。
-2. 完整解压本包，双击 `skin\manage.vbs`，选择“安装 / 修复”。桌面提供“小睦 Codex”，开始菜单提供“小睦皮肤管理”。
+2. 完整解压本包，双击 `skin\manage.vbs`，选择“安装 / 修复”。桌面提供“小睦 Codex”和“小睦皮肤管理”，开始菜单也保留管理入口。
 3. 首次启用时，保存工作、正常退出 Codex，再从“小睦 Codex”进入。
 4. 暂时不用时选择“暂停皮肤”；撤回外观和受管入口时选择“恢复官方外观”。
 
@@ -17,6 +17,6 @@
 
 旧管理器没有更新按钮时，关闭旧管理窗口，打开本包的 `skin\manage.vbs`，点“安装 / 修复”即可换上新管理器。旧安装保存在 `backup-repair-*`，以后直接在管理窗口升级。
 
-安装目录继续使用 `%LOCALAPPDATA%\XiaomuCodexSkin\1.0.0`，管理窗口显示产品版本 1.0.1。手动更新备用命令见完整使用说明。
+管理窗口显示产品版本 1.0.2。手动更新备用命令见完整使用说明。
 
-[完整使用说明](skin/USAGE.md) · [本版改动与验证记录](skin/RELEASE-NOTES-1.0.1.md) · [独立环境指南](CLEAN-TEST-GUIDE.md) · [素材来源](skin/ASSET-SOURCES.md)
+[完整使用说明](skin/USAGE.md) · [本版改动与验证记录](skin/RELEASE-NOTES-1.0.2.md) · [独立环境指南](CLEAN-TEST-GUIDE.md) · [素材来源](skin/ASSET-SOURCES.md)
