@@ -1,23 +1,25 @@
 # 小睦 Codex Skin
 
-小睦 Codex Skin 是给 Windows 版 Codex 做的非官方粉丝外观。浅绿底色、奶白卡片和安静的窗边背景，让平时常开的工作窗口多一点小睦的气息。
+给自己常用的 Codex 换了套小睦皮肤，也放出来分享给喜欢她的同好。配色用了浅绿和奶白，首页是窗边的小睦，侧栏和卡片里也放了她的 Q 版表情。
 
-输入区、代码对比、终端和原本的操作方式照旧保留，文件夹、代码、终端、设置等常用图标也维持熟悉的轮廓，可以顺着平时的习惯直接使用。
+打开时有五秒的雨景片头，首页也做了能循环播放的窗边动画。聊天、终端、文件对比和快捷键都可以照常用，平时怎么用 Codex，现在还怎么用。
 
 当前版本：**1.0.3 正式版**
 
 [下载安装包](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/download/v1.0.3/xiaomu-codex-skin-20261115-2228-v1.0.3.zip) · [发布说明](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.3) · [日常使用与反馈](docs/BETA-TRYOUT.md) · [设计说明](docs/DESIGN.md) · [全部发布](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases)
 
-![浅绿主题与小睦窗边背景素材演示](docs/images/material-preview.png)
+## 一分钟看看
 
-*素材示意。仓库里的 [本地预览页](docs/demo/index.html) 可在下载后用浏览器打开。*
+[![小睦 Codex 一分钟宣传片](docs/images/promo-cover.png)](https://www.bilibili.com/video/BV1gXsH6CE1D/)
 
-## 平时会遇到的几处变化
+配了小睦的声音和中文字幕，音乐是《未完成ランデヴー Music box ver.》。点封面在 B 站观看，也可以 [下载原片](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/download/v1.0.3/xiaomu-codex-promo-60s.mp4)。
 
-- 从「小睦 Codex」完整启动时，播放一次五秒静音片头；可以点“跳过”或按 Esc。
-- 首页的八秒静音窗边背景可以手动暂停，窗口失焦或收窄时也会自动暂停。
-- 文件与文本搜索会按当前聊天记住所选的项目目录。
-- 桌面提供「小睦 Codex」和「小睦皮肤管理」两个常用入口，分别用于启动和管理皮肤；开始菜单也保留管理入口。
+## 装上之后
+
+- 正常从「小睦 Codex」启动，会播一次五秒静音雨景片头。想直接开始，点“跳过”或按 Esc。
+- 首页的窗边动画八秒一轮，可以手动暂停；窗口失焦或收窄时也会自动停下。
+- 找文件、搜文本时，会记住这个聊天选过的项目目录，下次不用再选一遍。
+- 桌面上的「小睦 Codex」用来启动，「小睦皮肤管理」用来暂停、恢复、修复和更新。开始菜单里也能找到管理入口。
 
 ## 使用前准备
 
