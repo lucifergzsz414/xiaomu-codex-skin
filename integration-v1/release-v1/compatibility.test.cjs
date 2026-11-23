@@ -70,6 +70,15 @@ test('legacy composer signature and the paired new attributes are both supported
  for(const attribute of ['data-composer-surface-variant','data-composer-radius-variant'])assert.equal(assessSources([common+' '+attribute],productionContract).core,false);
 });
 
+test('settings markers support the reviewed 3838 panel and keep unknown layouts disabled',()=>{
+ for(const marker of ['data-settings-mobile-header','data-settings-panel-slug','data-settings-panel']){
+  assert.equal(assessSources([marker+' general-settings'],productionContract).capabilities.pages,true);
+ }
+ for(const source of ['general-settings','data-settings-panel','unrelated-panel']){
+  assert.equal(assessSources([source],productionContract).capabilities.pages,false);
+ }
+});
+
 test('HTML scripts must be strict local asset paths',()=>{
  for(const src of ['https://example.invalid/assets/100.aaaaaaaaaa.js','//example.invalid/assets/100.aaaaaaaaaa.js','/assets/../100.aaaaaaaaaa.js','/assets/%2e%2e/100.aaaaaaaaaa.js','/assets/100.aaaaaaaaaa.js?x=1','/assets/100.aaaaaaaaaa.js#x']){
   withArchive(rspack({'webview/index.html':'<script src="'+src+'"></script>'}),archive=>assert.throws(()=>inspectArchive(archive,sampleContract)));

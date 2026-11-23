@@ -44,10 +44,23 @@ test('a fresh workspace ready at 11.719 seconds can receive its one opening',()=
  assert.equal(gate.pending(),true);assert.equal(gate.claim(true)?.eligible,true);
  assert.equal(gate.claim(true),null);
 }));
-test('startup eligibility has a bounded 60 second deadline',()=>withArea(root=>{
- const launch=Date.parse(syntheticIdentity.launchRequestedAtUtc);
- assert.equal(createOpeningGate({root,identity:syntheticIdentity,now:()=>launch+60001}).claim(true),null);
- assert.equal(createOpeningGate({root,identity:syntheticIdentity,now:()=>launch+60000}).claim(true)?.eligible,true);
+for(const delayMs of [70271,120000])test(`a cold workspace ready after ${delayMs}ms retains one opening and a full foreground wait`,()=>withArea(root=>{
+ const grantedAt=Date.now();
+ const identity={...syntheticIdentity,launchRequestedAtUtc:new Date(grantedAt-delayMs).toISOString()};
+ const gate=createOpeningGate({root,identity,now:()=>grantedAt});
+ assert.equal(gate.pending(),true);
+ const grant=gate.claim(true);
+ assert.equal(grant?.eligible,true);assert.equal(grant.waitForForeground,true);
+ assert.equal(grant.expiresAt,grantedAt+60000);
+ const ctx=workspace({draft:'restored slow-start draft'}),editor=ctx.editor,main=ctx.main;
+ const result=vm.runInNewContext(applyExpression('window.__XIAOMU_NATIVE_SKIN_V1__={inspect:()=>({})};','slow-start',null,'','',grant),ctx);
+ const injected=ctx.window.__XIAOMU_INSTALLED_SESSION_V1__.opening;
+ assert.ok(injected);assert.equal(injected.hostKey,grant.hostKey);assert.equal(injected.expiresAt,grant.expiresAt);
+ assert.equal(injected.canStart(),true);assert.equal(result.openingDiagnostics.injectionCheck,'eligible');
+ assert.equal(ctx.editor,editor);assert.equal(ctx.main,main);assert.equal(editor.textContent,'restored slow-start draft');
+ assert.equal(gate.pending(),false);assert.equal(gate.claim(true),null);
+ assert.equal(createOpeningGate({root,identity,now:()=>grantedAt+10000}).claim(true),null);
+ assert.equal(createOpeningGate({root,identity:{...identity,openingEligible:false},now:()=>grantedAt+10000}).claim(true),null);
 }));
 test('a first skipped workspace stays consumed across controller reconstruction',()=>withArea(root=>{
  const options={root,identity:syntheticIdentity,now:()=>Date.parse(syntheticIdentity.launchRequestedAtUtc)+11719};

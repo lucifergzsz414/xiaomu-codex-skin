@@ -33,8 +33,12 @@ function createContextMenuSkin(options={}) {
       // An upgrade may keep an older menu module alongside the new chunk.
       const skins = unique.map(contract => createContextMenuSkin({...options, contract}));
       return {
-        sync(){for(const skin of skins)skin.sync();}, reset(){for(const skin of skins)skin.reset();},
-        clear(){for(const skin of skins)skin.clear();}, hasOpenMenu(){return skins.some(skin=>skin.hasOpenMenu());},
+        sync(){
+          const snapshot=document.documentElement.getAttribute('data-xiaomu-native-skin')==='v1'
+            ? {seed:document.querySelector('[data-app-action-sidebar-thread-row]'),menus:[...document.querySelectorAll('[role="menu"][data-radix-menu-content]')]} : null;
+          for(const skin of skins)skin.sync(snapshot);
+        }, reset(){for(const skin of skins)skin.reset();},
+        clear(){for(const skin of skins)skin.clear();}, hasOpenMenu(){const menus=[...document.querySelectorAll('[role="menu"][data-radix-menu-content]')];return skins.some(skin=>skin.hasOpenMenu(menus));},
         inspect(){const rows=skins.map(skin=>skin.inspect());return Object.fromEntries(['ready','converted','styled','switches','replays','resets','fallbacks'].map(key=>[key,key==='ready'?rows.some(row=>row.ready):rows.reduce((sum,row)=>sum+row[key],0)]));}
       };
     }
@@ -197,11 +201,11 @@ function createContextMenuSkin(options={}) {
     }
     requestAnimationFrame(replay);
   }
-  function sync(){
+  function sync(snapshot){
     if(stopped||!contract)return;
     if(document.documentElement.getAttribute('data-xiaomu-native-skin')!=='v1'){reset();return;}
-    const seed=document.querySelector('[data-app-action-sidebar-thread-row]');if(seed)verify(component(seed));
-    const menus=[...document.querySelectorAll('[role="menu"][data-radix-menu-content]')].filter(node=>{const f=component(node);verify(f);return f&&verified.has(f.type)&&f.memoizedProps?.disableNative===true;});
+    const seed=snapshot?snapshot.seed:document.querySelector('[data-app-action-sidebar-thread-row]');if(seed)verify(component(seed));
+    const menus=(snapshot?snapshot.menus:[...document.querySelectorAll('[role="menu"][data-radix-menu-content]')]).filter(node=>{const f=component(node);verify(f);return f&&verified.has(f.type)&&f.memoizedProps?.disableNative===true;});
     for(const [node,header]of marks)if(!menus.includes(node))unmark(node,header);
     for(const node of menus)if(!marks.has(node)&&!node.hasAttribute('data-xiaomu-native-menu')){
       const header=element('div','','xiaomu-menu-signature');header.setAttribute('data-xiaomu-native-decoration','menu-signature');header.setAttribute('aria-hidden','true');
@@ -210,7 +214,7 @@ function createContextMenuSkin(options={}) {
     }
     for(const [props,record]of records)if(!current(record.fiber)||!hostNode(current(record.fiber))){restore(record);records.delete(props);}
   }
-  function hasOpenMenu(){return [...document.querySelectorAll('[role="menu"][data-radix-menu-content]')].some(n=>{const f=component(n);return f&&verified.has(f.type)&&f.memoizedProps?.disableNative===true;});}
+  function hasOpenMenu(menus){return (menus||[...document.querySelectorAll('[role="menu"][data-radix-menu-content]')]).some(n=>{const f=component(n);return f&&verified.has(f.type)&&f.memoizedProps?.disableNative===true;});}
   document.addEventListener('contextmenu',onOpen,true);document.addEventListener('keydown',onOpen,true);
   return {sync,reset,hasOpenMenu,inspect:()=>({ready,converted:records.size,styled:marks.size,...activity}),clear(){if(stopped)return;stopped=true;document.removeEventListener('contextmenu',onOpen,true);document.removeEventListener('keydown',onOpen,true);reset();}};
 }

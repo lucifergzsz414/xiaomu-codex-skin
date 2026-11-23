@@ -1,7 +1,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const registry=require('./native-menu-profiles.json');
 const {reviewedNativeMenus}=require('./menu-profile-validation.cjs');
-test('builder accepts the exact legacy and reviewed new menu fingerprints',()=>{const profiles=reviewedNativeMenus(registry);assert.deepEqual(profiles.map(profile=>[profile.functionName,profile.functionLength]),[['Wxn',12391],['x',13441],['t',13422],['t',13645],['t',13984]]);assert.notEqual(profiles,registry.profiles);});
+test('builder accepts the exact legacy and reviewed new menu fingerprints',()=>{const profiles=reviewedNativeMenus(registry);assert.deepEqual(profiles.map(profile=>[profile.functionName,profile.functionLength]),[['Wxn',12391],['x',13441],['t',13422],['t',13645],['t',13984],['t',13326]]);assert.notEqual(profiles,registry.profiles);});
 
 test('builder requires the reviewed 2228 fingerprint and its separate hook layout',()=>{
  const profile=registry.profiles.find(profile=>profile.appVersion==='26.1111.2228.0');

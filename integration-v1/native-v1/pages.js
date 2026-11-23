@@ -8,9 +8,14 @@ function selectDotSurface(doc, isVisible) {
   return roots.length===1?roots[0]:null;
 }
 function selectReplyDecorations(main) {
-  return [...main.querySelectorAll('[data-markdown-text-style="assistant-message"]')].filter(node =>
-    visible(node) && !node.closest('.messaging-root,[data-user-message-bubble="true"],[data-conversation-role="user"]') &&
-    !node.parentElement?.closest('[data-markdown-text-style="assistant-message"]')).slice(0,8);
+  const replies=[];
+  for(const node of main.querySelectorAll('[data-markdown-text-style="assistant-message"]')) {
+    if(!visible(node) || node.closest('.messaging-root,[data-user-message-bubble="true"],[data-conversation-role="user"]') ||
+      node.parentElement?.closest('[data-markdown-text-style="assistant-message"]'))continue;
+    replies.push(node);
+    if(replies.length===8)break;
+  }
+  return replies;
 }
 function selectSettingsSurface(doc, isVisible, route) {
   const match=/^\/settings\/([a-z0-9-]+)(?:\/|$)/.exec(route||'');
@@ -18,7 +23,7 @@ function selectSettingsSurface(doc, isVisible, route) {
   // The native sidebar remains mounted when responsive CSS hides it.
   const sidebars=[...doc.querySelectorAll('aside.app-shell-left-panel')];
   if(sidebars.length!==1)return null;
-  const mains=[...doc.querySelectorAll('main:is(.main-surface,[data-app-shell-main-surface],[class*="_MainContentSurface_"])')].filter(main=>isVisible(main)&&[...main.querySelectorAll('[data-settings-mobile-header]')].some(isVisible));
+  const mains=[...doc.querySelectorAll('main:is(.main-surface,[data-app-shell-main-surface],[class*="_MainContentSurface_"])')].filter(main=>isVisible(main)&&[...main.querySelectorAll('[data-settings-mobile-header],[data-settings-panel]')].some(isVisible));
   return mains.length===1?{main:mains[0],slug:match[1],sidebar:sidebars[0]}:null;
 }
 function createPageSkin() {
@@ -51,7 +56,7 @@ function createPageSkin() {
     for(const[node,value]of marks)if(!node.isConnected||!main.contains(node)){if(node.getAttribute('data-xiaomu-native-page-part')===value)node.removeAttribute('data-xiaomu-native-page-part');marks.delete(node);}
     if(kind==='settings') {
       for(const image of portraits.values())image.remove();portraits.clear();
-      const preferred=[...main.querySelectorAll('[data-settings-mobile-header] h1')].filter(node=>visible(node)&&!node.classList.contains('sr-only')),headings=preferred.length?preferred:[...main.querySelectorAll('h1')].filter(node=>visible(node)&&!node.classList.contains('sr-only')),heading=headings.length===1?headings[0]:null;
+      const preferred=[...main.querySelectorAll('[data-settings-mobile-header] h1,[data-settings-panel] h1')].filter(node=>visible(node)&&!node.classList.contains('sr-only')),headings=preferred.length?preferred:[...main.querySelectorAll('h1')].filter(node=>visible(node)&&!node.classList.contains('sr-only')),heading=headings.length===1?headings[0]:null;
       const selected=[...document.querySelectorAll('aside.app-shell-left-panel button[data-settings-panel-slug]')].find(n=>n.getAttribute('aria-current')==='page'||n.classList.contains('bg-primary-ghost-hover'));
       const slug=selected?.getAttribute('data-settings-panel-slug')||identifySettings()?.slug||'general-settings';
       if(heading && (titleHost!==heading.parentElement||titleKey!==slug||!titleNote?.isConnected||!titleImage?.isConnected)) {

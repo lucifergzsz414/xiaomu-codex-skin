@@ -4,6 +4,7 @@
    Git statistic colors use the same readable hues as the light diff panel.
    No syntax, terminal, error, warning, success or chart tokens are set. */
 html[data-xiaomu-native-skin="v1"] {
+  --xm-native-portrait-image: url("__DOT_PORTRAIT__");
   --codex-base-ink: #2e4939 !important;
   --codex-base-surface: #f8faf3 !important;
   --codex-base-accent: #48694e !important;
@@ -312,7 +313,7 @@ html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-part="dot"] .message-row:
   top:2px;
   width:28px;
   height:32px;
-  background:url("__DOT_PORTRAIT__") center top / contain no-repeat;
+  background:var(--xm-native-portrait-image) center top / contain no-repeat;
   pointer-events:none;
 }
 @media(max-width:600px) {
@@ -333,7 +334,7 @@ html[data-xiaomu-native-skin="v1"] [data-orbit-profile] {
   box-shadow:0 8px 28px #3047381c;
 }
 html[data-xiaomu-native-skin="v1"] [data-orbit-profile] img[src$="/o-soft-gradient-gray-ed947018774a.png"] {
-  content:url("__DOT_PORTRAIT__");
+  content:var(--xm-native-portrait-image);
   object-fit:contain;
   background:#e5eedf;
 }
@@ -392,7 +393,7 @@ html[data-xiaomu-native-skin="v1"] [data-orbit-profile-identity] {
    label, status text and hero/compact transitions continue to belong to Dot. */
 /* The conversation's floating header differs from the profile side panel. */
 html[data-xiaomu-native-skin="v1"] [class~="group/orbit-profile"]:has(> [data-orbit-profile-trigger]) [class~="size-14"] {
-  background:url("__DOT_PORTRAIT__") center / contain no-repeat;
+  background:var(--xm-native-portrait-image) center / contain no-repeat;
 }
 html[data-xiaomu-native-skin="v1"] [class~="group/orbit-profile"]:has(> [data-orbit-profile-trigger]) [class~="size-14"]::after {
   content:"";
@@ -400,7 +401,7 @@ html[data-xiaomu-native-skin="v1"] [class~="group/orbit-profile"]:has(> [data-or
   inset:0;
   z-index:1;
   pointer-events:none;
-  background:url("__DOT_PORTRAIT__") center / contain no-repeat;
+  background:var(--xm-native-portrait-image) center / contain no-repeat;
 }
 html[data-xiaomu-native-skin="v1"] [class~="group/orbit-profile"]:has(> [data-orbit-profile-trigger]) [class~="size-14"] > :first-child {
   opacity:0 !important;
@@ -410,7 +411,7 @@ html[data-xiaomu-native-skin="v1"] [class~="origin-top"]:has([class~="group/orbi
   box-shadow:0 1px 0 #d5e0cb,0 6px 12px #48694e08;
 }
 html[data-xiaomu-native-skin="v1"] [data-orbit-profile-identity] [data-character-artwork] {
-  background-image:url("__DOT_PORTRAIT__");
+  background-image:var(--xm-native-portrait-image);
   background-position:center;
   background-size:contain;
   background-repeat:no-repeat;
@@ -435,6 +436,7 @@ html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-overlay="search"] [cmdk-i
    owns only masks in the current exposed root and leaves native errors intact. */
 html[data-xiaomu-native-skin="v1"] [data-command-menu-search-loading][data-xiaomu-search-loading="false"] { display:none !important; }
 html[data-xiaomu-native-skin="v1"] [data-command-menu-search-loading][data-xiaomu-search-loading="true"] { display:block !important; }
+html[data-xiaomu-native-skin="v1"] [cmdk-empty][data-command-menu-search-state][data-xiaomu-search-loading="false"] { display:flex !important; }
 .xiaomu-search-chibi { position:absolute; top:4px; inset-inline-end:14px; width:38px; height:44px; object-fit:contain; pointer-events:none; }
 html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-panel-part="file-toolbar"] { background:#f2f6ec; border-bottom:1px solid #c7d6bc; box-shadow:0 2px 8px #48694e08; }
 html[data-xiaomu-native-skin="v1"] [data-xiaomu-native-page-part="settings-title"] { position: relative; min-height: 90px; padding-right: 88px; padding-bottom: 16px; border-bottom: 1px solid #cad9bd; }

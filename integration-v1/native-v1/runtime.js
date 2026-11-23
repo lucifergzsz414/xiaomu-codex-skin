@@ -50,7 +50,9 @@
   const pageSkin = optionalSkin('pages', createPageSkin);
   const panelSkin = optionalSkin('panels', createPanelSkin);
   const reviewSkin = optionalSkin('pages', createReviewSkin);
-  const overlaySkin = optionalSkin('overlays', createOverlaySkin);
+  // Settled search masks must not obscure native results when decorative
+  // overlays are unavailable; keep that correction independent of artwork.
+  const overlaySkin = capabilities.overlays === false ? createSearchLoadingSkin() : createOverlaySkin();
   const contextMenuSkin = optionalSkin('contextMenus', createContextMenuSkin);
   function visible(node) {
     if (!node.isConnected || node.closest('[hidden],[inert],[aria-hidden="true"]')) return false;
@@ -281,9 +283,13 @@
     if (stopped) return;
     // The first candidate supports light appearance only. Preserve stock dark UI.
     if (document.documentElement.matches('.dark,[data-theme="dark"],[data-color-mode="dark"]') || getComputedStyle(document.documentElement).colorScheme === 'dark') { clear(); return; }
+    const openMenu = contextMenuSkin.hasOpenMenu();
     // Radix can hide only the composer while leaving its main in layout.
     // Keep the already recognized workspace intact until its owned menu closes.
-    if(contextMenuSkin.hasOpenMenu()&&[...owned].some(([node,value])=>['main','home','settings','hub'].includes(value)&&node.isConnected&&node.matches(mainSelector)&&node.getBoundingClientRect().width>0&&node.getBoundingClientRect().height>0)){
+    if(openMenu&&[...owned].some(([node,value])=>{
+      if(!['main','home','settings','hub'].includes(value)||!node.isConnected||!node.matches(mainSelector))return false;
+      const box=node.getBoundingClientRect();return box.width>0&&box.height>0;
+    })){
       homeBackground?.update();contextMenuSkin.sync();return;
     }
     // Dot can live in a native side panel with no ordinary main/composer.
@@ -312,9 +318,11 @@
     // A native modal may make the already recognized workspace inert. Retain
     // only its palette while that same workspace still occupies layout space.
     // Never activate a viewer/foreign page merely because it has a dialog.
-    if (!active && ([...document.querySelectorAll('[role="dialog"],[role="alertdialog"]')].some(visible)||contextMenuSkin.hasOpenMenu())) {
-      const retained = [...owned].some(([node, value]) => ['main', 'home', 'settings'].includes(value) &&
-        node.isConnected && node.matches(mainSelector) && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0);
+    if (!active && ([...document.querySelectorAll('[role="dialog"],[role="alertdialog"]')].some(visible)||openMenu)) {
+      const retained = [...owned].some(([node, value]) => {
+        if (!['main', 'home', 'settings'].includes(value) || !node.isConnected || !node.matches(mainSelector)) return false;
+        const box = node.getBoundingClientRect(); return box.width > 0 && box.height > 0;
+      });
       if (retained) { homeBackground?.update(); overlaySkin.sync(); contextMenuSkin.sync(); return; }
     }
     // A recognized app shell can briefly have no main during React navigation.
@@ -390,9 +398,13 @@
   }
   function schedule() { if (!stopped && !frame) frame = requestAnimationFrame(sync); }
   const observer = new MutationObserver(records => {
-    if (records.some(record => record.type !== 'childList' || [...record.addedNodes, ...record.removedNodes].some(node => !(node.nodeType === 1 && node.hasAttribute('data-xiaomu-native-decoration'))))) schedule();
+    if (records.some(record => {
+      const target = record.target.nodeType === 1 ? record.target : record.target.parentElement;
+      if (target?.closest('[data-xiaomu-native-decoration]')) return false;
+      return record.type !== 'childList' || [...record.addedNodes, ...record.removedNodes].some(node => !(node.nodeType === 1 && node.hasAttribute('data-xiaomu-native-decoration')));
+    })) schedule();
   });
-  observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['hidden', 'inert', 'aria-hidden', 'class', 'style', 'data-state', 'aria-current', 'data-selected', 'data-theme', 'data-color-mode', 'data-command-menu-loading'] });
+  observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['hidden', 'inert', 'aria-hidden', 'class', 'style', 'data-state', 'aria-current', 'data-selected', 'data-theme', 'data-color-mode', 'data-command-menu-loading', 'data-command-menu-has-results'] });
   document.addEventListener('focusin', schedule);
   document.addEventListener('focusout', schedule);
   window.addEventListener('resize', schedule);

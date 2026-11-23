@@ -14,7 +14,7 @@ class Element {
  getBoundingClientRect(){return {left:0,bottom:20};} focus(){}
 }
 function setup({legacy=profile(Legacy),variants=[profile(x)],type=x,decoys=[],badCache=false}={}) {
- const listeners={contextmenu:[],keydown:[]},frames=[],host=new Element(),menus=[],events=[];
+ const listeners={contextmenu:[],keydown:[]},frames=[],host=new Element(),menus=[],events=[],queries={seed:0,menus:0};
  let calls=0,closeCalls=0;
  const activeProfile=type===Legacy?legacy:(variants.find(p=>p.functionName===type.name)||profile(type));
  const [length,nativeIndex,closeIndex]=({'codex-6573':[143,18,63],'codex-6621':[98,13,51],'codex-3384':[98,13,51],'codex-2228':[98,13,51]})[activeProfile.layout];
@@ -25,7 +25,7 @@ function setup({legacy=profile(Legacy),variants=[profile(x)],type=x,decoys=[],ba
  const root={tag:3,stateNode:{current:null},flags:0};root.stateNode.current=root;menu.return=root;root.child=menu;
  let inner=menu;for(const decoy of decoys){const f={type:decoy,flags:0,return:inner};inner.child=f;inner=f;}
  const dom={type:'div',stateNode:host,flags:0,return:inner};inner.child=dom;host.__reactFiberFixture=dom;
- const document={documentElement:{getAttribute:()=> 'v1'},addEventListener:(name,f)=>listeners[name].push(f),removeEventListener:(name,f)=>{listeners[name]=listeners[name].filter(x=>x!==f);},querySelector:()=>host,querySelectorAll:()=>menus};
+ const document={documentElement:{getAttribute:()=> 'v1'},addEventListener:(name,f)=>listeners[name].push(f),removeEventListener:(name,f)=>{listeners[name]=listeners[name].filter(x=>x!==f);},querySelector:()=>{queries.seed++;return host;},querySelectorAll:()=>{queries.menus++;return menus;}};
  function fire(e){for(const f of [...listeners[e.type]]){f(e);if(e.stopped)break;}if(!e.stopped&&e.synthetic){events.push(e);menu.memoizedState.next.memoizedState='dropdown';}}
  class MouseEvent {constructor(type,init){Object.assign(this,init);this.type=type;this.target=host;this.synthetic=true;this.prevented=false;}preventDefault(){this.prevented=true;}stopImmediatePropagation(){this.stopped=true;}}
  host.dispatchEvent=fire;
@@ -33,13 +33,37 @@ function setup({legacy=profile(Legacy),variants=[profile(x)],type=x,decoys=[],ba
  const create=vm.runInNewContext(source+';createContextMenuSkin',context);const skin=create({digest:async value=>hash(value)});
  function open(keyboard=false){const e={type:keyboard?'keydown':'contextmenu',key:keyboard?'ContextMenu':undefined,target:host,button:2,buttons:2,clientX:8,clientY:8,preventDefault(){this.prevented=true;},stopImmediatePropagation(){this.stopped=true;}};fire(e);return e;}
  function flushFrames(){for(let i=0;frames.length&&i<30;i++)frames.shift()();assert.equal(frames.length,0);}
- return {skin,menu,host,listeners,events,open,flushFrames,window:context.window,get calls(){return calls;},get closeCalls(){return closeCalls;}};
+ return {skin,menu,host,menus,queries,listeners,events,open,flushFrames,window:context.window,get calls(){return calls;},get closeCalls(){return closeCalls;}};
 }
 async function ready(fixture){fixture.skin.sync();await new Promise(resolve=>setImmediate(resolve));fixture.skin.sync();}
+test('all exact menu profiles share one DOM read per aggregate sync and open check',()=>{
+ const variants=JSON.parse(fs.readFileSync(path.join(__dirname,'native-menu-profiles.json'),'utf8')).profiles;
+ const f=setup({variants});
+ f.skin.sync();
+ assert.deepEqual(f.queries,{seed:1,menus:1});
+ assert.equal(f.skin.hasOpenMenu(),false);
+ assert.deepEqual(f.queries,{seed:1,menus:2});
+ f.skin.clear();
+});
+
+test('aggregate menu snapshots refresh between calls and retain native replay and cleanup',async()=>{
+ const f=setup();await ready(f);
+ assert.equal(f.skin.hasOpenMenu(),false);
+ assert.equal(f.open().prevented,true);f.flushFrames();
+ f.menus.push(f.host);
+ assert.equal(f.skin.hasOpenMenu(),true);
+ f.skin.sync();assert.equal(f.skin.inspect().styled,1);
+ f.menus.length=0;
+ assert.equal(f.skin.hasOpenMenu(),false);
+ f.skin.sync();assert.equal(f.skin.inspect().styled,0);
+ f.skin.clear();assert.equal(f.menu.memoizedProps.disableNative,undefined);
+ assert.equal(f.listeners.contextmenu.length,0);assert.equal(f.listeners.keydown.length,0);
+});
+
 test('reviewed profile data preserves legacy menu and exact new fingerprint',()=>{
  const data=JSON.parse(fs.readFileSync(path.join(__dirname,'native-menu-profiles.json'),'utf8'));
- assert.equal(data.schema,1);assert.equal(data.profiles.length,5);
- assert.deepEqual(data.profiles.map(p=>[p.functionName,p.functionLength,p.layout]),[['Wxn',12391,'codex-3384'],['x',13441,'codex-3384'],['t',13422,'codex-3384'],['t',13645,'codex-3384'],['t',13984,'codex-2228']]);
+ assert.equal(data.schema,1);assert.equal(data.profiles.length,6);
+ assert.deepEqual(data.profiles.map(p=>[p.functionName,p.functionLength,p.layout]),[['Wxn',12391,'codex-3384'],['x',13441,'codex-3384'],['t',13422,'codex-3384'],['t',13645,'codex-3384'],['t',13984,'codex-2228'],['t',13326,'codex-2228']]);
  assert.equal(data.profiles[1].functionSha256,'7489581934e24e5034a8706a984c634febfb243532539aa2d6fb9ba9b0a22a94');
  assert.equal(data.profiles[3].appVersion,'26.1106.6628.0');
  assert.equal(data.profiles[3].functionSha256,'93dfcadba76cb1879a882e8774306c7113e086c47b5acfcecc480aa0959b0791');

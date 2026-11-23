@@ -116,7 +116,7 @@ function inspectArchive(archive,contract){
   // Reviewed lazy resources are admitted only by an already inspected bootstrap
   // fingerprint. They share the existing read quotas and never execute code.
   const profiles=contract.resourceProfiles??[];
-  if(!Array.isArray(profiles)||profiles.length>4)throw Error('Invalid resource profiles');
+  if(!Array.isArray(profiles)||profiles.length>6)throw Error('Invalid resource profiles');
   const safePath=value=>typeof value==='string'&&/^webview\/assets\/(?:async\/)?[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*\.(?:js|css)$/.test(value);
   const safeDigest=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
   const profileIds=new Set();

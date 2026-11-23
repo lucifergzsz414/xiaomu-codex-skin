@@ -8,9 +8,10 @@ function createSidebarSkin() {
     replacements.delete(svg);
   }
   function decorate(control, key) {
-    if (!control || !visible(control) || !config.icons?.[key]) return;
+    if (!control || !config.icons?.[key]) return;
     const svg = [...control.querySelectorAll('svg')].find(n=>!n.closest('[data-xiaomu-native-decoration]'));
     if (!svg || replacements.has(svg) || svg.hasAttribute('data-xiaomu-native-original-icon')) return;
+    if (!visible(control)) return;
     const box = svg.getBoundingClientRect();
     if (box.width < 8 || box.height < 8 || box.width / box.height > 1.6) return;
     const image = element('img','','xiaomu-sidebar-icon');

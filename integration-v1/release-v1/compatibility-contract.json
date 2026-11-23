@@ -32,7 +32,8 @@
     "pages": [
       [
         "data-settings-panel-slug",
-        "data-settings-mobile-header"
+        "data-settings-mobile-header",
+        "data-settings-panel"
       ],
       [
         "general-settings"
@@ -92,6 +93,12 @@
         "name": "t",
         "length": 13984,
         "sha256": "a0579b13acff8c4484196d7670dad4e528566592ec717d537b1d94fee52c015a",
+        "sourceForm": "property"
+      },
+      {
+        "name": "t",
+        "length": 13326,
+        "sha256": "e5f876b596f460075d7e344ef92d4728d02499df7f4b1343b4298c29eefd2f83",
         "sourceForm": "property"
       }
     ]
@@ -209,6 +216,44 @@
         {
           "path": "webview/assets/async/956370.aff5cce818.js",
           "sha256": "84c3881d294dc4ac2892d9a58f7f60bed97cb061bde375a4fe2f1a768ea22379",
+          "feature": "contextMenus"
+        }
+      ]
+    },
+    {
+      "id": "codex-26.1111.9664-reviewed-ui",
+      "bootstrap": {
+        "path": "webview/assets/348410.16a4406b14.js",
+        "sha256": "4d0d82af09c4413c58b1446e1a88658fd506f71222555747ac0f7e68f7e9c7de"
+      },
+      "assets": [
+        {
+          "path": "webview/assets/async/540250.3375470e34.js",
+          "sha256": "8bf54fd49c53300a0683ba56f45ac4c2cf9d953d5ad6411d445bda43c8afe4f5",
+          "feature": "overlays"
+        },
+        {
+          "path": "webview/assets/async/297963.731aedc569.js",
+          "sha256": "9437ff96af0708e6a51b16db197599e180cda34ce5ae95f55451dde244ae335b",
+          "feature": "overlays"
+        }
+      ]
+    },
+    {
+      "id": "codex-26.1117.3838-reviewed-ui",
+      "bootstrap": {
+        "path": "webview/assets/348410.26eb37f9ae.js",
+        "sha256": "5423604e2ddc0eb8a4a810305d5adb0fc1ad38e8419bec65ac4d86703febf559"
+      },
+      "assets": [
+        {
+          "path": "webview/assets/async/191628.72f208c924.js",
+          "sha256": "775f0ef59fb0b9866f98ad6148c731548f9c5cd8c7ad2d6c60b40ef83d03639f",
+          "feature": "pages"
+        },
+        {
+          "path": "webview/assets/async/364313.d749d31da5.js",
+          "sha256": "657d4caa67c85d4cc4458b661646c8ef55b68efd65be5219a5cd039670e27ded",
           "feature": "contextMenus"
         }
       ]

@@ -4,9 +4,9 @@
 
 打开时有五秒的雨景片头，首页也做了能循环播放的窗边动画。聊天、终端、文件对比和快捷键都可以照常用，平时怎么用 Codex，现在还怎么用。
 
-当前版本：**1.0.3 正式版**
+当前版本：**1.0.4 正式版**
 
-[下载安装包](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/download/v1.0.3/xiaomu-codex-skin-20261115-2228-v1.0.3.zip) · [发布说明](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.3) · [日常使用与反馈](docs/BETA-TRYOUT.md) · [设计说明](docs/DESIGN.md) · [全部发布](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases)
+[下载安装包](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/download/v1.0.4/xiaomu-codex-skin-20261123-4957-v1.0.4.zip) · [发布说明](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases/tag/v1.0.4) · [日常使用与反馈](docs/BETA-TRYOUT.md) · [设计说明](docs/DESIGN.md) · [全部发布](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases)
 
 ## 一分钟看看
 
@@ -25,7 +25,7 @@
 
 | 项目 | 要求 |
 | --- | --- |
-| 系统与客户端 | Windows x64；Microsoft Store Codex **26.1111.2228.0** |
+| 系统与客户端 | Windows x64；Microsoft Store Codex **26.1117.4957.0** |
 | Node.js | **22 或更高版本**，安装在默认目录 `C:\Program Files\nodejs` |
 | Codex 外观 | 在 Codex 原生设置中选择**浅色主题** |
 
@@ -39,21 +39,21 @@
 
 ## 更新皮肤
 
-**从 1.0.1、1.0.2 或更早版本升级：**先下载并完整解压 1.0.3，关闭旧管理窗口，再打开新包的 `skin\manage.vbs`，点“安装 / 修复”。Codex 可以保持打开，运行中的任务会保留。这次使用新包入口，可以一并换上修正后的更新程序。
+**已经装好 1.0.3：**在「小睦皮肤管理」里点“检查更新”→“下载并更新”。管理器会下载正式版、校验安装包并备份旧安装，完成后重新打开管理窗口；无需登录 GitHub，也不用安装 `gh`。
 
-装好 1.0.3 后，在「小睦皮肤管理」里点“检查更新”，有新版本时再点“下载并更新”。管理器会从 GitHub 下载正式版，自动校验安装包、备份旧安装，完成后重新打开管理窗口；无需登录 GitHub，也不用安装 `gh`。
+**从 1.0.2 或更早版本升级：**下载并完整解压 1.0.4，关闭旧管理窗口，再打开新包的 `skin\manage.vbs`，点“安装 / 修复”，一起换上修正后的更新程序。Codex 可以保持打开，运行中的任务会保留。
 
 更新后皮肤保持暂停，检测通过后点“启动 / 继续”即可。Codex 窗口和运行中的任务会保留。只有点击按钮时才联网检查，不影响日常启动。
 
 旧版发布和安装包继续保留在 [全部发布](https://github.com/lucifergzsz414/xiaomu-codex-skin/releases) 中。
 
-需要手动更新时，备用命令和恢复步骤见 [完整使用说明](integration-v1/release-v1/USAGE.md)。管理窗口显示产品版本 1.0.3。
+需要手动更新时，备用命令和恢复步骤见 [完整使用说明](integration-v1/release-v1/USAGE.md)。管理窗口显示产品版本 1.0.4。
 
-1.0.3 修正了更新时安装目录被占用的问题；启动失败时会先释放占用，再用中文提示原因并保留精简记录。相同修正已在本机通过关闭后重新打开的验收，浅绿主题、片头和背景照旧。详见 [1.0.3 更新说明](integration-v1/release-v1/RELEASE-NOTES-1.0.3.md)。
+1.0.4 主要优化切换聊天、设置和菜单时的开销：减少重复检查，相同头像资源只保存一份。浅绿主题、片头、背景和原来的操作方式照旧。详见 [1.0.4 更新说明](integration-v1/release-v1/RELEASE-NOTES-1.0.4.md)。
 
 ## 从源码构建
 
-日常使用直接下载上面的 Release 安装包即可。需要自行构建时，可使用 [1.0.3 标签源码](https://github.com/lucifergzsz414/xiaomu-codex-skin/tree/v1.0.3)，在 Windows 下准备 Node.js 22+、Windows PowerShell 和系统自带的 .NET Framework C# 编译器，在仓库根目录依次执行：
+日常使用直接下载上面的 Release 安装包即可。需要自行构建时，可使用 [1.0.4 标签源码](https://github.com/lucifergzsz414/xiaomu-codex-skin/tree/v1.0.4)，在 Windows 下准备 Node.js 22+、Windows PowerShell 和系统自带的 .NET Framework C# 编译器，在仓库根目录依次执行：
 
 ```powershell
 node .\integration-v1\native-v1\build-native.cjs

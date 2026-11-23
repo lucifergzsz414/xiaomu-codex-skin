@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "candidateId": "20261123-4957-v1.0.4",
+  "validatedCodexVersion": "26.1117.4957.0",
+  "runtimeSourceCommit": "d2ee20be5215b64f5296a7164b0b7d75b0f6d4f8",
+  "skinSHA256": "901efcd0c902f0d6b9966a1d7317dc763eb1a73780c342c7f5a6e48dd85418be",
+  "engineSHA256": "6a9862c7cdc04376bb2bc25e49a5ccc07d476cea5b852bc22548772834416f6b",
+  "acceptance": {
+    "independentCleanWindowsVerified": false,
+    "standalonePackageColdStartVerified": false,
+    "installedHotUpdateVerified": false,
+    "liveCompatibilityVerified": true,
+    "realSearchAndMenuInteractionsVerified": false,
+    "realSearchInteractionsVerified": false,
+    "searchScopeMemoryUserConfirmed": false,
+    "realContextMenuInteractionsVerified": false,
+    "installedOpeningUserConfirmed": false,
+    "terminalVisualVerified": false,
+    "repositoryAccessApprovalVisualVerified": false,
+    "repositoryAccessApprovalActionVerified": false,
+    "commandExecutionApprovalVerified": false,
+    "fileDiffVerified": false
+  },
+  "localAcceptance": {
+    "scope": "The performance changes were applied to the local preview for the next normal launch, with a verified backup",
+    "integrity": "Twenty-four installed managed files matched their manifest; the existing session was preserved",
+    "compatibility": "Codex 4957 component checks passed and the local skin remained active with no conflicts",
+    "performanceUserConfirmed": true,
+    "manualAcceptance": "The user reported that the optimized local preview felt substantially better",
+    "candidateBoundary": "This feedback applies to the local preview; final archive checks are recorded separately after sealing"
+  },
+  "syntheticSurfaceAcceptance": {
+    "scope": "Same-fixture isolated Chromium comparison, separate from live application latency measurements",
+    "nativeRegression": "166 checks passed with no failures or skips before release preparation",
+    "nativeMutationStyleReads": { "before": 4551, "after": 75 },
+    "visualComparison": "Chat and settings screenshots were pixel-identical",
+    "preserved": "Draft, settings and search input nodes and values, original button callbacks, search state transitions and cleanup",
+    "externalRequests": 0,
+    "pageErrors": 0
+  },
+  "remaining": [
+    "Final exact archive installation, upgrade, repair and recovery checks are recorded separately after sealing",
+    "Final full-package cold start and opening playback",
+    "Independent Windows 11 ordinary-user installation, startup and recovery"
+  ]
+}

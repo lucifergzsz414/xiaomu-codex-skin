@@ -2,10 +2,12 @@
 function createSearchLoadingSkin() {
   const selector='[role="dialog"][cmdk-dialog].command-menu-dialog.global-command-menu-dialog,[role="dialog"].command-menu-dialog.global-command-menu-dialog.search-command-menu-dialog,[role="dialog"].command-menu-dialog.global-command-menu-dialog.unified-search-dialog';
   const attribute='data-xiaomu-search-loading',owned=new Map();
+  const counts=()=>({dialogs:0,loadingMasks:0,settledMasks:0,pendingSections:0,hiddenPendingSections:0,emptyStates:0,alerts:0});
+  let diagnostics=counts();
   function exposed(node){
     if(!node?.isConnected)return false;
     for(let current=node;current;current=current.parentElement){
-      if(current.matches('[hidden],[inert],[aria-hidden="true"],[data-state="inactive"]'))return false;
+      if(current.matches('[hidden],[inert],[aria-hidden="true"],[data-state="inactive"],[data-state="closed"]'))return false;
       const style=getComputedStyle(current);
       if(style.display==='none'||style.visibility==='hidden'||style.visibility==='collapse')return false;
     }
@@ -19,7 +21,8 @@ function createSearchLoadingSkin() {
     const root=input?.closest(node.classList.contains('unified-search-dialog')?'[data-cmdk-root]':'[cmdk-root]');
     if(!root||!node.contains(root)||!exposed(root))return null;
     const roots=[...(root.matches('[cmdk-root]')?[root]:[]),...root.querySelectorAll('[cmdk-root]')].filter(exposed);
-    const masks=new Map();let chatPending=false;
+    const masks=new Map(),empties=new Map();let chatPending=false,pendingSections=0,hiddenPendingSections=0,emptyStates=0;
+    for(const flag of root.querySelectorAll('[data-command-menu-loading="true"]')){if(exposed(flag))pendingSections++;else hiddenPendingSections++;}
     for(const current of roots){
       const flags=[...current.querySelectorAll('[data-command-menu-loading],[data-command-menu-has-results]')].filter(flag=>flag.closest('[cmdk-root]')===current&&exposed(flag));
       const pending=flags.some(flag=>flag.getAttribute('data-command-menu-loading')==='true');
@@ -30,19 +33,32 @@ function createSearchLoadingSkin() {
         // ancestors rather than letting that presentation suppress real work.
         if(mask.closest('[cmdk-root]')===current&&exposed(mask.parentElement)&&!mask.matches('[hidden],[inert]'))masks.set(mask,pending&&!results);
       }
+      for(const empty of current.querySelectorAll('[cmdk-empty][data-command-menu-search-state]')){
+        // Native ez() mounts this only for a completed no-match result. Its
+        // own display can still be suppressed by :has on a retained group.
+        if(empty.closest('[cmdk-root]')!==current||!exposed(empty.parentElement)||empty.matches('[hidden],[inert],[aria-hidden="true"],[data-state="inactive"],[data-state="closed"]'))continue;
+        emptyStates++;
+        if(!pending&&!results)empties.set(empty,false);
+      }
     }
-    return {root,input,masks,chatPending};
+    const alerts=[...root.querySelectorAll('[role="alert"]')].filter(exposed).length;
+    return {root,input,masks,empties,chatPending,pendingSections,hiddenPendingSections,emptyStates,alerts};
   }
   function release(mask,value){if(mask.getAttribute(attribute)===value)mask.removeAttribute(attribute);owned.delete(mask);}
-  function clear(){for(const [mask,value]of owned)release(mask,value);}
+  function clear(){for(const [mask,value]of owned)release(mask,value);diagnostics=counts();}
   function sync(){
-    const dialogs=new Map(),masks=new Map();
-    for(const node of document.querySelectorAll(selector)){const state=inspect(node);if(state){dialogs.set(node,state);for(const [mask,pending]of state.masks)masks.set(mask,String(pending));}}
+    const dialogs=new Map(),masks=new Map();diagnostics=counts();
+    for(const node of document.querySelectorAll(selector)){const state=inspect(node);if(state){
+      dialogs.set(node,state);diagnostics.dialogs++;
+      for(const [mask,pending]of state.masks){masks.set(mask,String(pending));diagnostics[pending?'loadingMasks':'settledMasks']++;}
+      for(const [empty,pending]of state.empties)masks.set(empty,String(pending));
+      for(const key of ['pendingSections','hiddenPendingSections','emptyStates','alerts'])diagnostics[key]+=state[key];
+    }}
     for(const [mask,value]of owned)if(!masks.has(mask))release(mask,value);
     for(const [mask,value]of masks){if(mask.getAttribute(attribute)!==value)mask.setAttribute(attribute,value);owned.set(mask,value);}
     return dialogs;
   }
-  return {sync,clear,get:inspect};
+  return {sync,clear,get:inspect,inspect:()=>({...diagnostics})};
 }
 
 /* Only native folder scopes are remembered; the adapter owns panel discovery. */

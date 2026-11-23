@@ -37,10 +37,17 @@ test('pinned supplemental resources reject missing or changed bytes',()=>{
  area({[entry]:initial},file=>assert.throws(()=>inspectArchive(file,contract())));
  area({[entry]:initial,[lazy]:'changed'},file=>assert.throws(()=>inspectArchive(file,contract())));
 });
+test('six uniquely named reviewed resource profiles are supported',()=>area({[entry]:initial,[lazy]:settings},file=>{
+ const profiles=Array.from({length:6},(_,index)=>profile({id:'fixture-reviewed-'+index}));
+ const result=inspectArchive(file,{...base(),resourceProfiles:profiles});
+ assert.equal(result.core,true);assert.equal(result.capabilities.pages,true);assert.equal(result.assetsChecked,2);
+}));
 test('supplemental paths and profile quotas remain bounded',()=>{
  const files={[entry]:initial,[lazy]:settings};
  for(const bad of ['../../outside.js','webview/assets/../outside.js','https://example.invalid/x.js'])area(files,file=>assert.throws(()=>inspectArchive(file,contract(profile({assets:[{path:bad,sha256:hash(settings),feature:'pages'}]})))));
- area(files,file=>assert.throws(()=>inspectArchive(file,{...base(),resourceProfiles:Array(5).fill(profile())})));
+ const profiles=Array.from({length:7},(_,index)=>profile({id:'fixture-reviewed-'+index}));
+ area(files,file=>assert.throws(()=>inspectArchive(file,{...base(),resourceProfiles:profiles})));
+ area(files,file=>assert.throws(()=>inspectArchive(file,{...base(),resourceProfiles:[profile(),profile()]})));
  area(files,file=>assert.throws(()=>inspectArchive(file,contract(profile({assets:Array(65).fill({path:lazy,sha256:hash(settings),feature:'pages'})})))));
 });
 test('a supplemental selection cannot read linked or unpacked assets',()=>{

@@ -1,13 +1,13 @@
 {
   "schema": 1,
-  "candidateId": "20261115-2228-v1.0.3",
-  "releaseLabel": "1.0.3",
+  "candidateId": "20261123-4957-v1.0.4",
+  "releaseLabel": "1.0.4",
   "releaseChannel": "stable",
-  "runtimeVersion": "1.0.3",
-  "validatedCodexVersion": "26.1111.2228.0",
-  "skinSHA256": "fb93504595eded012f7d08408a69ec61dbc035d9c53bd40f28441de94fbc0356",
-  "engineSHA256": "4d61e6ebb7cc02a49167338c91756281b036203797c1d10026aa47f4e80a0a4a",
-  "localAcceptanceSHA256": "42e9c1ac9ed5d7a6a241f1f493b463802fdea27b424335cff8d9080f54c8b51e",
-  "sourceTestCount": 276,
-  "localAcceptancePath": "qa/results/local-acceptance-startup-update-20261115.json"
+  "runtimeVersion": "1.0.4",
+  "validatedCodexVersion": "26.1117.4957.0",
+  "skinSHA256": "901efcd0c902f0d6b9966a1d7317dc763eb1a73780c342c7f5a6e48dd85418be",
+  "engineSHA256": "6a9862c7cdc04376bb2bc25e49a5ccc07d476cea5b852bc22548772834416f6b",
+  "localAcceptanceSHA256": "fb76cc7cf3761a5029b80fa468c30bf32bea82a808b006cc5208e78849a30d62",
+  "localAcceptancePath": "qa/results/local-acceptance-performance-20261123.json",
+  "sourceTestCount": 353
 }

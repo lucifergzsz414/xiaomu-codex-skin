@@ -17,6 +17,33 @@ function writeSessionMetadata(stateRoot,name,value,fileSystem=fs){
  }catch{return false;}
  finally{if(owned)try{fileSystem.unlinkSync(temporary);}catch{}}
 }
+function createSessionLog({root:stateRoot,startedAtMs=Date.now(),controllerPid=process.pid,now=Date.now,fileSystem=fs}){
+ const sessionStartedAtUtc=new Date(startedAtMs).toISOString();
+ const events=[];
+ const record=(event,details={})=>{
+  events.push({atUtc:new Date(now()).toISOString(),event,...details});
+  if(events.length>32)events.shift();
+  writeSessionMetadata(stateRoot,'session-events.json',events,fileSystem);
+ };
+ record('started',{controllerPid,sessionStartedAtUtc});
+ let checkedFailure=false,startupRecovery=null;
+ function applied(){
+  if(checkedFailure)return startupRecovery;
+  checkedFailure=true;
+  try{
+   const failure=JSON.parse(fileSystem.readFileSync(path.join(stateRoot,'startup-failure.json'),'utf8'));
+   const failureAtMs=typeof failure?.atUtc==='string'&&/^\d{4}-\d\d-\d\dT[\d:.]+Z$/.test(failure.atUtc)?Date.parse(failure.atUtc):NaN;
+   if(!Number.isFinite(failureAtMs)||failureAtMs>=startedAtMs||!Number.isInteger(failure.controllerPid)||failure.controllerPid<=0||
+    typeof failure.errorCode!=='string'||!/^[a-z][a-z0-9-]{0,79}$/.test(failure.errorCode))return null;
+   startupRecovery={failureAtUtc:failure.atUtc,failureControllerPid:failure.controllerPid,errorCode:failure.errorCode,
+    resolvedAtUtc:new Date(now()).toISOString(),controllerPid,sessionStartedAtUtc};
+   // Preserve the original failure: a concurrent launcher may write a newer one.
+   record('startup-recovered',startupRecovery);
+  }catch{}
+  return startupRecovery;
+ }
+ return {record,applied};
+}
 function failureCode(error){
  const native=typeof error?.stderr==='string'?error.stderr.trim():'';
  const code=/^[A-Z_]{2,50}$/.test(native)?native:error?.code;
@@ -113,7 +140,7 @@ function createOpeningGate({root:stateRoot,identity,now=Date.now,fileSystem=fs})
  let attempted=false;
  function pending(){
   if(attempted||!valid)return false;
-  try{const age=now()-launch;return Number.isFinite(age)&&age>=-2000&&age<=60000;}catch{return false;}
+  try{const age=now()-launch;return Number.isFinite(age)&&age>=-2000;}catch{return false;}
  }
  function claim(ordinaryWorkspace){
   if(typeof ordinaryWorkspace!=='boolean'||!pending())return null;
@@ -137,7 +164,7 @@ function createOpeningGate({root:stateRoot,identity,now=Date.now,fileSystem=fs})
    fileSystem.writeFileSync(descriptor,JSON.stringify({schema:1,hostKey,consumed:true,claimedAtUtc:new Date(now()).toISOString()}),'utf8');
    fileSystem.fsyncSync(descriptor);fileSystem.closeSync(descriptor);descriptor=null;
    fileSystem.renameSync(temporary,ledger);temporaryOwned=false;
-   return ordinaryWorkspace?{eligible:true,hostKey}:null;
+   return ordinaryWorkspace?{eligible:true,hostKey,waitForForeground:true,expiresAt:now()+60000}:null;
   }catch{return null;}
   finally{
    if(descriptor!==null)try{fileSystem.closeSync(descriptor);}catch{}
@@ -261,6 +288,7 @@ function verifyIdentity(root,identity,compatibility){
 }
 async function run(){
  const controllerStartedAtMs=Date.now();let firstApplied=false;let pendingStartupSample=null;
+ const sessionLog=createSessionLog({root,startedAtMs:controllerStartedAtMs});
  const startupTiming=createStartupTiming();const preparationDone=startupTiming.begin('preparation');
  const identity=JSON.parse(Buffer.from(process.argv[2]||'','base64').toString('utf8'));
  if(!Number.isInteger(identity.pid)||identity.pid<=0||typeof identity.startUtc!=='string'||!/^\d{4}-\d\d-\d\dT[\d:.]+Z$/.test(identity.startUtc))throw Error('Invalid identity');
@@ -277,7 +305,7 @@ async function run(){
  const openingDiagnostics={initialCheck:null,grant:'not-requested',injectionCheck:null,playerAtApply:null};
  const gate=()=>startupTiming.sync('identity',()=>verifyIdentity(root,identity,compatibility));
  const health={recoveryCount:0,lastFailure:null,lastRecoveredAtUtc:null};
- const events=[];const record=(event,details={})=>{events.push({atUtc:new Date().toISOString(),event,...details});if(events.length>32)events.shift();writeSessionMetadata(root,'session-events.json',events);};
+ const record=sessionLog.record;
  const status=(state,extra={})=>{
   const readiness=firstApplied?{}:{workspaceReadiness:startupTiming.workspaceSnapshot()};
   writeSessionMetadata(root,'status.json',{atUtc:new Date().toISOString(),status:state,...health,...extra,...readiness});
@@ -326,7 +354,6 @@ async function run(){
          if(ordinaryWorkspace!==undefined)initialCheck=report;
         }catch(error){startupTiming.targetFailure(phase,error);}
         opening=openingGate.claim(ordinaryWorkspace);
-        if(opening)opening={...opening,waitForForeground:true,expiresAt:Date.parse(identity.launchRequestedAtUtc)+60000};
         openingDiagnostics.initialCheck=initialCheck;
         openingDiagnostics.grant=opening?'issued':ordinaryWorkspace===undefined?'not-requested':'not-issued';
        }
@@ -351,6 +378,7 @@ async function run(){
     pendingStartupSample={atUtc:new Date().toISOString(),controllerToFirstApplyMs:Date.now()-controllerStartedAtMs,launchToFirstApplyMs:Number.isFinite(launch)?Date.now()-launch:null,packageVersion:compatibility.packageVersion,metric:'skin injection completed; visual first-paint acceptance is separate',...startupTiming.stop(),openingDiagnostics};
    }
    if(pendingStartupSample&&writeSessionMetadata(root,'startup-timing.json',pendingStartupSample))pendingStartupSample=null;
+   if(activePages){const recovery=sessionLog.applied();if(recovery)health.startupRecovery=recovery;}
    status(activePages?'active':'waiting-for-native-workspace',{activePages,conflicts,version:manifest.version,packageVersion:compatibility.packageVersion,compatibility:compatibility.mode,disabled:compatibility.disabled});
    await startupTiming.timeAsync('loop-sleep',()=>new Promise(r=>setTimeout(r,startupDelay({kind:'poll',elapsedMs:Date.now()-controllerStartedAtMs,firstApplied,activePages}))));
   }
@@ -361,7 +389,7 @@ async function run(){
   for(const c of clients.values())c.close();status(failed?stopReason:'disabled',{restoredPages:restored});
  }
 }
-module.exports={validTarget,applyExpression,cleanupExpression,verifyIdentity,waitForTargets,createOpeningGate,openingTargetExpression,openingTargetProbe,openingForegroundProbe,openingReadinessDecision,createStartupTiming,startupDelay,eligible,workspaceProbe,managedEligibility,writeSessionMetadata};
+module.exports={validTarget,applyExpression,cleanupExpression,verifyIdentity,waitForTargets,createOpeningGate,openingTargetExpression,openingTargetProbe,openingForegroundProbe,openingReadinessDecision,createStartupTiming,startupDelay,eligible,workspaceProbe,managedEligibility,writeSessionMetadata,createSessionLog};
 if(require.main===module)run().catch(error=>{
  const atUtc=new Date().toISOString();
  const code=failureCode(error);

@@ -6,6 +6,7 @@ $root=$PSScriptRoot
 $stopFile=Join-Path $root 'stop.flag'
 $statusFile=Join-Path $root 'status.json'
 $startupFailureFile=Join-Path $root 'startup-failure.json'
+$startupPortDiagnostic=$null
 $openingEligible=$false
 $launchRequestedAtUtc=$null
 function Save-State([string]$state,[string]$failureStage='',[Nullable[int]]$engineExitCode=$null){
@@ -35,7 +36,34 @@ function Get-StartupFailureInfo($Failure,[string]$Stage){
 function Save-StartupFailure($Failure,[string]$Stage,[string]$Code){
   if($Stage -cnotin @('session-lock','compatibility','launch','listener-identity','engine')){$Stage='unknown'}
   $value=[ordered]@{schema=1;atUtc=[datetime]::UtcNow.ToString('o');mode=$Mode;failureStage=$Stage;errorCode=$Code;exceptionHResult=[int]$Failure.Exception.HResult;controllerPid=$PID}
-  [IO.File]::WriteAllText($startupFailureFile,($value|ConvertTo-Json),[Text.UTF8Encoding]::new($false))
+  if($Code -ceq 'diagnostic-port-busy' -and $startupPortDiagnostic){$value['diagnosticPort']=$startupPortDiagnostic}
+  [IO.File]::WriteAllText($startupFailureFile,($value|ConvertTo-Json -Depth 4),[Text.UTF8Encoding]::new($false))
+}
+function Wait-StartupPort {
+  $waitedMs=0
+  while($true){
+    if([IO.File]::Exists($stopFile)){return 'stopped'}
+    if(@(Get-UiRows).Count -gt 0){return 'existing'}
+    $listeners=@(Get-DreamSkinPortListeners -Port 9335)
+    if($listeners.Count -eq 0){$script:startupPortDiagnostic=$null;return 'free'}
+    $ownership='unavailable'
+    try{$ownership=if(Test-DreamSkinCodexPortOwner -Port 9335 -Codex $codex -ExpectedSessionId $session){'codex'}else{'unverified'}}catch{}
+    if($ownership -cne 'codex'){
+      # The owner may have exited between the listener snapshot and its verification.
+      $listeners=@(Get-DreamSkinPortListeners -Port 9335)
+      if($listeners.Count -eq 0){$script:startupPortDiagnostic=$null;return 'free'}
+    }
+    $script:startupPortDiagnostic=[ordered]@{
+      number=9335
+      ownerPids=@($listeners|ForEach-Object {[int]$_.OwningProcess}|Sort-Object -Unique|Select-Object -First 8)
+      ownership=$ownership
+      waitedMs=$waitedMs
+    }
+    if($ownership -cne 'codex' -or $waitedMs -ge 3000){throw 'Diagnostic port occupied.'}
+    # Only a verified same-installation, same-session Codex gets an exit grace period.
+    Start-Sleep -Milliseconds 250
+    $waitedMs+=250
+  }
 }
 if($Mode -eq 'Stop'){
   [IO.File]::WriteAllText($stopFile,'stop')
@@ -243,13 +271,17 @@ try{
         $null=Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe') -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',('"'+(Join-Path $root 'manager.ps1')+'"'),'-Mode','Start','-Resume') -WindowStyle Hidden -PassThru
         return
       }
-      if(@([Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties().GetActiveTcpListeners()|Where-Object {$_.Port -eq 9335}).Count -gt 0){throw 'Diagnostic port occupied.'}
-      Start-Sleep -Milliseconds 300
-      if([IO.File]::Exists($stopFile)){Save-State 'disabled';return}
-      if(@(Get-UiRows).Count -ne 0){throw 'Codex started concurrently.'}
-      $launchRequestedAtUtc=[datetime]::UtcNow.ToString('o')
-      $null=Start-DreamSkinCodex -Codex $codex -Arguments @('--remote-debugging-address=127.0.0.1','--remote-debugging-port=9335')
-      $openingEligible=$true
+      $portState=Wait-StartupPort
+      if($portState -ceq 'stopped'){Save-State 'disabled';return}
+      if($portState -ceq 'free'){
+        Start-Sleep -Milliseconds 300
+        if([IO.File]::Exists($stopFile)){Save-State 'disabled';return}
+        if(@(Get-UiRows).Count -eq 0){
+          $launchRequestedAtUtc=[datetime]::UtcNow.ToString('o')
+          $null=Start-DreamSkinCodex -Codex $codex -Arguments @('--remote-debugging-address=127.0.0.1','--remote-debugging-port=9335')
+          $openingEligible=$true
+        }
+      }
     }
   }
   $failureStage='listener-identity'

@@ -5,6 +5,7 @@ const reviewed=[
  {appVersion:'26.1103.3517.0',functionName:'t',functionSha256:'0f9729156979dd4425c1b146d039cb408f13fb1bec44a93aa06f4246e3748cbf',functionLength:13422,layout:'codex-3384'},
  {appVersion:'26.1106.6628.0',functionName:'t',functionSha256:'93dfcadba76cb1879a882e8774306c7113e086c47b5acfcecc480aa0959b0791',functionLength:13645,layout:'codex-3384'},
  {appVersion:'26.1111.2228.0',functionName:'t',functionSha256:'a0579b13acff8c4484196d7670dad4e528566592ec717d537b1d94fee52c015a',functionLength:13984,layout:'codex-2228'},
+ {appVersion:'26.1117.3838.0',functionName:'t',functionSha256:'e5f876b596f460075d7e344ef92d4728d02499df7f4b1343b4298c29eefd2f83',functionLength:13326,layout:'codex-2228'},
 ];
 function reviewedNativeMenus(registry){
  if(registry?.schema!==1||!Array.isArray(registry.profiles)||registry.profiles.length!==reviewed.length)throw Error('Unreviewed native menu registry');

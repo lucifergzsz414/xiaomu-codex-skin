@@ -95,20 +95,22 @@ function Invoke-Scenario([bool]$fail){
     const root=area('session'), first=gate(root).claim(true), second=gate(root,{session:2}).claim(true);
     assert.ok(first&&second);assert.notEqual(first.hostKey,second.hostKey);
   });
-  check('late startup and far-future timestamp skip before touching storage',()=>{
-    const root=area('late');
-    assert.equal(gate(root,{launchRequestedAtUtc:'2026-10-28T09:28:59.999Z'}).claim(true),null);
+  check('far-future and invalid launch timestamps skip before touching storage',()=>{
+    const root=area('invalid-time');
     assert.equal(gate(root,{launchRequestedAtUtc:'2026-10-28T09:30:02.001Z'}).claim(true),null);
     assert.equal(gate(root,{launchRequestedAtUtc:'not-a-date'}).claim(true),null);
     assert.deepEqual(fs.readdirSync(root),[]);
-    assert.ok(gate(root,{launchRequestedAtUtc:'2026-10-28T09:29:00.000Z'}).claim(true));
   });
-  check('small clock skew is accepted but expired eligibility is rechecked at claim',()=>{
+  check('small clock skew is accepted and waiting for a slow workspace keeps one grant',()=>{
     const root=area('clock');
     assert.ok(gate(root,{launchRequestedAtUtc:'2026-10-28T09:30:02.000Z'}).claim(true));
-    const other=area('clock-expiry');let clock=now;
+    const other=area('slow-workspace');let clock=now;
     const current=gate(other,{}, {now:()=>clock});assert.equal(current.pending(),true);
-    clock+=60000;assert.equal(current.claim(true),null);assert.deepEqual(fs.readdirSync(other),[]);
+    clock+=120000;assert.equal(current.pending(),true);
+    const claimed=current.claim(true);assert.equal(claimed?.eligible,true);
+    assert.equal(claimed.waitForForeground,true);assert.equal(claimed.expiresAt,clock+60000);
+    assert.equal(current.claim(true),null);assert.equal(gate(other,{}, {now:()=>clock}).claim(true),null);
+    assert.equal(gate(other,{openingEligible:false}, {now:()=>clock}).claim(true),null);
   });
   check('invalid host identities never become eligible',()=>{
     const root=area('invalid');
