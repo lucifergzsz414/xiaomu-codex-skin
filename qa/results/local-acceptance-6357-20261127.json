@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "candidateId": "20261127-6357-v1.0.5",
+  "validatedCodexVersion": "26.1120.6357.0",
+  "runtimeSourceCommit": "15cea2713f9e43bea1b17a4a8eccd254e8762bcd",
+  "skinSHA256": "aa634c09b9369fc2e832cd012a2826e4a2ad1be5ee274f91836f8a01fdedf23d",
+  "engineSHA256": "c62ffd1decaad1dea8b7ac641637f3edee2afdd9ca7070915d2233d41dffb74d",
+  "acceptance": {
+    "independentCleanWindowsVerified": false,
+    "standalonePackageColdStartVerified": false,
+    "installedHotUpdateVerified": false,
+    "liveCompatibilityVerified": true,
+    "realSearchAndMenuInteractionsVerified": false,
+    "realSearchInteractionsVerified": false,
+    "searchScopeMemoryUserConfirmed": false,
+    "realContextMenuInteractionsVerified": true,
+    "installedOpeningUserConfirmed": false,
+    "terminalVisualVerified": false,
+    "repositoryAccessApprovalVisualVerified": false,
+    "repositoryAccessApprovalActionVerified": false,
+    "commandExecutionApprovalVerified": false,
+    "fileDiffVerified": false
+  },
+  "localAcceptance": {
+    "scope": "Same-machine preview after a normal Codex launch, separate from the final distribution archive",
+    "integrity": "All 24 installed managed files matched their manifest after next-launch staging; the compatibility contract was preserved until the normal launch",
+    "compatibility": "Store Codex 26.1120.6357.0 reported active and compatible with no disabled capabilities after the normal launch",
+    "manualAcceptance": "The user confirmed the other-conversation menu correction and authorized publishing the new version",
+    "candidateBoundary": "The local preview contains the accepted runtime bytes; final archive installation checks are recorded separately after sealing"
+  },
+  "syntheticSurfaceAcceptance": {
+    "scope": "Offline source regression and isolated headless Chromium fixtures using the built skin and native-menu adapter",
+    "sourceChecksPassed": 381,
+    "menuLifecycleChecksPassed": 11,
+    "independentFocusedChecksPassed": 44,
+    "preserved": "Skin attributes throughout menu opening and cancellation, current conversation, unsent draft and input node, native callbacks, focus restoration, dark appearance and reversible cleanup",
+    "nativeMenuCoverage": "Radix and HTML popover; Escape and outside-click cancellation; pending portal, retained closed menu, hidden menu and removed workspace",
+    "identityVerification": "Forty simulated healthy controller polls invoke one owner check; disconnect and process-identity changes require revalidation",
+    "externalRequests": 0,
+    "pageErrors": 0
+  },
+  "remaining": [
+    "Final exact archive installation, upgrade, repair and recovery checks are recorded separately after sealing",
+    "Final full-package cold start and opening playback",
+    "Independent Windows 11 ordinary-user installation, startup and recovery"
+  ]
+}
