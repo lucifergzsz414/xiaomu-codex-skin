@@ -64,14 +64,14 @@ function createSearchLoadingSkin() {
 /* Only native folder scopes are remembered; the adapter owns panel discovery. */
 function createSearchScopeMemory({readPanels,storage}={}) {
   const seen=new Map(),preferences=new Map();
-  const validString=(value,limit)=>typeof value==='string'&&value.length>0&&value.length<=limit&&!/[\u0000-\u001f]/.test(value);
+  const validString=value=>typeof value==='string'&&value.length>0;
   function target(value,hostId){
-    return value&&typeof value==='object'&&validString(value.hostId,256)&&value.hostId===hostId&&validString(value.root,32768)?{hostId:value.hostId,root:value.root}:null;
+    return value&&typeof value==='object'&&validString(value.hostId)&&value.hostId===hostId&&validString(value.root)?{hostId:value.hostId,root:value.root}:null;
   }
   function read(key,hostId){
     if(preferences.has(key))return preferences.get(key);
     let value=null;
-    try{const raw=storage?.getItem(key);if(typeof raw==='string'&&raw.length<=66000)value=target(JSON.parse(raw),hostId);}catch{}
+    try{const raw=storage?.getItem(key);if(validString(raw))value=target(JSON.parse(raw),hostId);}catch{}
     if(value)preferences.set(key,value);
     return value;
   }
@@ -88,7 +88,7 @@ function createSearchScopeMemory({readPanels,storage}={}) {
     if(!Array.isArray(panels)){clear();return;}
     const current=new Set();
     for(const panel of panels){
-      if(!panel||!panel.node||typeof panel.node!=='object'||!['text','files'].includes(panel.mode)||typeof panel.applyTarget!=='function'||!validString(panel.routeKey,4096)||!validString(panel.projectKey,4096)||!validString(panel.hostId,256))continue;
+      if(!panel||!panel.node||typeof panel.node!=='object'||!['text','files'].includes(panel.mode)||typeof panel.applyTarget!=='function'||!validString(panel.routeKey)||!validString(panel.projectKey)||!validString(panel.hostId))continue;
       const choice=panel.target===null?null:target(panel.target,panel.hostId);
       if(panel.target!==null&&!choice)continue;
       const key='xiaomu.search-scope.v1:'+JSON.stringify([panel.routeKey,panel.hostId,panel.projectKey]);

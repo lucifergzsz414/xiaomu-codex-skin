@@ -1,17 +1,13 @@
-const fields=['appVersion','functionName','functionSha256','functionLength','layout'];
-const reviewed=[
- {appVersion:'26.1027.3384.0',functionName:'Wxn',functionSha256:'0b7d7527c136309985822313072fe9338e2187078dd26f4afcfecbc88cfbec84',functionLength:12391,layout:'codex-3384'},
- {appVersion:'26.1029.7803.0',functionName:'x',functionSha256:'7489581934e24e5034a8706a984c634febfb243532539aa2d6fb9ba9b0a22a94',functionLength:13441,layout:'codex-3384'},
- {appVersion:'26.1103.3517.0',functionName:'t',functionSha256:'0f9729156979dd4425c1b146d039cb408f13fb1bec44a93aa06f4246e3748cbf',functionLength:13422,layout:'codex-3384'},
- {appVersion:'26.1106.6628.0',functionName:'t',functionSha256:'93dfcadba76cb1879a882e8774306c7113e086c47b5acfcecc480aa0959b0791',functionLength:13645,layout:'codex-3384'},
- {appVersion:'26.1111.2228.0',functionName:'t',functionSha256:'a0579b13acff8c4484196d7670dad4e528566592ec717d537b1d94fee52c015a',functionLength:13984,layout:'codex-2228'},
- {appVersion:'26.1117.3838.0',functionName:'t',functionSha256:'e5f876b596f460075d7e344ef92d4728d02499df7f4b1343b4298c29eefd2f83',functionLength:13326,layout:'codex-2228'},
-];
+// Structural memo-cache layouts, independent of app versions and source bytes.
 function reviewedNativeMenus(registry){
- if(registry?.schema!==1||!Array.isArray(registry.profiles)||registry.profiles.length!==reviewed.length)throw Error('Unreviewed native menu registry');
- return registry.profiles.map((profile,index)=>{
-  if(!profile||Object.keys(profile).length!==fields.length||Object.keys(profile).some(key=>!fields.includes(key))||fields.some(key=>profile[key]!==reviewed[index][key]))throw Error('Unreviewed native menu profile');
-  return Object.fromEntries(fields.map(key=>[key,profile[key]]));
+ if(registry?.schema!==2||!Array.isArray(registry.profiles)||!registry.profiles.length)throw Error('Invalid native menu layouts');
+ const seen=new Set();
+ return registry.profiles.map(profile=>{
+  if(!profile||typeof profile.layout!=='string'||!profile.layout||seen.has(profile.layout)||!Number.isInteger(profile.cacheLength)||profile.cacheLength<1)throw Error('Invalid native menu layout');
+  seen.add(profile.layout);
+  const indices=profile.popover?['closeIndex','openIndex','nativeOpenIndex','disableIndex']:['nativeIndex','closeIndex'];
+  if(indices.some(key=>!Number.isInteger(profile[key])||profile[key]<0||profile[key]>=profile.cacheLength))throw Error('Invalid native menu cache indices');
+  return {...profile};
  });
 }
 module.exports={reviewedNativeMenus};

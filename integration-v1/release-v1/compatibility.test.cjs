@@ -5,7 +5,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {assessSources,inspectArchive}=require('./compatibility.cjs');
 const productionContract=require('./compatibility-contract.json');
-const sampleContract={schema:1,features:{core:[['fixture-core']],contextMenus:[['disableNative']]},menu:{name:'fixtureMenu',length:1,sha256:'0'.repeat(64)}};
+const sampleContract={schema:1,features:{core:[['fixture-core']],contextMenus:[['disableNative'],['showContextMenu']]}};
 
 function withArchive(files,run,changeHeader=()=>{}){
  const root=fs.mkdtempSync(path.join(__dirname,'.compatibility-test-'));
@@ -45,8 +45,8 @@ test('legacy named Vite runtime assets retain the existing assessment',()=>withA
  'webview/assets/unrelated.js':'throw Error("must not execute")',
 },archive=>{const result=inspectArchive(archive,sampleContract);assert.equal(result.core,true);assert.equal(result.assetsChecked,2);}));
 
-test('numeric Rspack HTML entries and two dependency waves are inspected without execution',()=>withArchive(rspack(),archive=>{
- const result=inspectArchive(archive,sampleContract);assert.equal(result.core,true);assert.equal(result.assetsChecked,4);
+test('numeric Rspack imports are inspected as data without executing lazy source',()=>withArchive(rspack(),archive=>{
+ const result=inspectArchive(archive,sampleContract);assert.equal(result.core,true);assert.equal(result.assetsChecked,5);
  assert.equal(result.capabilities.contextMenus,false);
 }));
 
@@ -57,9 +57,9 @@ test('minified numeric exponent chunk IDs are normalized as bounded integers',()
  withArchive(duplicate,archive=>assert.throws(()=>inspectArchive(archive,sampleContract)));
 });
 
-test('depth three is not traversed and duplicate or cyclic imports are read once',()=>withArchive(rspack({
+test('duplicate or cyclic imports are read once and completed capabilities stop traversal',()=>withArchive(rspack({
  'webview/assets/async/200.bbbbbbbbbb.js':'q.e(300);q.e(300);q.e(200);',
- 'webview/assets/async/300.cccccccccc.js':'fixture-core;q.e(999999);',
+ 'webview/assets/async/300.cccccccccc.js':'fixture-core disableNative showContextMenu;q.e(999999);',
 }),archive=>assert.equal(inspectArchive(archive,sampleContract).assetsChecked,4)));
 
 test('legacy composer signature and the paired new attributes are both supported',()=>{
@@ -123,14 +123,15 @@ test('selection is bounded by the existing asset count ceiling',()=>{
  withArchive(files,archive=>assert.throws(()=>inspectArchive(archive,sampleContract)));
 });
 
-test('an explicit anonymous property menu profile requires the exact property and function bytes',()=>{
- const body='function(e){return "disableNative"+e}';
- const sha256=require('node:crypto').createHash('sha256').update(body).digest('hex');
- const contract={...sampleContract,menu:{...sampleContract.menu,variants:[{name:'t',sourceForm:'property',length:body.length,sha256}]}};
- const menu=source=>assessSources(['fixture-core '+source],contract).capabilities.contextMenus;
- assert.equal(menu('({t:'+body+'})'),true);
- for(const source of ['({at:'+body+'})','({t:'+body.replace('+e','-e')+'})',body.replace('function(','function t(')])
-  assert.equal(menu(source),false);
- const unsupported={...contract,menu:{...contract.menu,variants:[{...contract.menu.variants[0],sourceForm:'unreviewed'}]}};
- assert.throws(()=>assessSources(['fixture-core'],unsupported),/Invalid menu fingerprint/);
+test('menu capability uses co-located feature tokens, independent of minified names or bytes',()=>{
+ for(const source of ['function old(){return "disableNative showContextMenu"}', '({renamed:function(p){ /* changed implementation */ return p.disableNative&&bridge.showContextMenu(p.items)}})']){
+  assert.equal(assessSources(['fixture-core',source],sampleContract).capabilities.contextMenus,true);
+ }
+ assert.equal(assessSources(['fixture-core disableNative','showContextMenu'],sampleContract).capabilities.contextMenus,false);
+ for(const token of ['disableNative','showContextMenu'])assert.equal(assessSources(['fixture-core '+token],sampleContract).capabilities.contextMenus,false);
+});
+
+test('CLI reports the actual inspection error to stderr',()=>{
+ const result=require('node:child_process').spawnSync(process.execPath,[path.join(__dirname,'compatibility.cjs'),path.join(__dirname,'does-not-exist.asar')],{encoding:'utf8'});
+ assert.equal(result.status,1);assert.match(result.stderr,/Compatibility inspection failed: ENOENT/);assert.match(result.stderr,/does-not-exist\.asar/);
 });

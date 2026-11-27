@@ -14,8 +14,8 @@ function writeSessionMetadata(stateRoot,name,value,fileSystem=fs){
   fileSystem.renameSync(temporary,destination);
   owned=false;
   return true;
- }catch{return false;}
- finally{if(owned)try{fileSystem.unlinkSync(temporary);}catch{}}
+ }catch(error){reportError('metadata-write',error);return false;}
+ finally{if(owned)try{fileSystem.unlinkSync(temporary);}catch(error){reportError('metadata-cleanup',error);}}
 }
 function createSessionLog({root:stateRoot,startedAtMs=Date.now(),controllerPid=process.pid,now=Date.now,fileSystem=fs}){
  const sessionStartedAtUtc=new Date(startedAtMs).toISOString();
@@ -32,14 +32,14 @@ function createSessionLog({root:stateRoot,startedAtMs=Date.now(),controllerPid=p
   checkedFailure=true;
   try{
    const failure=JSON.parse(fileSystem.readFileSync(path.join(stateRoot,'startup-failure.json'),'utf8'));
-   const failureAtMs=typeof failure?.atUtc==='string'&&/^\d{4}-\d\d-\d\dT[\d:.]+Z$/.test(failure.atUtc)?Date.parse(failure.atUtc):NaN;
+   const failureAtMs=typeof failure?.atUtc==='string'?Date.parse(failure.atUtc):NaN;
    if(!Number.isFinite(failureAtMs)||failureAtMs>=startedAtMs||!Number.isInteger(failure.controllerPid)||failure.controllerPid<=0||
-    typeof failure.errorCode!=='string'||!/^[a-z][a-z0-9-]{0,79}$/.test(failure.errorCode))return null;
+    typeof failure.errorCode!=='string'||!failure.errorCode)return null;
    startupRecovery={failureAtUtc:failure.atUtc,failureControllerPid:failure.controllerPid,errorCode:failure.errorCode,
     resolvedAtUtc:new Date(now()).toISOString(),controllerPid,sessionStartedAtUtc};
    // Preserve the original failure: a concurrent launcher may write a newer one.
    record('startup-recovered',startupRecovery);
-  }catch{}
+  }catch(error){if(error.code!=='ENOENT')record('recovery-read-failed',{code:failureCode(error)});}
   return startupRecovery;
  }
  return {record,applied};
@@ -47,8 +47,9 @@ function createSessionLog({root:stateRoot,startedAtMs=Date.now(),controllerPid=p
 function failureCode(error){
  const native=typeof error?.stderr==='string'?error.stderr.trim():'';
  const code=/^[A-Z_]{2,50}$/.test(native)?native:error?.code;
- return typeof code==='string'&&/^[A-Z_]{2,50}$/.test(code)?code:'UNAVAILABLE';
+ return typeof code==='string'&&/^[A-Z_]{2,50}$/.test(code)?code:error?.name==='SyntaxError'?'INVALID_JSON':'UNAVAILABLE';
 }
+function reportError(stage,error){console.error('[xiaomu:'+stage+'] '+failureCode(error)+': '+(error?.message||String(error)));}
 const workspaceMissingMarkers=Object.freeze([
  'workspace-sidebar-missing','workspace-sidebar-multiple','workspace-main-missing',
  'dot-profile-missing','dot-profile-multiple','dot-artwork-missing',
@@ -84,9 +85,7 @@ function createStartupTiming({now=()=>performance.now()}={}){
  function observeWorkspace(report){
   const {surface,missing}=report||{};
   const ready=surface==='workspace'||surface==='dot';
-  if((!ready&&surface!==null)||!Array.isArray(missing)||missing.length>workspaceMissingMarkers.length||
-   [...missing].some(marker=>!workspaceMissingMarkers.includes(marker))||new Set(missing).size!==missing.length||
-   (ready?missing.length!==0:missing.length===0))throw Error('Invalid workspace readiness report');
+  if((!ready&&surface!==null)||!Array.isArray(missing)||[...missing].some(marker=>typeof marker!=='string'||!marker))throw Error('Invalid workspace readiness report');
   if(stopped)return ready;
   const atMs=Math.max(0,now()-started);
   checks++;
@@ -95,7 +94,7 @@ function createStartupTiming({now=()=>performance.now()}={}){
    if(firstReadySurface===null)firstReadySurface=surface;
   }else{
    lastWaiting={atMs:round(atMs),missing:[...missing]};
-   for(const marker of missing)missingCounts[marker]++;
+   for(const marker of missing)missingCounts[marker]=(missingCounts[marker]||0)+1;
   }
   return ready;
  }
@@ -127,20 +126,20 @@ async function waitForTargets({gate,fetchTargets,sleep,stopped,onRetry,getEndpoi
   }
   if(stopped())return null;
   try{const targets=await fetchTargets();return stopped()?null:targets;}
-  catch(error){endpointFailures++;const delayMs=getEndpointDelay(endpointFailures);onRetry({stage:'endpoint',attempt:endpointFailures,code:failureCode(error),delayMs});await sleep(delayMs);}
+  catch(error){gate.invalidate?.();endpointFailures++;const delayMs=getEndpointDelay(endpointFailures);onRetry({stage:'endpoint',attempt:endpointFailures,code:failureCode(error),delayMs});await sleep(delayMs);}
  }
  return null;
 }
 function validTarget(t){try{const u=new URL(t.url),w=new URL(t.webSocketDebuggerUrl);return typeof t.id==='string'&&/^[A-Za-z0-9._-]{1,200}$/.test(t.id)&&t.type==='page'&&u.protocol==='app:'&&!u.username&&!u.password&&w.protocol==='ws:'&&w.hostname==='127.0.0.1'&&w.port==='9335'&&!w.username&&!w.password&&!w.search&&!w.hash&&/^\/devtools\/page\/[A-Za-z0-9._-]+$/.test(w.pathname);}catch{return false;}}
 function createOpeningGate({root:stateRoot,identity,now=Date.now,fileSystem=fs}){
  const launch=typeof identity?.launchRequestedAtUtc==='string'?Date.parse(identity.launchRequestedAtUtc):NaN;
- const valid=identity?.openingEligible===true&&Number.isInteger(identity.pid)&&identity.pid>0&&Number.isInteger(identity.session)&&identity.session>=0&&typeof identity.startUtc==='string'&&/^\d{4}-\d\d-\d\dT[\d:.]+Z$/.test(identity.startUtc)&&Number.isFinite(Date.parse(identity.startUtc))&&Number.isFinite(launch)&&typeof stateRoot==='string'&&path.isAbsolute(stateRoot);
+ const valid=identity?.openingEligible===true&&Number.isInteger(identity.pid)&&identity.pid>0&&Number.isInteger(identity.session)&&identity.session>=0&&typeof identity.startUtc==='string'&&Number.isFinite(Date.parse(identity.startUtc))&&Number.isFinite(launch)&&typeof stateRoot==='string'&&path.isAbsolute(stateRoot);
  const hostKey=valid?createHash('sha256').update(JSON.stringify([identity.pid,identity.startUtc,identity.session])).digest('hex'):null;
  const ledger=valid?path.join(stateRoot,'opening-state.json'):null;
  let attempted=false;
  function pending(){
   if(attempted||!valid)return false;
-  try{const age=now()-launch;return Number.isFinite(age)&&age>=-2000;}catch{return false;}
+  return now()-launch>=-2000;
  }
  function claim(ordinaryWorkspace){
   if(typeof ordinaryWorkspace!=='boolean'||!pending())return null;
@@ -149,14 +148,13 @@ function createOpeningGate({root:stateRoot,identity,now=Date.now,fileSystem=fs})
   attempted=true;
   let previous;
   try{
-   let bytes;try{bytes=fileSystem.readFileSync(ledger,'utf8');}catch(error){if(error.code!=='ENOENT')return null;}
+   let bytes;try{bytes=fileSystem.readFileSync(ledger,'utf8');}catch(error){if(error.code!=='ENOENT')throw error;}
    if(bytes!==undefined){
-    if(bytes.length>2048)return null;
     previous=JSON.parse(bytes);
-    if(!previous||previous.schema!==1||previous.consumed!==true||typeof previous.hostKey!=='string'||!/^[a-f0-9]{64}$/.test(previous.hostKey))return null;
+    if(!previous||previous.schema!==1||previous.consumed!==true||typeof previous.hostKey!=='string'||!previous.hostKey)throw Error('Invalid opening ledger');
     if(previous.hostKey===hostKey)return null;
    }
-  }catch{return null;}
+  }catch(error){reportError('opening-ledger-read',error);return null;}
   const temporary=path.join(stateRoot,'opening-state.'+randomUUID()+'.tmp');
   let descriptor=null,temporaryOwned=false;
   try{
@@ -165,10 +163,10 @@ function createOpeningGate({root:stateRoot,identity,now=Date.now,fileSystem=fs})
    fileSystem.fsyncSync(descriptor);fileSystem.closeSync(descriptor);descriptor=null;
    fileSystem.renameSync(temporary,ledger);temporaryOwned=false;
    return ordinaryWorkspace?{eligible:true,hostKey,waitForForeground:true,expiresAt:now()+60000}:null;
-  }catch{return null;}
+  }catch(error){reportError('opening-ledger-write',error);return null;}
   finally{
-   if(descriptor!==null)try{fileSystem.closeSync(descriptor);}catch{}
-   if(temporaryOwned)try{fileSystem.unlinkSync(temporary);}catch{}
+   if(descriptor!==null)try{fileSystem.closeSync(descriptor);}catch(error){reportError('opening-ledger-close',error);}
+   if(temporaryOwned)try{fileSystem.unlinkSync(temporary);}catch(error){reportError('opening-ledger-cleanup',error);}
   }
  }
  return {pending,claim};
@@ -192,11 +190,7 @@ const openingForegroundProbe='('+checkOpeningTarget.toString()+')(true)';
 const openingTargetExpression='('+openingTargetProbe+')==="eligible"';
 function summarizeOpeningPlayer(player){
  const {state,reason}=player||{};
- const states=['skipped','waiting','loading','playing','finished'];
- const reasons=['','not-eligible','guard-conflict','already-consumed','guard-unavailable','missing-media','missing-body',
-  'reduced-motion','hidden','unfocused','cleanup','stalled','skip','escape','ended','media-error','blur','pagehide','timeout','play-rejected',
-  'foreground','native-layout','invalid-focus-grant','focus-wait-expired','interaction-before-start','focus-recheck-blocked'];
- return states.includes(state)&&reasons.includes(reason)?{state,reason}:null;
+ return typeof state==='string'&&state&&typeof reason==='string'?{state,reason}:null;
 }
 const compatibilityNoticeSource=`if(window[key].capabilities){const labels={sidebar:'侧栏图标',pages:'页面装饰',panels:'终端与文件面板',overlays:'搜索与弹窗',contextMenus:'右键菜单'};const disabled=Object.keys(labels).filter(k=>window[key].capabilities[k]===false);if(disabled.length){const note=document.createElement('div');note.setAttribute('role','status');note.setAttribute('data-xiaomu-compatibility-notice','');note.style.cssText='position:fixed;bottom:12px;right:12px;max-width:calc(100vw - 24px);box-sizing:border-box;padding:10px 12px;border:1px solid #bed0b4;border-radius:12px;background:#fbfcf6;color:#2e4939;font:13px/1.5 sans-serif;z-index:100';const text=document.createElement('span');text.textContent='小睦皮肤已加载；'+disabled.map(k=>labels[k]).join('、')+'暂时保留原样。';const close=document.createElement('button');close.type='button';close.textContent='知道了';close.style.cssText='margin-left:8px;color:inherit;background:transparent;border:0;cursor:pointer';close.onclick=()=>note.remove();note.append(text,close);document.body.append(note);window[key].notice=note;}};`;
 function applyExpression(bundle,token,capabilities=null,guardianSource='',captionSource='',opening=null){
@@ -230,14 +224,17 @@ function applyExpression(bundle,token,capabilities=null,guardianSource='',captio
  })()`;
 }
 function cleanupExpression(token){return `(() => {const key=${JSON.stringify(marker)},owned=window[key];if(!owned||owned.token!==${JSON.stringify(token)})return false;owned.observer?.disconnect();owned.guardianCompatibility?.cleanup();owned.captionContrast?.cleanup();owned.notice?.remove();window.__XIAOMU_NATIVE_SKIN_V1__?.cleanup();delete window[key];return true;})()`;}
-async function connect(url){
+async function connect(url,onDisconnect=()=>{}){
  const ws=new WebSocket(url);let serial=0;const pending=new Map();
- ws.addEventListener('message',e=>{const r=JSON.parse(e.data);const p=pending.get(r.id);if(!p)return;pending.delete(r.id);clearTimeout(p.timer);r.error?p.reject(Error('CDP failed')):p.resolve(r.result);});
- ws.addEventListener('close',()=>{for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('Disconnected'));}pending.clear();});
+ ws.addEventListener('message',e=>{
+  let r;try{r=JSON.parse(e.data);}catch(error){reportError('cdp-message',error);ws.close();return;}
+  const p=pending.get(r.id);if(!p)return;pending.delete(r.id);clearTimeout(p.timer);r.error?p.reject(Object.assign(Error('CDP failed'),{code:'CDP_FAILED'})):p.resolve(r.result);
+ });
+ ws.addEventListener('close',()=>{onDisconnect();for(const p of pending.values()){clearTimeout(p.timer);p.reject(Object.assign(Error('Disconnected'),{code:'CDP_DISCONNECTED'}));}pending.clear();});
  await new Promise((resolve,reject)=>{const timer=setTimeout(()=>{ws.close();reject(Error('Connection timeout'));},4000);ws.addEventListener('open',()=>{clearTimeout(timer);resolve();},{once:true});ws.addEventListener('error',()=>{clearTimeout(timer);reject(Error('Connection failed'));},{once:true});});
  return {close:()=>ws.close(),call(method,params={}){return new Promise((resolve,reject)=>{const id=++serial;const timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP timeout'));},10000);pending.set(id,{resolve,reject,timer});ws.send(JSON.stringify({id,method,params}));});}};
 }
-async function evaluate(client,expression){const r=await client.call('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error('Renderer check failed');return r.result.value;}
+async function evaluate(client,expression){const r=await client.call('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Object.assign(Error('Renderer check failed'),{code:'RENDERER_CHECK_FAILED'});return r.result.value;}
 // Keep the regular predicate and the startup observation on the same selectors.
 function checkWorkspace(document,window,diagnose){
  const sidebars=document.querySelectorAll('aside.app-shell-left-panel');
@@ -286,6 +283,16 @@ function verifyIdentity(root,identity,compatibility){
   if(archiveInfo.size!==BigInt(compatibility.archiveSize)||exactTime!==compatibility.archiveMtimeFileTimeUtc||createHash('sha256').update(fs.readFileSync(path.join(root,'compatibility-contract.json'))).digest('hex').toUpperCase()!==compatibility.contractSha256.toUpperCase())throw Object.assign(Error('Component identity changed'),{code:'COMPONENT_CHANGED'});
   const answer=execFileSync(verifier,['verify',compatibility.packageFullName,identity.executable,compatibility.executableSha256,String(identity.session),String(identity.pid),identity.startUtc],{encoding:'utf8',timeout:5000,windowsHide:true});if(answer.trim()!=='verified')throw Error('Identity changed');
 }
+function createIdentityGate({identity,verify}){
+ let verified=null;
+ const gate=()=>{
+  const key=JSON.stringify([identity.pid,identity.startUtc,identity.session,identity.executable]);
+  if(key===verified)return;
+  verified=null;verify(identity);verified=key;
+ };
+ gate.invalidate=()=>{verified=null;};
+ return gate;
+}
 async function run(){
  const controllerStartedAtMs=Date.now();let firstApplied=false;let pendingStartupSample=null;
  const sessionLog=createSessionLog({root,startedAtMs:controllerStartedAtMs});
@@ -293,17 +300,16 @@ async function run(){
  const identity=JSON.parse(Buffer.from(process.argv[2]||'','base64').toString('utf8'));
  if(!Number.isInteger(identity.pid)||identity.pid<=0||typeof identity.startUtc!=='string'||!/^\d{4}-\d\d-\d\dT[\d:.]+Z$/.test(identity.startUtc))throw Error('Invalid identity');
  if(typeof identity.executable!=='string'||!path.isAbsolute(identity.executable)||!Number.isInteger(identity.session))throw Error('Incomplete process identity');
- const manifest=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));const bundle=fs.readFileSync(path.join(root,'skin.js'),'utf8');if(createHash('sha256').update(bundle).digest('hex')!==manifest.files['skin.js'])throw Error('Skin integrity failed');
+ const manifest=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));const bundle=fs.readFileSync(path.join(root,'skin.js'),'utf8');
  const compatibility=JSON.parse(fs.readFileSync(path.join(root,'compatibility.json'),'utf8'));if(!compatibility.core)throw Error('Unsupported core');
- const guardianPath=path.join(root,'guardian-compat.cjs');if(createHash('sha256').update(fs.readFileSync(guardianPath)).digest('hex')!==manifest.files['guardian-compat.cjs'])throw Error('Guardian compatibility integrity failed');
+ const guardianPath=path.join(root,'guardian-compat.cjs');
  const {installGuardianCompatibility}=require(guardianPath);const guardianSource='('+installGuardianCompatibility.toString()+')(window,'+JSON.stringify(compatibility.packageVersion)+')';
- const captionPath=path.join(root,'caption-contrast.cjs');if(createHash('sha256').update(fs.readFileSync(captionPath)).digest('hex')!==manifest.files['caption-contrast.cjs'])throw Error('Caption styling integrity failed');
+ const captionPath=path.join(root,'caption-contrast.cjs');
  const {installCaptionContrast}=require(captionPath);const captionSource='('+installCaptionContrast.toString()+')(window)';
- const verifier=path.join(root,'owner-check.exe');if(createHash('sha256').update(fs.readFileSync(verifier)).digest('hex')!==manifest.files['owner-check.exe'])throw Error('Owner verifier integrity failed');
  const token=randomUUID();const clients=new Map();let failed=false;let stopReason='stopped';
  const openingGate=createOpeningGate({root,identity});
  const openingDiagnostics={initialCheck:null,grant:'not-requested',injectionCheck:null,playerAtApply:null};
- const gate=()=>startupTiming.sync('identity',()=>verifyIdentity(root,identity,compatibility));
+ const gate=createIdentityGate({identity,verify:()=>startupTiming.sync('identity',()=>verifyIdentity(root,identity,compatibility))});
  const health={recoveryCount:0,lastFailure:null,lastRecoveredAtUtc:null};
  const record=sessionLog.record;
  const status=(state,extra={})=>{
@@ -333,7 +339,7 @@ async function run(){
    let activePages=0;let conflicts=0;
    for(const target of targets){
     if(fs.existsSync(path.join(root,'stop.flag')))break;
-    let c=clients.get(target.id);if(!c){try{c=await startupTiming.timeAsync('connect',()=>connect(target.webSocketDebuggerUrl));clients.set(target.id,c);}catch(error){startupTiming.targetFailure('connect',error);continue;}}
+    let c=clients.get(target.id);if(!c){try{gate();c=await startupTiming.timeAsync('connect',()=>connect(target.webSocketDebuggerUrl,gate.invalidate));clients.set(target.id,c);}catch(error){gate.invalidate();startupTiming.targetFailure('connect',error);record('target-failed',{stage:'connect',code:failureCode(error)});continue;}}
     let phase='eligibility';
     try{
      const readiness=await startupTiming.timeAsync(phase,()=>evaluate(c,firstApplied?managedEligibility(token):workspaceProbe));
@@ -352,7 +358,7 @@ async function run(){
          const report=await startupTiming.timeAsync(phase,()=>evaluate(c,openingForegroundProbe));
          ordinaryWorkspace=openingReadinessDecision(report);
          if(ordinaryWorkspace!==undefined)initialCheck=report;
-        }catch(error){startupTiming.targetFailure(phase,error);}
+        }catch(error){startupTiming.targetFailure(phase,error);record('opening-check-failed',{code:failureCode(error)});}
         opening=openingGate.claim(ordinaryWorkspace);
         openingDiagnostics.initialCheck=initialCheck;
         openingDiagnostics.grant=opening?'issued':ordinaryWorkspace===undefined?'not-requested':'not-issued';
@@ -370,7 +376,7 @@ async function run(){
       }
      }
      else{phase='cleanup';await startupTiming.timeAsync(phase,()=>evaluate(c,cleanupExpression(token)));}
-    }catch(error){startupTiming.targetFailure(phase,error);c.close();clients.delete(target.id);}
+    }catch(error){gate.invalidate();startupTiming.targetFailure(phase,error);record('target-failed',{stage:phase,code:failureCode(error)});c.close();clients.delete(target.id);}
    }
    if(activePages&&!firstApplied){
     firstApplied=true;const launch=Date.parse(identity.launchRequestedAtUtc||'');
@@ -382,18 +388,19 @@ async function run(){
    status(activePages?'active':'waiting-for-native-workspace',{activePages,conflicts,version:manifest.version,packageVersion:compatibility.packageVersion,compatibility:compatibility.mode,disabled:compatibility.disabled});
    await startupTiming.timeAsync('loop-sleep',()=>new Promise(r=>setTimeout(r,startupDelay({kind:'poll',elapsedMs:Date.now()-controllerStartedAtMs,firstApplied,activePages}))));
   }
- }catch(e){failed=true;stopReason='session-error-'+failureCode(e);record('stopped',{reason:stopReason});}
+ }catch(e){failed=true;stopReason='session-error-'+failureCode(e);record('stopped',{reason:stopReason});reportError('session',e);}
  finally{
   let restored=0;
-  try{gate();for(const c of clients.values())try{if(await evaluate(c,cleanupExpression(token)))restored++;}catch{}}catch{}
+  try{gate();for(const c of clients.values())try{if(await evaluate(c,cleanupExpression(token)))restored++;}catch(error){record('cleanup-failed',{code:failureCode(error)});}}catch(error){record('cleanup-identity-failed',{code:failureCode(error)});reportError('cleanup-identity',error);}
   for(const c of clients.values())c.close();status(failed?stopReason:'disabled',{restoredPages:restored});
  }
 }
-module.exports={validTarget,applyExpression,cleanupExpression,verifyIdentity,waitForTargets,createOpeningGate,openingTargetExpression,openingTargetProbe,openingForegroundProbe,openingReadinessDecision,createStartupTiming,startupDelay,eligible,workspaceProbe,managedEligibility,writeSessionMetadata,createSessionLog};
+module.exports={validTarget,applyExpression,cleanupExpression,verifyIdentity,createIdentityGate,waitForTargets,createOpeningGate,openingTargetExpression,openingTargetProbe,openingForegroundProbe,openingReadinessDecision,createStartupTiming,startupDelay,eligible,workspaceProbe,managedEligibility,writeSessionMetadata,createSessionLog};
 if(require.main===module)run().catch(error=>{
  const atUtc=new Date().toISOString();
  const code=failureCode(error);
  writeSessionMetadata(root,'session-events.json',[{atUtc,event:'stopped',reason:'startup-error-'+code}]);
  writeSessionMetadata(root,'status.json',{atUtc,status:'failed-before-application',code});
+ reportError('startup',error);
  process.exitCode=1;
 });

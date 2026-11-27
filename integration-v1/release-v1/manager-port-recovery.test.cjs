@@ -84,7 +84,7 @@ $failure=if([IO.File]::Exists($startupFailureFile)){Get-Content -LiteralPath $st
 $status=if([IO.File]::Exists($statusFile)){(Get-Content -LiteralPath $statusFile -Raw|ConvertFrom-Json).status}else{$null}
 [pscustomobject]@{complete=$complete;errorCode=$code;launches=$script:launches;identityCalls=$script:identityCalls;sleptMs=$script:sleptMs;ownershipChecks=$script:ownershipChecks;listenerChecks=$script:listenerChecks;failure=$failure;status=$status;openingEligible=$openingEligible}|ConvertTo-Json -Depth 6 -Compress
 `;
-  return JSON.parse(execFileSync(shell,['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-OutputFormat','Text','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true,timeout:15000,maxBuffer:1024*1024}).trim());
+  return JSON.parse(execFileSync(shell,['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-OutputFormat','Text','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{encoding:'utf8',stdio:'pipe',windowsHide:true,timeout:15000,maxBuffer:1024*1024}).trim());
  }finally{
   if(path.dirname(path.resolve(root))!==area||!path.basename(root).startsWith('manager-port-'))throw Error('Unexpected fixture path');
   fs.rmSync(root,{recursive:true,force:true});
@@ -123,7 +123,7 @@ for(const shell of shells){
  test(`${label}: a stop request interrupts the bounded wait`,()=>{
   const r=run(shell,{busy:true,ownership:'codex',stopAtTick:1});assert.equal(r.complete,true);assert.equal(r.launches,0);assert.equal(r.identityCalls,0);assert.equal(r.errorCode,null);assert.equal(r.status,'disabled');assert.equal(r.sleptMs,250);
  });
- test(`${label}: unavailable ownership is recorded without leaking its exception`,()=>{
+ test(`${label}: ownership failure receipt omits raw exception text`,()=>{
   const r=run(shell,{busy:true,ownership:'error'});assert.equal(r.errorCode,'diagnostic-port-busy');assert.equal(r.launches,0);assert.equal(r.sleptMs,0);assert.equal(r.failure.diagnosticPort.ownership,'unavailable');assert.equal(JSON.stringify(r.failure).includes('must-not-be-logged'),false);
  });
  test(`${label}: an already running UI keeps its original identity path`,()=>{

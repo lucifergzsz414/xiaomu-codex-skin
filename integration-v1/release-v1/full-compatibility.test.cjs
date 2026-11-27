@@ -1,9 +1,6 @@
-const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {assessSources,inspectArchive}=require('./compatibility.cjs');
-const hash=s=>crypto.createHash('sha256').update(s).digest('hex');
-const old='function oldMenu(){return "disableNative";}',next='function newMenu(){return "disableNative";}';
-const menu=s=>({name:s.includes('oldMenu')?'oldMenu':'newMenu',length:s.length,sha256:hash(s)});
-const base=()=>({schema:1,features:{core:[['fixture-core']],pages:[['fixture-settings']],contextMenus:[['disableNative']]},menu:{...menu(old),variants:[menu(next)]}});
+const base=()=>({schema:1,features:{core:[['fixture-core']],pages:[['fixture-settings']],contextMenus:[['disableNative'],['showContextMenu']]}});
 function area(files,run,change=()=>{}){
  const root=fs.mkdtempSync(path.join(__dirname,'.full-compat-test-'));
  try{
@@ -14,49 +11,60 @@ function area(files,run,change=()=>{}){
   const archive=path.join(root,'sample.asar');fs.writeFileSync(archive,Buffer.concat([prefix,json,pad,...parts]));return run(archive);
  }finally{if(path.dirname(path.resolve(root))!==path.resolve(__dirname)||!path.basename(root).startsWith('.full-compat-test-'))throw Error('Unsafe fixture cleanup');fs.rmSync(root,{recursive:true,force:true});}
 }
-const entry='webview/assets/app-initial-fixture.js',lazy='webview/assets/async/900.aaaaaaaa.js',initial='fixture-core '+old,settings='fixture-settings';
-function profile(changes={}){return {id:'fixture-reviewed',bootstrap:{path:entry,sha256:hash(initial)},assets:[{path:lazy,sha256:hash(settings),feature:'pages'}],...changes};}
-function contract(p=profile()){return {...base(),resourceProfiles:[p]};}
+const entry='webview/assets/app-initial-fixture.js',lazy='webview/assets/async/lazy-new-name.js';
+const menu='disableNative showContextMenu';
 
-test('legacy and new menus both require exact reviewed function fingerprints',()=>{
- for(const source of [old,next])assert.equal(assessSources(['fixture-core '+source],base()).capabilities.contextMenus,true);
- const changed=base();changed.menu.variants[0].sha256='0'.repeat(64);assert.equal(assessSources(['fixture-core '+next],changed).capabilities.contextMenus,false);
- assert.equal(assessSources(['fixture-core function newMenu(){return "changed disableNative";}'],base()).capabilities.contextMenus,false);
+test('literal lazy imports discover capabilities after renamed or changed builds',()=>{
+ for(const name of ['lazy-new-name.js','another-build.js'])area({
+  [entry]:`fixture-core;import("./async/${name}");`,
+  ['webview/assets/async/'+name]:'/* changed bytes */ fixture-settings '+menu,
+ },file=>{
+  const result=inspectArchive(file,base());assert.equal(result.mode,'compatible');assert.deepEqual(result.disabled,[]);assert.equal(result.assetsChecked,2);
+ });
 });
-test('invalid or excessive native menu variants fail closed',()=>{
- for(const variant of [{...menu(next),name:'../bad'},{...menu(next),length:-1},{...menu(next),sha256:'bad'}]){const c=base();c.menu.variants=[variant];assert.throws(()=>assessSources(['fixture-core '+next],c));}
- const c=base();c.menu.variants=Array(9).fill(menu(next));assert.throws(()=>assessSources(['fixture-core '+next],c));
+
+test('literal imports may continue beyond two waves and terminate cycles',()=>area({
+ [entry]:'fixture-core;import("./async/one.js");',
+ 'webview/assets/async/one.js':'export {x} from "./two.js";',
+ 'webview/assets/async/two.js':'import("./three.js");import("./one.js");',
+ 'webview/assets/async/three.js':'fixture-settings '+menu,
+},file=>{const result=inspectArchive(file,base());assert.equal(result.mode,'compatible');assert.equal(result.assetsChecked,4);}));
+
+test('unreferenced lazy assets are not admitted just because they contain feature tokens',()=>area({
+ [entry]:'fixture-core', [lazy]:'fixture-settings '+menu,
+},file=>{const result=inspectArchive(file,base());assert.deepEqual(result.disabled,['pages','contextMenus']);assert.equal(result.assetsChecked,1);}));
+
+test('missing or changed capability tokens disable only the affected module',()=>area({
+ [entry]:'fixture-core;import("./async/lazy-new-name.js");', [lazy]:'fixture-settings disableNative',
+},file=>{const result=inspectArchive(file,base());assert.equal(result.core,true);assert.equal(result.capabilities.pages,true);assert.deepEqual(result.disabled,['contextMenus']);assert.equal(result.mode,'degraded');}));
+
+test('removed byte profiles and small version-count caps are not compatibility gates',()=>{
+ const contract={...base(),menu:{variants:Array(20).fill({sha256:'old'})},resourceProfiles:Array(20).fill({id:'historical'})};
+ assert.equal(assessSources(['fixture-core fixture-settings '+menu],contract).mode,'compatible');
 });
-test('a matching bootstrap admits only pinned supplemental resources',()=>area({[entry]:initial,[lazy]:settings},file=>{
- const r=inspectArchive(file,contract());assert.equal(r.core,true);assert.equal(r.capabilities.pages,true);assert.equal(r.assetsChecked,2);
-}));
-test('an unknown bootstrap keeps lazy capabilities disabled without reading its resources',()=>area({[entry]:initial,[lazy]:settings},file=>{
- const r=inspectArchive(file,contract(profile({bootstrap:{path:entry,sha256:'0'.repeat(64)}})));assert.equal(r.core,true);assert.equal(r.capabilities.pages,false);assert.equal(r.assetsChecked,1);
-}));
-test('pinned supplemental resources reject missing or changed bytes',()=>{
- area({[entry]:initial},file=>assert.throws(()=>inspectArchive(file,contract())));
- area({[entry]:initial,[lazy]:'changed'},file=>assert.throws(()=>inspectArchive(file,contract())));
+
+test('archive-relative imports cannot escape assets or select linked or unpacked files',()=>{
+ for(const target of ['../../outside.js','./async/../../outside.js','./async/evil\\file.js'])area({
+  [entry]:`fixture-core;import("${target}");`,
+ },file=>assert.throws(()=>inspectArchive(file,base()),/Invalid runtime import path/));
+ for(const change of [{link:'outside.js'},{unpacked:true},{offset:'999999999'}])area({
+  [entry]:'fixture-core;import("./async/lazy-new-name.js");',[lazy]:'fixture-settings '+menu,
+ },file=>assert.throws(()=>inspectArchive(file,base())),h=>Object.assign(h.files.webview.files.assets.files.async.files['lazy-new-name.js'],change));
 });
-test('six uniquely named reviewed resource profiles are supported',()=>area({[entry]:initial,[lazy]:settings},file=>{
- const profiles=Array.from({length:6},(_,index)=>profile({id:'fixture-reviewed-'+index}));
- const result=inspectArchive(file,{...base(),resourceProfiles:profiles});
- assert.equal(result.core,true);assert.equal(result.capabilities.pages,true);assert.equal(result.assetsChecked,2);
-}));
-test('supplemental paths and profile quotas remain bounded',()=>{
- const files={[entry]:initial,[lazy]:settings};
- for(const bad of ['../../outside.js','webview/assets/../outside.js','https://example.invalid/x.js'])area(files,file=>assert.throws(()=>inspectArchive(file,contract(profile({assets:[{path:bad,sha256:hash(settings),feature:'pages'}]})))));
- const profiles=Array.from({length:7},(_,index)=>profile({id:'fixture-reviewed-'+index}));
- area(files,file=>assert.throws(()=>inspectArchive(file,{...base(),resourceProfiles:profiles})));
- area(files,file=>assert.throws(()=>inspectArchive(file,{...base(),resourceProfiles:[profile(),profile()]})));
- area(files,file=>assert.throws(()=>inspectArchive(file,contract(profile({assets:Array(65).fill({path:lazy,sha256:hash(settings),feature:'pages'})})))));
+
+test('capability discovery never executes application source',()=>area({
+ [entry]:'fixture-core;import("./async/lazy-new-name.js");',
+ [lazy]:'fixture-settings '+menu+';globalThis.__FULL_COMPAT_OFFICIAL_EXECUTED__=true;throw Error("do not execute");',
+},file=>{assert.equal(inspectArchive(file,base()).mode,'compatible');assert.equal(globalThis.__FULL_COMPAT_OFFICIAL_EXECUTED__,undefined);}));
+
+test('ASAR total read budget applies equally to feature-based discovery',()=>{
+ const source=' '.repeat(20*1024*1024),files={[entry]:'fixture-core;import("./async/0.js");'};
+ for(let index=0;index<5;index++)files['webview/assets/async/'+index+'.js']=source+`import("./${index+1}.js");`;
+ area(files,file=>assert.throws(()=>inspectArchive(file,base()),/ASAR asset limit/));
 });
-test('a supplemental selection cannot read linked or unpacked assets',()=>{
- for(const change of [{link:'outside.js'},{unpacked:true}])area({[entry]:initial,[lazy]:settings},file=>assert.throws(()=>inspectArchive(file,contract())),h=>Object.assign(h.files.webview.files.assets.files.async.files['900.aaaaaaaa.js'],change));
+
+const installed='C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.1120.6357.0_x64__2p2nqsd0c76g0\\app\\resources\\app.asar';
+test('installed Store Codex 26.1120.6357.0 static capability regression',{skip:!fs.existsSync(installed)},()=>{
+ const result=inspectArchive(installed,require('./compatibility-contract.json'));
+ assert.equal(result.core,true);assert.equal(result.capabilities.contextMenus,true);assert.equal(result.mode,'compatible');assert.deepEqual(result.disabled,[]);
 });
-test('supplemental source remains data and cannot bypass menu verification',()=>{
- const text='fixture-settings disableNative;globalThis.__FULL_COMPAT_OFFICIAL_EXECUTED__=true;';
- area({[entry]:'fixture-core',[lazy]:text},file=>{const c=contract(profile({bootstrap:{path:entry,sha256:hash('fixture-core')},assets:[{path:lazy,sha256:hash(text),feature:'pages'}]}));const r=inspectArchive(file,c);assert.equal(r.capabilities.pages,true);assert.equal(r.capabilities.contextMenus,false);assert.equal(globalThis.__FULL_COMPAT_OFFICIAL_EXECUTED__,undefined);});
-});
-test('already selected resources still require their reviewed digest',()=>area({[entry]:initial},file=>{
- const c=contract(profile({assets:[{path:entry,sha256:'0'.repeat(64),feature:'pages'}]}));assert.throws(()=>inspectArchive(file,c));
-}));

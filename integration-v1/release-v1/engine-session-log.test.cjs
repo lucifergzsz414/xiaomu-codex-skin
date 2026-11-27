@@ -83,7 +83,9 @@ test('absent or invalid failure metadata never creates a recovery claim', t => {
   if (value === null) fs.unlinkSync(failurePath); else fs.writeFileSync(failurePath, value);
   const log = logger(root);
   assert.equal(log.applied(), null);
-  assert.deepEqual(read(root, 'session-events.json').map(event=>event.event), ['started']);
+  const events=read(root, 'session-events.json');
+  assert.deepEqual(events.map(event=>event.event), value==='{invalid'?['started','recovery-read-failed']:['started']);
+  if(value==='{invalid')assert.equal(events.at(-1).code,'INVALID_JSON');
  }
 });
 

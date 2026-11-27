@@ -66,7 +66,7 @@ $script:dialogCount=0;$script:dialogLocks=$null;$script:exitRequested=$false
 }
 ${body}
 `;
-  return JSON.parse(execFileSync(shell,['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-OutputFormat','Text','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true,timeout:20000,maxBuffer:1024*1024}).trim());
+  return JSON.parse(execFileSync(shell,['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-OutputFormat','Text','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{encoding:'utf8',stdio:'pipe',windowsHide:true,timeout:20000,maxBuffer:1024*1024}).trim());
  }
  function cleanup(){
   if(path.dirname(path.resolve(root))!==area||!path.basename(root).startsWith('manager-startup-failure-'))throw Error('Unexpected fixture path');
@@ -140,6 +140,22 @@ $script:injectedFailure=[InvalidOperationException]::new('fixture-failure')
 [pscustomobject]@{dialogCount=$script:dialogCount;locks=$script:dialogLocks;exitRequested=$script:exitRequested;failureSaved=$failureSaved}|ConvertTo-Json -Compress`);
    assert.equal(result.failureSaved,false);assert.equal(result.dialogCount,1);assert.equal(result.exitRequested,true);
    assert.deepEqual(result.locks,{sessionFree:true,maintenanceFree:true},path.basename(shell));
+  }finally{f.cleanup();}
+ }
+});
+
+test('startup failure and receipt-write failure retain their actual reasons on stderr',()=>{
+ for(const shell of shells){
+  const f=fixture();try{
+   fs.mkdirSync(path.join(f.root,'startup-failure.json'));
+   const result=f.run(shell,`$writer=[IO.StringWriter]::new()
+$originalError=[Console]::Error
+$script:injectedFailure=[InvalidOperationException]::new('fixture-specific-listener-failure')
+try{[Console]::SetError($writer);. $handler}finally{[Console]::SetError($originalError)}
+[pscustomobject]@{diagnostic=$writer.ToString();locks=$script:dialogLocks}|ConvertTo-Json -Compress`);
+   assert.match(result.diagnostic,/\[xiaomu:launch\] fixture-specific-listener-failure/);
+   assert.match(result.diagnostic,/\[xiaomu:save-startup-failure\].+startup-failure\.json/);
+   assert.deepEqual(result.locks,{sessionFree:true,maintenanceFree:true});
   }finally{f.cleanup();}
  }
 });

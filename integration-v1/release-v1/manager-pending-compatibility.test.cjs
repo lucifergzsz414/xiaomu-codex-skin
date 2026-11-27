@@ -14,14 +14,14 @@ let ps7=path.join(process.env.ProgramFiles||'C:\\Program Files','PowerShell/7/pw
 if(!fs.existsSync(ps7))try{ps7=execFileSync('where.exe',['pwsh.exe'],{encoding:'utf8',windowsHide:true}).trim().split(/\r?\n/).find(value=>fs.existsSync(value))||ps7;}catch{}
 if(fs.existsSync(ps7))shells.push(ps7);
 
-function fixture({pending=true,mutate=()=>{}}={}){
+function fixture({pending=true,managedCount=23,mutate=()=>{}}={}){
  fs.mkdirSync(area,{recursive:true});
  const root=fs.mkdtempSync(path.join(area,'manager-pending-'));
  const oldBytes=Buffer.from(JSON.stringify({schema:1,features:{core:[['old-fixture-marker']]}}));
  const newBytes=Buffer.from(JSON.stringify({schema:1,features:{core:[['new-fixture-marker']]}}));
  const files={'compatibility-contract.json':sha(oldBytes)};
  fs.writeFileSync(path.join(root,'compatibility-contract.json'),oldBytes);
- for(let index=0;index<23;index++){
+ for(let index=0;index<managedCount;index++){
   const name='managed-'+index+'.txt',bytes=Buffer.from('fixture-'+index);
   fs.writeFileSync(path.join(root,name),bytes);files[name]=sha(bytes);
  }
@@ -36,7 +36,7 @@ $root=${quote(root)}
 $tokens=$null;$parseErrors=$null
 $ast=[Management.Automation.Language.Parser]::ParseFile(${quote(manager)},[ref]$tokens,[ref]$parseErrors)
 if($parseErrors.Count){throw 'Manager syntax error'}
-foreach($name in @('Assert-PackageFiles','Complete-PendingCompatibilityUpdate')){
+foreach($name in @('Write-ManagerDiagnostic','Assert-PackageFiles','Complete-PendingCompatibilityUpdate')){
  $definitions=@($ast.FindAll({param($entry) $entry -is [Management.Automation.Language.FunctionDefinitionAst] -and $entry.Name -ceq $name},$true))
  if($definitions.Count -ne 1){throw ('Missing or ambiguous function: '+$name)}
  . ([scriptblock]::Create($definitions[0].Extent.Text))
@@ -73,7 +73,7 @@ Complete-PendingCompatibilityUpdate
  }
 });
 
-test('a valid pending contract commits both files, preserves metadata and retains verified backups',()=>{
+test('a valid pending contract commits both files, preserves metadata and retains .bak copies',()=>{
  for(const shell of shells){
   const f=fixture();try{
    f.run(shell,`Assert-PackageFiles
@@ -85,23 +85,21 @@ Assert-PackageFiles
    assert.equal(Object.keys(manifest.files).length,24);assert.equal(Object.hasOwn(manifest,'pendingCompatibilityUpdate'),false);
    assert.deepEqual(manifest.fixtureMetadata,{preserved:true});
    assert.deepEqual(fs.readFileSync(path.join(f.root,'compatibility-contract.json')),f.newBytes);
-   const backups=fs.readdirSync(f.root).filter(name=>name.startsWith('pending-compatibility-backup-'));
-   assert.equal(backups.length,1);
-   assert.deepEqual(fs.readFileSync(path.join(f.root,backups[0],'manifest.json')),f.manifestBytes);
-   assert.deepEqual(fs.readFileSync(path.join(f.root,backups[0],'compatibility-contract.json')),f.oldBytes);
+   const backups=fs.readdirSync(f.root).filter(name=>name.endsWith('.bak'));
+   assert.equal(backups.length,2);
+   assert.deepEqual(fs.readFileSync(path.join(f.root,backups.find(name=>name.startsWith('manifest.json.')))),f.manifestBytes);
+   assert.deepEqual(fs.readFileSync(path.join(f.root,backups.find(name=>name.startsWith('compatibility-contract.json.')))),f.oldBytes);
    assert.equal(fs.readdirSync(f.root).some(name=>name.endsWith('.tmp')),false);
   }finally{f.cleanup();}
  }
 });
 
-test('invalid hashes, content, filenames and oversized contracts are rejected without writes',()=>{
+test('invalid payload hashes, filenames and pending schema are rejected without writes',()=>{
  const cases=[
-  value=>{value.pendingCompatibilityUpdate.previousSHA256='a'.repeat(64);},
   value=>{value.pendingCompatibilityUpdate.newSHA256='a'.repeat(64);},
   value=>{value.pendingCompatibilityUpdate.file='../outside.json';},
   value=>{value.pendingCompatibilityUpdate.schema=2;},
-  value=>{const bytes=Buffer.from('{invalid-json');value.pendingCompatibilityUpdate.contentBase64=bytes.toString('base64');value.pendingCompatibilityUpdate.newSHA256=sha(bytes);},
-  value=>{const bytes=Buffer.alloc(262145,32);value.pendingCompatibilityUpdate.contentBase64=bytes.toString('base64');value.pendingCompatibilityUpdate.newSHA256=sha(bytes);},
+  value=>{value.pendingCompatibilityUpdate.contentBase64='not base64';},
  ];
  for(const shell of shells)for(const mutate of cases){
   const f=fixture({mutate});try{
@@ -114,29 +112,44 @@ test('invalid hashes, content, filenames and oversized contracts are rejected wi
  }
 });
 
-test('a partial replacement failure restores known bytes and keeps backups',()=>{
+test('a partial replacement failure restores the contract and keeps .bak copies',()=>{
  for(const shell of shells){
   const f=fixture();try{
    const result=f.run(shell,`$manifestPath=Join-Path $root 'manifest.json'
 [IO.File]::SetAttributes($manifestPath,[IO.FileAttributes]::ReadOnly)
 $failed=$false
 try{Complete-PendingCompatibilityUpdate}catch{$failed=$true}finally{[IO.File]::SetAttributes($manifestPath,[IO.FileAttributes]::Normal)}
-[pscustomobject]@{failed=$failed;backups=@(Get-ChildItem -LiteralPath $root -Directory -Filter 'pending-compatibility-backup-*').Count}|ConvertTo-Json -Compress`);
-   assert.equal(result.failed,true);assert.equal(result.backups,1);
+[pscustomobject]@{failed=$failed;backups=@(Get-ChildItem -LiteralPath $root -Filter '*.bak').Count}|ConvertTo-Json -Compress`);
+   assert.equal(result.failed,true);assert.equal(result.backups,2);
    assert.deepEqual(fs.readFileSync(path.join(f.root,'manifest.json')),f.manifestBytes);
    assert.deepEqual(fs.readFileSync(path.join(f.root,'compatibility-contract.json')),f.oldBytes);
   }finally{f.cleanup();}
  }
 });
 
-test('rollback preserves a concurrent unknown contract instead of overwriting it',()=>{
- for(const shell of shells){
-  const f=fixture();try{
-   const result=f.run(shell,`function Assert-PackageFiles{[IO.File]::WriteAllText((Join-Path $root 'compatibility-contract.json'),'concurrent-fixture-change');throw 'fixture-validation-failed'}
-$failed=$false;try{Complete-PendingCompatibilityUpdate}catch{$failed=$true}
-[pscustomobject]@{failed=$failed;contract=[IO.File]::ReadAllText((Join-Path $root 'compatibility-contract.json'));backups=@(Get-ChildItem -LiteralPath $root -Directory -Filter 'pending-compatibility-backup-*').Count}|ConvertTo-Json -Compress`);
-   assert.equal(result.failed,true);assert.equal(result.contract,'concurrent-fixture-change');assert.equal(result.backups,1);
+test('malformed replacement JSON leaves original files without new backups',()=>{
+ const cases=['{invalid-json',JSON.stringify({schema:2,features:{}}),JSON.stringify({schema:1,features:[]})];
+ for(const shell of shells)for(const json of cases){
+  const f=fixture({mutate:value=>{const bytes=Buffer.from(json);value.pendingCompatibilityUpdate.contentBase64=bytes.toString('base64');value.pendingCompatibilityUpdate.newSHA256=sha(bytes);}});try{
+   const result=f.run(shell,`$failed=$false;try{Complete-PendingCompatibilityUpdate}catch{$failed=$true}
+[pscustomobject]@{failed=$failed;backups=@(Get-ChildItem -LiteralPath $root -Filter '*.bak').Count}|ConvertTo-Json -Compress`);
+   assert.equal(result.failed,true);assert.equal(result.backups,0);
+   assert.deepEqual(fs.readdirSync(f.root).sort(),['compatibility-contract.json','manifest.json',...Array.from({length:23},(_,index)=>'managed-'+index+'.txt')].sort());
+   assert.deepEqual(fs.readFileSync(path.join(f.root,'compatibility-contract.json')),f.oldBytes);
    assert.deepEqual(fs.readFileSync(path.join(f.root,'manifest.json')),f.manifestBytes);
+  }finally{f.cleanup();}
+ }
+});
+
+test('pending updates allow manifest growth and rely on one package integrity pass',()=>{
+ for(const shell of shells)for(const managedCount of [0,30]){
+  const f=fixture({managedCount});try{
+   const result=f.run(shell,`Assert-PackageFiles
+function Assert-PackageFiles{throw 'duplicate package verification'}
+Complete-PendingCompatibilityUpdate
+[pscustomobject]@{count=@((Get-Content -LiteralPath (Join-Path $root 'manifest.json') -Raw|ConvertFrom-Json).files.PSObject.Properties).Count}|ConvertTo-Json -Compress`);
+   assert.equal(result.count,managedCount+1);
+   assert.deepEqual(fs.readFileSync(path.join(f.root,'compatibility-contract.json')),f.newBytes);
   }finally{f.cleanup();}
  }
 });

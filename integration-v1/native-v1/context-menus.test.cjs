@@ -1,12 +1,12 @@
 'use strict';
-const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),crypto=require('node:crypto');
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'context-menus.js'),'utf8');
-const hash=s=>crypto.createHash('sha256').update(s).digest('hex');
-function x(){return 'menu-fixture';}
-const sameNameWrongHash=function x(){return 'menu-fixturE';};
+const registry=require('./native-menu-profiles.json');
+function x(){return 'disableNative showContextMenu contextmenu getItems onCloseAutoFocus useState( useState(';}
+const sameNameWrongHash=function x(){return 'an unrelated component';};
 const differentLength=function x(){return 'short';};
-function Legacy(){return 'old-menu-fixture';}
-function profile(type,layout='codex-3384') {return {appVersion:'fixture',functionName:type.name,functionSha256:hash(type.toString()),functionLength:type.toString().length,layout};}
+function Legacy(){return 'disableNative showContextMenu contextmenu getItems onCloseAutoFocus useState( useState( legacy';}
+function profile(type,layout='codex-3384') {return {...registry.profiles.find(p=>p.layout===(layout==='codex-6621'?'codex-3384':layout))};}
 class Element {
  constructor(){this.nodeType=1;this.isConnected=true;this.parentElement=null;this.parentNode=null;this.childNodes=[];this.attributes=new Map();this.__reactFiberFixture=null;}
  getAttribute(k){return this.attributes.get(k)||null;} setAttribute(k,v){this.attributes.set(k,v);} hasAttribute(k){return this.attributes.has(k);} removeAttribute(k){this.attributes.delete(k);}
@@ -15,12 +15,12 @@ class Element {
 }
 function setup({legacy=profile(Legacy),variants=[profile(x)],type=x,decoys=[],badCache=false}={}) {
  const listeners={contextmenu:[],keydown:[]},frames=[],host=new Element(),menus=[],events=[],queries={seed:0,menus:0};
- let calls=0,closeCalls=0;
- const activeProfile=type===Legacy?legacy:(variants.find(p=>p.functionName===type.name)||profile(type));
- const [length,nativeIndex,closeIndex]=({'codex-6573':[143,18,63],'codex-6621':[98,13,51],'codex-3384':[98,13,51],'codex-2228':[98,13,51]})[activeProfile.layout];
- const cache=Array(length).fill(null);cache[nativeIndex]=true;cache[closeIndex]=()=>{closeCalls++;menu.memoizedState.next.memoizedState=null;};
- const menu={type,memoizedProps:{children:{props:{}}},flags:0,updateQueue:{memoCache:{data:[cache]}},child:null,return:null};
- function hook(items){const lastRef={memoizedState:{current:undefined}},actionState={memoizedState:null,queue:{dispatch(){}},next:lastRef};return {memoizedState:items,queue:{dispatch:update=>{calls++;menu.memoizedState=hook(update(menu.memoizedState.memoizedState));cache[nativeIndex]=menu.memoizedProps.disableNative!==true;}},next:{memoizedState:null,queue:{dispatch(){}},next:{memoizedState:{create(){}},next:{memoizedState:{current:null},next:activeProfile.layout==='codex-2228'?actionState:lastRef}}}};}
+ let calls=0,closeCalls=0;const closeArguments=[];
+ const activeProfile=type===Legacy?legacy:variants[0]||profile(type);
+ const {cacheLength:length,nativeIndex,closeIndex}=activeProfile;
+ const cache=Array(length).fill(null);cache[nativeIndex]=true;cache[closeIndex]=(...args)=>{closeArguments.push(args);closeCalls++;menu.memoizedState.next.memoizedState=null;};
+ const menu={type,memoizedProps:{children:{props:{}},items:[]},flags:0,updateQueue:{memoCache:{data:[cache]}},child:null,return:null};
+ function hook(items){const lastRef={memoizedState:{current:undefined}},actionState={memoizedState:null,queue:{dispatch(){}},next:lastRef};return {memoizedState:items,queue:{dispatch:update=>{calls++;menu.memoizedState=hook(update(menu.memoizedState.memoizedState));cache[nativeIndex]=menu.memoizedProps.disableNative!==true;}},next:{memoizedState:null,queue:{dispatch(){}},next:{memoizedState:{create(){}},next:{memoizedState:{current:null},next:activeProfile.actionState?actionState:lastRef}}}};}
  menu.memoizedState=hook([]);if(badCache)cache.pop();
  const root={tag:3,stateNode:{current:null},flags:0};root.stateNode.current=root;menu.return=root;root.child=menu;
  let inner=menu;for(const decoy of decoys){const f={type:decoy,flags:0,return:inner};inner.child=f;inner=f;}
@@ -30,13 +30,13 @@ function setup({legacy=profile(Legacy),variants=[profile(x)],type=x,decoys=[],ba
  class MouseEvent {constructor(type,init){Object.assign(this,init);this.type=type;this.target=host;this.synthetic=true;this.prevented=false;}preventDefault(){this.prevented=true;}stopImmediatePropagation(){this.stopped=true;}}
  host.dispatchEvent=fire;
  const context={config:{nativeMenu:legacy,nativeMenus:variants,portrait:'fixture'},document,window:{getSelection:()=>({isCollapsed:true})},MouseEvent,KeyboardEvent:MouseEvent,innerWidth:1000,innerHeight:800,requestAnimationFrame:f=>{frames.push(f);return frames.length;},schedule(){},element:()=>new Element()};
- const create=vm.runInNewContext(source+';createContextMenuSkin',context);const skin=create({digest:async value=>hash(value)});
+ const create=vm.runInNewContext(source+';createContextMenuSkin',context);const skin=create();
  function open(keyboard=false){const e={type:keyboard?'keydown':'contextmenu',key:keyboard?'ContextMenu':undefined,target:host,button:2,buttons:2,clientX:8,clientY:8,preventDefault(){this.prevented=true;},stopImmediatePropagation(){this.stopped=true;}};fire(e);return e;}
  function flushFrames(){for(let i=0;frames.length&&i<30;i++)frames.shift()();assert.equal(frames.length,0);}
- return {skin,menu,host,menus,queries,listeners,events,open,flushFrames,window:context.window,get calls(){return calls;},get closeCalls(){return closeCalls;}};
+ return {skin,menu,host,menus,queries,listeners,events,open,flushFrames,closeArguments,window:context.window,get calls(){return calls;},get closeCalls(){return closeCalls;}};
 }
 async function ready(fixture){fixture.skin.sync();await new Promise(resolve=>setImmediate(resolve));fixture.skin.sync();}
-test('all exact menu profiles share one DOM read per aggregate sync and open check',()=>{
+test('structural menu layouts share one DOM read per aggregate sync and open check',()=>{
  const variants=JSON.parse(fs.readFileSync(path.join(__dirname,'native-menu-profiles.json'),'utf8')).profiles;
  const f=setup({variants});
  f.skin.sync();
@@ -60,19 +60,14 @@ test('aggregate menu snapshots refresh between calls and retain native replay an
  assert.equal(f.listeners.contextmenu.length,0);assert.equal(f.listeners.keydown.length,0);
 });
 
-test('reviewed profile data preserves legacy menu and exact new fingerprint',()=>{
- const data=JSON.parse(fs.readFileSync(path.join(__dirname,'native-menu-profiles.json'),'utf8'));
- assert.equal(data.schema,1);assert.equal(data.profiles.length,6);
- assert.deepEqual(data.profiles.map(p=>[p.functionName,p.functionLength,p.layout]),[['Wxn',12391,'codex-3384'],['x',13441,'codex-3384'],['t',13422,'codex-3384'],['t',13645,'codex-3384'],['t',13984,'codex-2228'],['t',13326,'codex-2228']]);
- assert.equal(data.profiles[1].functionSha256,'7489581934e24e5034a8706a984c634febfb243532539aa2d6fb9ba9b0a22a94');
- assert.equal(data.profiles[3].appVersion,'26.1106.6628.0');
- assert.equal(data.profiles[3].functionSha256,'93dfcadba76cb1879a882e8774306c7113e086c47b5acfcecc480aa0959b0791');
- assert.equal(data.profiles[4].appVersion,'26.1111.2228.0');
- assert.equal(data.profiles[4].functionSha256,'a0579b13acff8c4484196d7670dad4e528566592ec717d537b1d94fee52c015a');
+test('structural layouts cover old menus and both 6357 implementations without version or hash pins',()=>{
+ assert.equal(registry.schema,2);
+ assert.deepEqual(registry.profiles.map(p=>p.cacheLength),[143,98,98,171,80]);
+ for(const profile of registry.profiles)assert.equal(Object.keys(profile).some(k=>/sha256|functionLength|appVersion/.test(k)),false);
 });
 
 test('2228 action-state hook keeps native callback payloads and menu cleanup intact',async()=>{
- const type=({t:function(e){return e;}}).t,f=setup({type,variants:[profile(type,'codex-2228')]});
+ const type=({t:function(e){return 'disableNative showContextMenu contextmenu getItems onCloseAutoFocus useState( useState( useState(';}}).t,f=setup({type,variants:[profile(type,'codex-2228')]});
  const onSelect=()=>{},items=[{id:'copy',submenu:[{id:'copy-file',onSelect}]}];f.menu.memoizedProps.items=items;
  await ready(f);assert.equal(f.skin.inspect().ready,true);assert.equal(f.open().prevented,true);f.flushFrames();
  assert.equal(f.events.length,1);assert.equal(f.menu.memoizedProps.items,items);assert.equal(f.menu.memoizedProps.items[0].submenu[0].onSelect,onSelect);
@@ -80,7 +75,7 @@ test('2228 action-state hook keeps native callback payloads and menu cleanup int
 });
 
 test('2228 rejects missing action-state dispatch and a legacy hook chain',async()=>{
- const type=({t:function(e){return e;}}).t;
+ const type=({t:function(e){return 'disableNative showContextMenu contextmenu getItems onCloseAutoFocus useState( useState( useState(';}}).t;
  for(const malformed of ['dispatch','legacy']){
   const f=setup({type,variants:[profile(type,'codex-2228')]});
   const firstRef=f.menu.memoizedState.next.next.next;
@@ -92,13 +87,13 @@ test('new menu profile converts once and preserves its own replay and cleanup',a
  const f=setup();await ready(f);assert.equal(f.skin.inspect().ready,true);const event=f.open();assert.equal(event.prevented,true);f.flushFrames();assert.equal(f.events.length,1);assert.equal(f.skin.inspect().converted,1);assert.equal(f.skin.inspect().switches,1);f.skin.clear();assert.equal(f.menu.memoizedProps.disableNative,undefined);assert.equal(f.closeCalls,1);assert.equal(f.listeners.contextmenu.length,0);assert.equal(f.listeners.keydown.length,0);
 });
 test('the reviewed property initializer has an inferred name and reuses native menu replay',async()=>{
- const type=({t:function(e){return e;}}).t;assert.equal(type.name,'t');assert.match(type.toString(),/^function\(/);
+ const type=({t:function(e){return 'disableNative showContextMenu contextmenu getItems onCloseAutoFocus useState( useState(';}}).t;assert.equal(type.name,'t');assert.match(type.toString(),/^function\(/);
  const f=setup({type,variants:[profile(type)]});await ready(f);assert.equal(f.skin.inspect().ready,true);
  assert.equal(f.open().prevented,true);f.flushFrames();assert.equal(f.events.length,1);f.skin.clear();
 });
 
 test('same-name old and new property profiles select only the matching component',async()=>{
- const oldType=({t:function(e){return e;}}).t,newType=({t:function(e){return {...e};}}).t;
+ const oldType=({t:function(e){return 'disableNative showContextMenu contextmenu getItems onCloseAutoFocus useState( useState(';}}).t,newType=({t:function(e){return 'disableNative showContextMenu contextmenu getItems onCloseAutoFocus useState( useState( changed source';}}).t;
  assert.notEqual(oldType.toString().length,newType.toString().length);
  for(const type of [oldType,newType]){
   const f=setup({legacy:profile(oldType),variants:[profile(newType)],type});await ready(f);
@@ -109,8 +104,8 @@ test('same-name old and new property profiles select only the matching component
 test('wrong-length same-name descendants never shadow the verified menu ancestor',async()=>{
  const f=setup({decoys:[differentLength]});await ready(f);assert.equal(f.skin.inspect().ready,true);assert.equal(f.open().prevented,true);f.flushFrames();assert.equal(f.events.length,1);f.skin.clear();
 });
-test('same-name same-length wrong-hash descendants never shadow a verified ancestor',async()=>{
- assert.equal(sameNameWrongHash.toString().length,x.toString().length);const f=setup({decoys:[sameNameWrongHash]});await ready(f);assert.equal(f.skin.inspect().ready,true);assert.equal(f.open().prevented,true);f.flushFrames();assert.equal(f.events.length,1);f.skin.clear();
+test('same-name unrelated descendants never shadow a verified ancestor',async()=>{
+const f=setup({decoys:[sameNameWrongHash]});await ready(f);assert.equal(f.skin.inspect().ready,true);assert.equal(f.open().prevented,true);f.flushFrames();assert.equal(f.events.length,1);f.skin.clear();
 });
 test('an unreviewed component preserves the original native event',async()=>{
  const f=setup({type:sameNameWrongHash});await ready(f);assert.equal(f.skin.inspect().ready,false);assert.equal(f.open().prevented,undefined);assert.equal(f.calls,0);assert.equal(f.menu.memoizedProps.disableNative,undefined);f.skin.clear();
@@ -130,7 +125,7 @@ test('keyboard opening preserves the original action and submenu payload objects
 });
 
 test('reviewed fallback retains async preparation, submenu selection and original callbacks',async()=>{
- const type=({t:function(e){return e;}}).t,f=setup({type,variants:[profile(type)]});
+ const type=({t:function(e){return 'disableNative showContextMenu contextmenu getItems onCloseAutoFocus useState( useState(';}}).t,f=setup({type,variants:[profile(type)]});
  const callbacks={getItems:async()=>[],onBeforeOpen:async()=>{},onOpenChange(){},onCloseAutoFocus(){},onAfterClose(){},renderItem(){},renderDropdown(){}};
  Object.assign(f.menu.memoizedProps,callbacks,{defaultOpenSubmenuId:'copy',awaitBeforeOpen:false,preserveBrowserContextMenu:true});
  await ready(f);assert.equal(f.open().prevented,true);f.flushFrames();assert.equal(f.events.length,1);
@@ -144,4 +139,57 @@ test('editing and selected text keep the native menu even after profile verifica
 });
 test('duplicate reviewed profiles never install duplicate conversion handlers',async()=>{
  const f=setup({variants:[profile(x),profile(x)]});await ready(f);assert.equal(f.open().prevented,true);f.flushFrames();assert.equal(f.events.length,1);assert.equal(f.skin.inspect().switches,1);f.skin.clear();assert.equal(f.listeners.contextmenu.length,0);
+});
+
+function popoverFixture({badCache=false,badProps=false,badHooks=false,editable=false}={}){
+ const listeners={contextmenu:[],keydown:[]},host=new Element(),menus=[],frames=[];
+ let opens=0,closes=0;const closeArguments=[];
+ function NativeMenu(){return 'disableNative showContextMenu contextmenu getItems onCloseAutoFocus openOnPointerDown "popover" "system" useState(';}
+ const props={trigger(){},items:[],onBeforeOpen(){},getItems:async()=>[]};
+ if(badProps)props.trigger='button';
+ const cleanup={memoizedState:{create(){}}},effect={memoizedState:{create(){}},next:cleanup};
+ const lastRef={memoizedState:{current:undefined},next:effect},firstRef={memoizedState:{current:null},next:lastRef};
+ const hook={memoizedState:null,queue:{dispatch(){}},next:firstRef};
+ if(badHooks)hook.next.next=null;
+ const cache=Array(80).fill(null);cache[29]=props.disableNative;cache[37]=()=>{};
+ cache[21]=()=>{opens++;hook.memoizedState={kind:'popover'};};cache[12]=(...args)=>{closeArguments.push(args);closes++;hook.memoizedState=null;};
+ if(badCache)cache.pop();
+ const root={tag:3,stateNode:{current:null},flags:0};root.stateNode.current=root;
+ const menu={type:NativeMenu,memoizedProps:props,memoizedState:hook,updateQueue:{memoCache:{data:[cache]}},flags:0,return:root},dom={type:'button',stateNode:host,flags:0,return:menu};menu.child=dom;root.child=menu;host.__reactFiberFixture=dom;
+ host.closest=()=>editable?{}:null;
+ const document={documentElement:{getAttribute:()=> 'v1'},addEventListener:(name,fn)=>listeners[name].push(fn),removeEventListener:(name,fn)=>listeners[name]=listeners[name].filter(x=>x!==fn),querySelector:()=>host,querySelectorAll:()=>menus};
+ const context={config:{nativeMenus:registry.profiles,portrait:'fixture'},document,window:{getSelection:()=>({isCollapsed:true})},requestAnimationFrame:fn=>frames.push(fn),schedule(){},element:()=>new Element(),innerWidth:1000,innerHeight:800};
+ const skin=vm.runInNewContext(source+';createContextMenuSkin',context)();
+ const open=(keyboard=false)=>{const event={type:keyboard?'keydown':'contextmenu',key:keyboard?'ContextMenu':undefined,target:host,preventDefault(){this.prevented=true;},stopImmediatePropagation(){this.stopped=true;}};for(const f of listeners[event.type]){f(event);if(event.stopped)break;}return event;};
+ return {skin,menu,host,menus,props,cache,open,listeners,frames,closeArguments,get opens(){return opens;},get closes(){return closes;}};
+}
+
+test('6357 popover reset and clear close without arguments while Radix retains false',async()=>{
+ for(const method of ['reset','clear']){
+  const popover=popoverFixture();popover.skin.sync();popover.open();popover.skin[method]();
+  assert.deepEqual(popover.closeArguments,[[]]);assert.equal(popover.menu.memoizedState.memoizedState,null);popover.skin.clear();
+  const radix=setup();await ready(radix);radix.open();radix.flushFrames();radix.skin[method]();
+  assert.deepEqual(radix.closeArguments,[[false]]);radix.skin.clear();
+ }
+});
+test('6357 HTML menu invokes original popover opener without mutating props or scheduling replay',()=>{
+ const f=popoverFixture(),before={...f.props};f.skin.sync();assert.equal(f.skin.inspect().ready,true);
+ assert.equal(f.open().prevented,true);assert.equal(f.opens,1);assert.deepEqual(f.props,before);assert.equal(f.frames.length,0);
+ f.menus.push(f.host);f.skin.sync();assert.equal(f.skin.inspect().styled,1);assert.equal(f.skin.hasOpenMenu(),true);
+ f.skin.clear();assert.equal(f.closes,1);assert.equal(f.menu.memoizedState.memoizedState,null);assert.deepEqual(f.props,before);assert.equal(f.host.hasAttribute('data-xiaomu-native-menu'),false);
+ assert.equal(f.listeners.contextmenu.length,0);assert.equal(f.listeners.keydown.length,0);
+});
+test('6357 HTML menu supports keyboard opening and retains native action references',()=>{
+ const f=popoverFixture(),callback=()=>{},getItems=f.props.getItems;f.props.items=[{id:'copy',submenu:[{id:'copy-path',onSelect:callback}]}];
+ f.skin.sync();assert.equal(f.open(true).prevented,true);assert.equal(f.opens,1);assert.equal(f.props.items[0].submenu[0].onSelect,callback);assert.equal(f.props.getItems,getItems);f.skin.clear();
+});
+test('6357 structure rejects unrelated cache, props, hook roles and editable surfaces',()=>{
+ for(const options of [{badCache:true},{badProps:true},{badHooks:true},{editable:true}]){const f=popoverFixture(options);f.skin.sync();assert.equal(f.open().prevented,undefined);assert.equal(f.opens,0);f.skin.clear();}
+});
+test('nonconfigurable disableNative preserves the original menu',async()=>{
+ const f=setup();Object.defineProperty(f.menu.memoizedProps,'disableNative',{value:false,configurable:false});await ready(f);assert.equal(f.open().prevented,undefined);assert.equal(f.calls,0);f.skin.clear();
+});
+test('6357 Radix layout selects 171 slots and its original close callback',async()=>{
+ function Updated(){return 'disableNative showContextMenu contextmenu getItems onCloseAutoFocus useState( useState( useState(';}
+ const f=setup({type:Updated,legacy:null,variants:[profile(Updated,'codex-6357-radix')]});await ready(f);assert.equal(f.skin.inspect().ready,true);assert.equal(f.open().prevented,true);f.flushFrames();assert.equal(f.events.length,1);f.skin.clear();assert.equal(f.closeCalls,1);assert.equal(f.menu.memoizedProps.disableNative,undefined);
 });

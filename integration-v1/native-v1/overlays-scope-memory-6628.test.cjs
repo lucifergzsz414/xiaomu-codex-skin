@@ -99,7 +99,7 @@ test('saved project scope survives controller reconstruction through the supplie
 
 test('invalid panel metadata or persisted targets never cause restoration or preference writes',()=>{
  const saved=storage(),f=fixture(saved);
- for(const changes of [{routeKey:''},{routeKey:'x'.repeat(4097)},{projectKey:null},{hostId:7},{target:{hostId:'foreign-host',root:'/other'}},{target:{hostId:'local-host',root:''}},{target:undefined}]){
+ for(const changes of [{routeKey:''},{projectKey:null},{hostId:7},{target:{hostId:'foreign-host',root:'/other'}},{target:{hostId:'local-host',root:''}},{target:undefined}]){
   f.show(f.panel(changes));f.memory.sync();
  }
  assert.equal(saved.values.size,0);assert.equal(f.calls.length,0);
@@ -109,4 +109,13 @@ test('invalid panel metadata or persisted targets never cause restoration or pre
   saved.values.set(key,invalid);const next=fixture(saved);next.show(next.panel());next.memory.sync();
   assert.equal(next.calls.length,0);assert.equal(saved.values.get(key),invalid);
  }
+});
+
+test('scope memory accepts native nonempty strings without adapter-specific length limits',()=>{
+ const saved=storage(),first=fixture(saved);
+ const metadata={routeKey:'r'.repeat(4097),projectKey:'p'.repeat(4097),hostId:'h'.repeat(257)};
+ const selected={hostId:metadata.hostId,root:'E:\\'+('folder\\'.repeat(5000))};
+ const panel=first.panel({...metadata,target:selected});first.show(panel);first.memory.sync();first.close();
+ const next=fixture(saved);next.show(next.panel(metadata));next.memory.sync();
+ assert.equal(next.calls.length,1);assert.deepEqual(next.calls[0].target,selected);
 });

@@ -22,32 +22,31 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
-/* Opt into the fingerprinted native component's own DOM fallback. Original
+/* Opt into the structurally matched native component's own DOM fallback. Original
    items, async preparation, actions, submenus and Radix behavior stay native. */
 function createContextMenuSkin(options={}) {
   if (!options.contract && Array.isArray(config.nativeMenus)) {
     const profiles = [config.nativeMenu, ...config.nativeMenus].filter(Boolean);
-    const unique = [...new Map(profiles.map(profile => [[profile.functionName, profile.functionLength, profile.functionSha256, profile.layout].join(':'), profile])).values()];
+    const unique = [...new Map(profiles.map(profile => [profile.layout, profile])).values()];
     if (unique.length) {
-      // Each exact component profile owns its cache layout, records and listeners.
+      // Each structural layout owns its reversible records and listeners.
       // An upgrade may keep an older menu module alongside the new chunk.
       const skins = unique.map(contract => createContextMenuSkin({...options, contract}));
       return {
         sync(){
           const snapshot=document.documentElement.getAttribute('data-xiaomu-native-skin')==='v1'
-            ? {seed:document.querySelector('[data-app-action-sidebar-thread-row]'),menus:[...document.querySelectorAll('[role="menu"][data-radix-menu-content]')]} : null;
+            ? {seed:document.querySelector('[data-app-action-sidebar-thread-row]'),menus:[...document.querySelectorAll('[role="menu"][data-radix-menu-content], [data-native-menu-surface] [role="menu"]')]} : null;
           for(const skin of skins)skin.sync(snapshot);
         }, reset(){for(const skin of skins)skin.reset();},
-        clear(){for(const skin of skins)skin.clear();}, hasOpenMenu(){const menus=[...document.querySelectorAll('[role="menu"][data-radix-menu-content]')];return skins.some(skin=>skin.hasOpenMenu(menus));},
+        clear(){for(const skin of skins)skin.clear();}, hasOpenMenu(){const menus=[...document.querySelectorAll('[role="menu"][data-radix-menu-content], [data-native-menu-surface] [role="menu"]')];return skins.some(skin=>skin.hasOpenMenu(menus));},
         inspect(){const rows=skins.map(skin=>skin.inspect());return Object.fromEntries(['ready','converted','styled','switches','replays','resets','fallbacks'].map(key=>[key,key==='ready'?rows.some(row=>row.ready):rows.reduce((sum,row)=>sum+row[key],0)]));}
       };
     }
   }
-  const contract=options.contract||config.nativeMenu, records=new Map(), marks=new Map(), verified=new WeakSet(), checking=new WeakSet(), forwarded=new WeakSet();
-  const layout=({'codex-6573':{cacheLength:143,nativeIndex:18,closeIndex:63,optionalItems:false},'codex-6621':{cacheLength:98,nativeIndex:13,closeIndex:51,optionalItems:true},'codex-3384':{cacheLength:98,nativeIndex:13,closeIndex:51,optionalItems:true},'codex-2228':{cacheLength:98,nativeIndex:13,closeIndex:51,optionalItems:true,actionState:true}})[contract?.layout];
+  const contract=options.contract||config.nativeMenu, records=new Map(), marks=new Map(), verified=new WeakSet(), sourceMatches=new WeakMap(), forwarded=new WeakSet();
+  const layout=contract;
   let stopped=false, generation=0, ready=false;
   const activity={switches:0,replays:0,resets:0,fallbacks:0};
-  const digest=options.digest|| (async source=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(source)))].map(n=>n.toString(16).padStart(2,'0')).join(''));
   function current(fiber){
     // Follow React's installed findCurrentFiberUsingSlowPath algorithm. Both
     // alternates can have return pointers into the current root after bailout.
@@ -78,23 +77,25 @@ function createContextMenuSkin(options={}) {
     while(host&&!Object.keys(host).some(k=>k.startsWith('__reactFiber')))host=host.parentElement;
     let fiber=host?.[Object.keys(host).find(k=>k.startsWith('__reactFiber'))];
     for(let i=0;fiber&&i<180;i++,fiber=fiber.return){
-      // Rspack reuses short names such as x in unrelated modules. Verify every
-      // plausible ancestor so a same-name descendant cannot hide the real menu.
-      try{
-        if(typeof fiber.type!=='function'||fiber.type.name!==contract?.functionName||Function.prototype.toString.call(fiber.type).length!==contract.functionLength)continue;
-      }catch{continue;}
-      const candidate=current(fiber);verify(candidate);
-      if(candidate&&verified.has(candidate.type))return candidate;
+      if(typeof fiber.type!=='function'||!fiber.memoizedProps)continue;
+      const candidate=current(fiber);
+      if(verify(candidate))return candidate;
     }
     return null;
   }
   function verify(fiber){
-    const type=fiber?.type;
-    if(!type||verified.has(type)||checking.has(type)||!layout)return;
-    const source=Function.prototype.toString.call(type);
-    if(source.length!==contract.functionLength)return;
-    checking.add(type);
-    Promise.resolve().then(()=>digest(source)).then(sha=>{if(!stopped&&sha===contract.functionSha256){verified.add(type);ready=true;schedule();}},()=>{});
+    const type=fiber?.type,props=fiber?.memoizedProps;
+    if(typeof type!=='function'||!layout||!props||typeof props!=='object')return false;
+    const descriptor=Object.getOwnPropertyDescriptor(props,'disableNative');
+    if(descriptor?!descriptor.configurable:!Object.isExtensible(props))return false;
+    if(!('items'in props||typeof props.getItems==='function'))return false;
+    if(layout.popover?typeof props.trigger!=='function':!props.children?.props)return false;
+    if(!sourceMatches.has(type)){
+      const source=Function.prototype.toString.call(type);
+      sourceMatches.set(type,(source.match(/\buseState\)?\s*\(/g)||[]).length===(layout.popover?1:layout.actionState?3:2)&&['disableNative','showContextMenu','contextmenu','getItems','onCloseAutoFocus'].every(token=>source.includes(token))&&(!layout.popover||['openOnPointerDown','"popover"','"system"'].every(token=>source.includes(token))));
+    }
+    if(!sourceMatches.get(type)||!state(fiber))return false;
+    verified.add(type);ready=true;return true;
   }
   function hostNode(fiber){
     const stack=fiber?.child?[fiber.child]:[];let count=0;
@@ -103,7 +104,7 @@ function createContextMenuSkin(options={}) {
   }
   function cache(fiber){
     const data=fiber?.updateQueue?.memoCache?.data?.[0];
-    return layout&&Array.isArray(data)&&data.length===layout.cacheLength&&typeof data[layout.nativeIndex]==='boolean'&&typeof data[layout.closeIndex]==='function'?data:null;
+    return layout&&Array.isArray(data)&&data.length===layout.cacheLength&&typeof data[layout.closeIndex]==='function'&&(layout.popover?typeof data[layout.openIndex]==='function'&&typeof data[layout.nativeOpenIndex]==='function'&&data[layout.disableIndex]===fiber.memoizedProps.disableNative:typeof data[layout.nativeIndex]==='boolean')?data:null;
   }
   function refreshItems(value){
     // In xvn/Wxn the derived items use D != null. Both nullish values preserve
@@ -111,14 +112,21 @@ function createContextMenuSkin(options={}) {
     return Array.isArray(value)?value.slice():layout?.optionalItems&&value==null?(value===undefined?null:undefined):value;
   }
   function state(fiber){
-    const h=fiber?.memoizedState,firstRef=h?.next?.next?.next,following=firstRef?.next;
+    const h=fiber?.memoizedState;
+    if(layout?.popover){
+      const firstRef=h?.next,lastRef=firstRef?.next,effect=lastRef?.next,cleanup=effect?.next;
+      const value=h?.memoizedState;
+      return cache(fiber)&&typeof h?.queue?.dispatch==='function'&&(value===null||value&&['system','popover'].includes(value.kind))&&firstRef?.memoizedState&&'current'in firstRef.memoizedState&&lastRef?.memoizedState&&'current'in lastRef.memoizedState&&typeof effect?.memoizedState?.create==='function'&&typeof cleanup?.memoizedState?.create==='function'?h:null;
+    }
+    const firstRef=h?.next?.next?.next,following=firstRef?.next;
     // 2228 tracks the active asynchronous menu action between its two refs.
-    // Only that exact fingerprint/layout admits the additional state hook.
+    // Its additional action-state hook is part of the structural layout.
     if(layout?.actionState&&(!(following?.memoizedState===null||typeof following?.memoizedState==='string')||typeof following?.queue?.dispatch!=='function'))return null;
     const lastRef=layout?.actionState?following?.next:following;
-    return cache(fiber)&&(Array.isArray(h?.memoizedState)||layout.optionalItems&&h?.memoizedState==null)&&typeof h?.queue?.dispatch==='function'&&h.next?.memoizedState===null&&typeof h.next.queue?.dispatch==='function'&&typeof h.next.next?.memoizedState?.create==='function'&&firstRef?.memoizedState&&'current'in firstRef.memoizedState&&lastRef?.memoizedState&&'current'in lastRef.memoizedState?h:null;
+    return cache(fiber)&&(Array.isArray(h?.memoizedState)||layout.optionalItems&&h?.memoizedState==null)&&typeof h?.queue?.dispatch==='function'&&(h.next?.memoizedState===null||['native','dropdown'].includes(h.next?.memoizedState))&&typeof h.next.queue?.dispatch==='function'&&typeof h.next.next?.memoizedState?.create==='function'&&firstRef?.memoizedState&&'current'in firstRef.memoizedState&&lastRef?.memoizedState&&'current'in lastRef.memoizedState?h:null;
   }
   function restore(record){
+    if(layout.popover)return;
     const d=Object.getOwnPropertyDescriptor(record.props,'disableNative');
     if(d?.value!==true||!d.configurable)return;
     record.descriptor?Object.defineProperty(record.props,'disableNative',record.descriptor):delete record.props.disableNative;
@@ -131,8 +139,8 @@ function createContextMenuSkin(options={}) {
     const dispatches=new Set();
     for(const record of records.values()){
       const f=current(record.fiber),close=cache(f)?.[layout.closeIndex];
-      if(f?.memoizedState?.next?.memoizedState==='dropdown'&&typeof close==='function')close(false);
-      restore(record);if(f&&hostNode(f))dispatches.add(record.dispatch);
+      if((layout.popover?f?.memoizedState?.memoizedState?.kind==='popover':f?.memoizedState?.next?.memoizedState==='dropdown')&&typeof close==='function')layout.popover?close():close(false);
+      restore(record);if(!layout.popover&&f&&hostNode(f))dispatches.add(record.dispatch);
     }
     records.clear();
     for(const dispatch of dispatches)dispatch(refreshItems);
@@ -156,6 +164,14 @@ function createContextMenuSkin(options={}) {
     const selection=window.getSelection();if(selection?.isCollapsed===false&&(host.contains(selection.anchorNode)||host.contains(selection.focusNode)))return;
     const rect=keyboard?target.getBoundingClientRect():null;
     const init={bubbles:true,cancelable:true,view:window,clientX:keyboard?Math.max(6,Math.min(innerWidth-6,rect.left+12)):event.clientX,clientY:keyboard?Math.max(6,Math.min(innerHeight-6,rect.bottom)):event.clientY,screenX:event.screenX,screenY:event.screenY,button:2,buttons:keyboard?0:event.buttons,altKey:event.altKey,ctrlKey:event.ctrlKey,metaKey:event.metaKey,shiftKey:event.shiftKey};
+    if(layout.popover){
+      // The native HTML-popover opener owns async preparation and actions.
+      // Its state opens the DOM menu directly, so no prop mutation is needed.
+      event.preventDefault();event.stopImmediatePropagation();
+      cache(fiber)[layout.openIndex]();
+      records.set(props,{fiber,props,pending:false});activity.switches++;
+      return;
+    }
     // Native triggers can use display:contents wrappers. Open at the focused
     // control's actual rectangle rather than dispatching to that zero-size box.
     if(props.disableNative===true){
@@ -164,7 +180,7 @@ function createContextMenuSkin(options={}) {
       if(records.get(props)?.pending){event.preventDefault();event.stopImmediatePropagation();return;}
       if(keyboard){event.preventDefault();event.stopImmediatePropagation();emit(target,false,init);}return;
     }
-    if(!Object.isExtensible(props))return;
+    if(!Object.isExtensible(props)&&!Object.hasOwn(props,'disableNative'))return;
     const descriptor=Object.getOwnPropertyDescriptor(props,'disableNative');
     if(descriptor&&!descriptor.configurable)return;
     const path=pathTo(host,target);if(!path)return;
@@ -205,7 +221,7 @@ function createContextMenuSkin(options={}) {
     if(stopped||!contract)return;
     if(document.documentElement.getAttribute('data-xiaomu-native-skin')!=='v1'){reset();return;}
     const seed=snapshot?snapshot.seed:document.querySelector('[data-app-action-sidebar-thread-row]');if(seed)verify(component(seed));
-    const menus=(snapshot?snapshot.menus:[...document.querySelectorAll('[role="menu"][data-radix-menu-content]')]).filter(node=>{const f=component(node);verify(f);return f&&verified.has(f.type)&&f.memoizedProps?.disableNative===true;});
+    const menus=(snapshot?snapshot.menus:[...document.querySelectorAll('[role="menu"][data-radix-menu-content], [data-native-menu-surface] [role="menu"]')]).filter(node=>{const f=component(node);verify(f);return f&&verified.has(f.type)&&(layout.popover?f.memoizedState?.memoizedState?.kind==='popover':f.memoizedProps?.disableNative===true);});
     for(const [node,header]of marks)if(!menus.includes(node))unmark(node,header);
     for(const node of menus)if(!marks.has(node)&&!node.hasAttribute('data-xiaomu-native-menu')){
       const header=element('div','','xiaomu-menu-signature');header.setAttribute('data-xiaomu-native-decoration','menu-signature');header.setAttribute('aria-hidden','true');
@@ -214,7 +230,7 @@ function createContextMenuSkin(options={}) {
     }
     for(const [props,record]of records)if(!current(record.fiber)||!hostNode(current(record.fiber))){restore(record);records.delete(props);}
   }
-  function hasOpenMenu(menus){return (menus||[...document.querySelectorAll('[role="menu"][data-radix-menu-content]')]).some(n=>{const f=component(n);return f&&verified.has(f.type)&&f.memoizedProps?.disableNative===true;});}
+  function hasOpenMenu(menus){return (menus||[...document.querySelectorAll('[role="menu"][data-radix-menu-content], [data-native-menu-surface] [role="menu"]')]).some(n=>{const f=component(n);return f&&verified.has(f.type)&&(layout.popover?f.memoizedState?.memoizedState?.kind==='popover':f.memoizedProps?.disableNative===true);});}
   document.addEventListener('contextmenu',onOpen,true);document.addEventListener('keydown',onOpen,true);
   return {sync,reset,hasOpenMenu,inspect:()=>({ready,converted:records.size,styled:marks.size,...activity}),clear(){if(stopped)return;stopped=true;document.removeEventListener('contextmenu',onOpen,true);document.removeEventListener('keydown',onOpen,true);reset();}};
 }

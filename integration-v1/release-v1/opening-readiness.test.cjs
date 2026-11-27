@@ -157,15 +157,22 @@ test('opening diagnostics permit an occupied draft without recording its content
  assert.equal(ctx.window.__XIAOMU_INSTALLED_SESSION_V1__.opening.hostKey,grant.hostKey);
  assert.doesNotMatch(JSON.stringify(result.openingDiagnostics),/private fixture draft|f{64}/);
 });
-test('opening diagnostics retain only fixed player state and reason fields',()=>{
+test('opening diagnostics retain only player state and reason using basic string checks',()=>{
  const grant={eligible:true,hostKey:'a'.repeat(64)};
  const bundle='window.__XIAOMU_NATIVE_SKIN_V1__={inspect:()=>({opening:{state:"skipped",reason:"reduced-motion",hostKey:"private fixture key",note:"private fixture note"}})};';
  const result=vm.runInNewContext(applyExpression(bundle,'fixture',null,'','',grant),workspace());
  const observed=JSON.parse(JSON.stringify(result.openingDiagnostics??null));
  assert.deepEqual(observed,{injectionCheck:'eligible',playerAtApply:{state:'skipped',reason:'reduced-motion'}});
- const unknown=bundle.replace('reduced-motion','private fixture reason');
- const rejected=vm.runInNewContext(applyExpression(unknown,'fixture',null,'','',grant),workspace());
- assert.equal(rejected.openingDiagnostics?.playerAtApply,null);
+ assert.doesNotMatch(JSON.stringify(observed),/private fixture/);
+ const inspect=opening=>{
+  const source='window.__XIAOMU_NATIVE_SKIN_V1__={inspect:()=>({opening:'+JSON.stringify(opening)+'})};';
+  return vm.runInNewContext(applyExpression(source,'fixture',null,'','',grant),workspace()).openingDiagnostics?.playerAtApply;
+ };
+ const extended=inspect({state:'native-6357-ready',reason:'resumed-after-layout',draft:'private fixture draft',note:'private fixture note',hostKey:'private fixture key'});
+ assert.deepEqual(JSON.parse(JSON.stringify(extended)),{state:'native-6357-ready',reason:'resumed-after-layout'});
+ assert.doesNotMatch(JSON.stringify(extended),/private fixture|draft|note|hostKey/);
+ assert.deepEqual(JSON.parse(JSON.stringify(inspect({state:'playing',reason:''}))),{state:'playing',reason:''});
+ for(const opening of [null,{}, {state:'',reason:''},{state:123,reason:''},{state:'playing',reason:null},{state:'playing',reason:7}])assert.equal(inspect(opening),null);
 });
 
 test('foreground deferral ignores activation, drafts and dialogs while the native window is visible',()=>{

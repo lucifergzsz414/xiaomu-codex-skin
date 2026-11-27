@@ -9,6 +9,9 @@ $startupFailureFile=Join-Path $root 'startup-failure.json'
 $startupPortDiagnostic=$null
 $openingEligible=$false
 $launchRequestedAtUtc=$null
+function Write-ManagerDiagnostic([string]$Stage,$Failure){
+  [Console]::Error.WriteLine(('[xiaomu:{0}] {1}' -f $Stage,$Failure.Exception.Message))
+}
 function Save-State([string]$state,[string]$failureStage='',[Nullable[int]]$engineExitCode=$null){
   $value=[ordered]@{atUtc=[datetime]::UtcNow.ToString('o');status=$state}
   if($failureStage){$value.failureStage=$failureStage}
@@ -47,7 +50,7 @@ function Wait-StartupPort {
     $listeners=@(Get-DreamSkinPortListeners -Port 9335)
     if($listeners.Count -eq 0){$script:startupPortDiagnostic=$null;return 'free'}
     $ownership='unavailable'
-    try{$ownership=if(Test-DreamSkinCodexPortOwner -Port 9335 -Codex $codex -ExpectedSessionId $session){'codex'}else{'unverified'}}catch{}
+    try{$ownership=if(Test-DreamSkinCodexPortOwner -Port 9335 -Codex $codex -ExpectedSessionId $session){'codex'}else{'unverified'}}catch{Write-ManagerDiagnostic 'port-owner' $_}
     if($ownership -cne 'codex'){
       # The owner may have exited between the listener snapshot and its verification.
       $listeners=@(Get-DreamSkinPortListeners -Port 9335)
@@ -83,78 +86,48 @@ function Assert-PackageFiles {
 }
 function Complete-PendingCompatibilityUpdate {
   $manifestPath=Join-Path $root 'manifest.json'
-  $manifestBytes=[IO.File]::ReadAllBytes($manifestPath)
-  if($manifestBytes.Length -gt 1048576){throw 'Pending update manifest is too large.'}
   $utf8=[Text.UTF8Encoding]::new($false,$true)
-  $manifest=$utf8.GetString($manifestBytes)|ConvertFrom-Json
+  $manifest=[IO.File]::ReadAllText($manifestPath,$utf8)|ConvertFrom-Json
   $pending=$manifest.pendingCompatibilityUpdate
   if($null -eq $pending){return}
   $file='compatibility-contract.json'
-  if(($pending.schema -isnot [int] -and $pending.schema -isnot [long]) -or $pending.schema -ne 1 -or $pending.file -cne $file -or
-    $pending.previousSHA256 -isnot [string] -or $pending.previousSHA256 -cnotmatch '^[a-fA-F0-9]{64}$' -or
-    $pending.newSHA256 -isnot [string] -or $pending.newSHA256 -cnotmatch '^[a-fA-F0-9]{64}$' -or
-    $pending.contentBase64 -isnot [string] -or $pending.contentBase64.Length -gt 349528 -or
-    $pending.contentBase64 -cnotmatch '^[A-Za-z0-9+/]+={0,2}$' -or @($manifest.files.PSObject.Properties).Count -ne 24 -or
-    $manifest.files.$file -ine $pending.previousSHA256){throw 'Invalid pending compatibility update.'}
+  if($pending.schema -ne 1 -or $pending.file -cne $file -or $pending.contentBase64 -isnot [string] -or
+    -not $pending.contentBase64 -or $manifest.files -isnot [pscustomobject] -or -not $manifest.files.$file){throw 'Invalid pending compatibility update.'}
   $contractPath=Join-Path $root $file
   foreach($target in @($manifestPath,$contractPath)){
     if((Get-Item -LiteralPath $target).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'Pending update target is redirected.'}
   }
-  function Get-PendingBytesHash([byte[]]$Bytes){
-    $sha=[Security.Cryptography.SHA256]::Create()
-    try{return [BitConverter]::ToString($sha.ComputeHash($Bytes)).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
-  }
-  function Get-PendingFileHash([string]$Path){return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()}
-  function Set-PendingFile([string]$Path,[byte[]]$Bytes,[string]$ExpectedHash){
-    $temporary=Join-Path $root ('.pending-compatibility-'+[guid]::NewGuid().ToString('N')+'.tmp')
-    try{
-      [IO.File]::WriteAllBytes($temporary,$Bytes)
-      if((Get-PendingFileHash $Path) -cne $ExpectedHash -or
-        ((Get-Item -LiteralPath $Path).Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'Pending update target changed.'}
-      [IO.File]::Replace($temporary,$Path,[NullString]::Value)
-    }finally{if([IO.File]::Exists($temporary)){[IO.File]::Delete($temporary)}}
-  }
   $newBytes=[Convert]::FromBase64String($pending.contentBase64)
-  if($newBytes.Length -gt 262144 -or (Get-PendingBytesHash $newBytes) -ine $pending.newSHA256){throw 'Pending compatibility content hash mismatch.'}
+  $sha=[Security.Cryptography.SHA256]::Create()
+  try{$newHash=[BitConverter]::ToString($sha.ComputeHash($newBytes)).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
+  if($newHash -ine $pending.newSHA256){throw 'Pending compatibility content hash mismatch.'}
   $contract=$utf8.GetString($newBytes)|ConvertFrom-Json
-  if($contract -isnot [pscustomobject] -or ($contract.schema -isnot [int] -and $contract.schema -isnot [long]) -or
-    $contract.schema -ne 1 -or $contract.features -isnot [pscustomobject]){throw 'Invalid pending compatibility JSON.'}
-  if((Get-Item -LiteralPath $contractPath).Length -gt 262144){throw 'Current compatibility contract is too large.'}
-  $oldBytes=[IO.File]::ReadAllBytes($contractPath)
-  $oldHash=Get-PendingBytesHash $oldBytes
-  if($oldHash -ine $pending.previousSHA256){throw 'Current compatibility contract changed.'}
-  $oldManifestHash=Get-PendingBytesHash $manifestBytes
-  $newHash=Get-PendingBytesHash $newBytes
+  if($contract -isnot [pscustomobject] -or $contract.schema -ne 1 -or $contract.features -isnot [pscustomobject]){throw 'Invalid pending compatibility JSON.'}
+  $backupSuffix='.'+[guid]::NewGuid().ToString('N')+'.bak'
+  $manifestBackup=$manifestPath+$backupSuffix
+  $contractBackup=$contractPath+$backupSuffix
+  Copy-Item -LiteralPath $manifestPath -Destination $manifestBackup
+  Copy-Item -LiteralPath $contractPath -Destination $contractBackup
   $manifest.files.$file=$newHash
   $manifest.PSObject.Properties.Remove('pendingCompatibilityUpdate')
-  $newManifestBytes=$utf8.GetBytes(($manifest|ConvertTo-Json -Depth 20))
-  $newManifestHash=Get-PendingBytesHash $newManifestBytes
-  if((Get-PendingFileHash $manifestPath) -cne $oldManifestHash -or (Get-PendingFileHash $contractPath) -cne $oldHash){throw 'Pending update files changed.'}
-  $backup=Join-Path $root ('pending-compatibility-backup-'+[guid]::NewGuid().ToString('N'))
-  $null=New-Item -ItemType Directory -Path $backup
-  [IO.File]::WriteAllBytes((Join-Path $backup 'manifest.json'),$manifestBytes)
-  [IO.File]::WriteAllBytes((Join-Path $backup $file),$oldBytes)
-  if((Get-PendingFileHash (Join-Path $backup 'manifest.json')) -cne $oldManifestHash -or
-    (Get-PendingFileHash (Join-Path $backup $file)) -cne $oldHash){throw 'Pending compatibility backup verification failed.'}
+  $contractTemporary=$contractPath+'.'+[guid]::NewGuid().ToString('N')+'.tmp'
+  $manifestTemporary=$manifestPath+'.'+[guid]::NewGuid().ToString('N')+'.tmp'
+  $contractReplaced=$false
   try{
-    Set-PendingFile $contractPath $newBytes $oldHash
-    Set-PendingFile $manifestPath $newManifestBytes $oldManifestHash
-    Assert-PackageFiles
+    [IO.File]::WriteAllBytes($contractTemporary,$newBytes)
+    [IO.File]::WriteAllText($manifestTemporary,($manifest|ConvertTo-Json -Depth 20),$utf8)
+    [IO.File]::Replace($contractTemporary,$contractPath,[NullString]::Value)
+    $contractReplaced=$true
+    [IO.File]::Replace($manifestTemporary,$manifestPath,[NullString]::Value)
   }catch{
     $failure=$_
-    $changed=$false
-    foreach($entry in @(
-      @{Path=$manifestPath;Old=$oldManifestHash;New=$newManifestHash;Bytes=$manifestBytes},
-      @{Path=$contractPath;Old=$oldHash;New=$newHash;Bytes=$oldBytes}
-    )){
-      try{
-        $current=Get-PendingFileHash $entry.Path
-        if($current -ceq $entry.New){Set-PendingFile $entry.Path $entry.Bytes $entry.New}
-        elseif($current -cne $entry.Old){$changed=$true}
-      }catch{$changed=$true}
+    if($contractReplaced){
+      try{Copy-Item -LiteralPath $contractBackup -Destination $contractPath -Force}
+      catch{Write-ManagerDiagnostic 'compatibility-restore' $_}
     }
-    if($changed){throw 'Pending compatibility update failed; changed files were preserved and backups retained.'}
     throw $failure
+  }finally{
+    foreach($temporary in @($contractTemporary,$manifestTemporary)){if([IO.File]::Exists($temporary)){[IO.File]::Delete($temporary)}}
   }
 }
 Assert-PackageFiles
@@ -180,7 +153,7 @@ function Test-CompatibilityIdentity($receipt){
 }
 function Get-Compatibility {
   if(Test-Path -LiteralPath $compatibilityFile){
-    try{$cached=Get-Content -LiteralPath $compatibilityFile -Raw -Encoding utf8|ConvertFrom-Json;if(-not $cached.inspectionFailed -and (Test-CompatibilityIdentity $cached)){return $cached}}catch{}
+    try{$cached=Get-Content -LiteralPath $compatibilityFile -Raw -Encoding utf8|ConvertFrom-Json;if(-not $cached.inspectionFailed -and (Test-CompatibilityIdentity $cached)){return $cached}}catch{Write-ManagerDiagnostic 'compatibility-cache' $_}
   }
   if(-not [IO.File]::Exists($node)){throw 'Node.js runtime is unavailable.'}
   try{
@@ -188,6 +161,7 @@ function Get-Compatibility {
     if($LASTEXITCODE -ne 0){throw 'Installed component inspection failed.'}
     $result=$json|ConvertFrom-Json
   }catch{
+    Write-ManagerDiagnostic 'compatibility-inspection' $_
     $info=Get-Item -LiteralPath $archive -ErrorAction Stop
     $result=[pscustomobject]@{schema=1;core=$false;mode='unsupported';disabled=@('core','sidebar','pages','panels','overlays','contextMenus');capabilities=[pscustomobject]@{core=$false;sidebar=$false;pages=$false;panels=$false;overlays=$false;contextMenus=$false};archiveSize=$info.Length;archiveMtimeUtc=$info.LastWriteTimeUtc.ToString('yyyy-MM-ddTHH:mm:ss.fffZ');archiveMtimeFileTimeUtc=$info.LastWriteTimeUtc.ToFileTimeUtc().ToString([Globalization.CultureInfo]::InvariantCulture);inspectionFailed=$true}
   }
@@ -202,7 +176,7 @@ function Get-Compatibility {
 function Get-UiRows {
   foreach($p in @(Get-Process -Name ChatGPT -ErrorAction SilentlyContinue)){
     try{if($p.HasExited){continue};if(-not $p.Path){throw 'Uninspectable UI process.'};if($p.Path -ieq $codex.Executable -and $p.SessionId -eq $session){[pscustomobject]@{Id=$p.Id;StartUtc=$p.StartTime.ToUniversalTime().ToString('o')}}}
-    catch{$gone=$false;try{$gone=$p.HasExited}catch{};if(-not $gone){throw}}
+    catch{$processFailure=$_;$gone=$false;try{$gone=$p.HasExited}catch{Write-ManagerDiagnostic 'ui-process' $_};if(-not $gone){throw $processFailure}}
     finally{$p.Dispose()}
   }
 }
@@ -249,12 +223,12 @@ try{
     try{
       $entryResult=& (Join-Path $root 'entrypoints.ps1') -Mode Apply
       [IO.File]::WriteAllText((Join-Path $root 'entrypoints-last-run.json'),($entryResult -join [Environment]::NewLine),[Text.UTF8Encoding]::new($false))
-    }catch{[IO.File]::WriteAllText((Join-Path $root 'entrypoints-last-run.json'),'{"status":"check-required"}',[Text.UTF8Encoding]::new($false))}
+    }catch{Write-ManagerDiagnostic 'entrypoints' $_;[IO.File]::WriteAllText((Join-Path $root 'entrypoints-last-run.json'),'{"status":"check-required"}',[Text.UTF8Encoding]::new($false))}
     Exit-XiaomuMaintenance $maintenance;$maintenance=$null
     # An already open normal client cannot gain CDP. Wait for a normal exit;
     # never kill windows or interrupt other chats to change its launch flags.
     if(@(Get-UiRows).Count -gt 0){
-      $ready=$false;try{$null=Get-Identity;$ready=$true}catch{}
+      $ready=$false;try{$null=Get-Identity;$ready=$true}catch{Write-ManagerDiagnostic 'existing-client-identity' $_}
       if(-not $ready){
         Save-State 'waiting-for-client-exit'
         $deadline=[datetime]::UtcNow.AddMinutes(10)
@@ -286,8 +260,8 @@ try{
   }
   $failureStage='listener-identity'
   $identity=$null
-  for($i=0;$i -lt 45;$i++){try{$identity=Get-Identity;break}catch{if($Mode -eq 'Attach'){throw};Start-Sleep -Milliseconds 500}}
-  if(-not $identity){Save-State 'exit-normal-codex-before-skin-start';throw 'Exit normal Codex, then use the Xiaomu desktop entry.'}
+  for($i=0;$i -lt 45;$i++){try{$identity=Get-Identity;break}catch{$identityFailure=$_;if($Mode -eq 'Attach'){throw};Start-Sleep -Milliseconds 500}}
+  if(-not $identity){Write-ManagerDiagnostic 'listener-identity' $identityFailure;Save-State 'exit-normal-codex-before-skin-start';throw 'Exit normal Codex, then use the Xiaomu desktop entry.'}
   if([IO.File]::Exists($stopFile)){Save-State 'disabled';return}
   $failureStage='engine'
   $node='C:\Program Files\nodejs\node.exe'
@@ -300,10 +274,11 @@ try{
   if($engineExitCode -ne 0){throw 'Skin session stopped; inspect status.json.'}
 }catch{
   $failure=$_
+  Write-ManagerDiagnostic $failureStage $failure
   $failureInfo=Get-StartupFailureInfo $failure $failureStage
   $failureSaved=$false
-  try{Save-StartupFailure $failure $failureStage $failureInfo.code;$failureSaved=$true}catch{}
-  if($lock){try{Save-State 'stopped-check-required' $failureStage $engineExitCode}catch{}}
+  try{Save-StartupFailure $failure $failureStage $failureInfo.code;$failureSaved=$true}catch{Write-ManagerDiagnostic 'save-startup-failure' $_}
+  if($lock){try{Save-State 'stopped-check-required' $failureStage $engineExitCode}catch{Write-ManagerDiagnostic 'save-status' $_}}
   if($lock){$lock.Dispose();$lock=$null}
   if($maintenance){Exit-XiaomuMaintenance $maintenance;$maintenance=$null}
   if($Mode -eq 'Start'){

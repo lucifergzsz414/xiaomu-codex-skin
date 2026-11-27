@@ -173,13 +173,19 @@ test('waiting snapshots remain bounded and retain first readiness separately fro
  assert.deepEqual(timing.workspaceSnapshot(),done.workspaceReadiness);
 });
 
-test('unexpected probe data cannot mark a page as ready or enter logs',()=>{
+test('malformed probe data is rejected with basic type checks',()=>{
  const {timing}=fixture();
- for(const invalid of [true,null,{surface:'fixture-private',missing:[]},{surface:null,missing:[]},
-  {surface:'workspace',missing:['workspace-main-missing']},{surface:null,missing:['https://private.invalid']},
-  {surface:null,missing:['workspace-main-missing','workspace-main-missing']},
+ for(const invalid of [true,null,{surface:'fixture-private',missing:[]},{surface:null,missing:null},
+  {surface:'workspace',missing:[123]},{surface:null,missing:['']},
   {surface:null,missing:Array(1)}])assert.throws(()=>timing.observeWorkspace(invalid),/Invalid workspace readiness report/);
  assert.equal(timing.workspaceSnapshot().checks,0);
  assert.equal(timing.workspaceSnapshot().firstReadySurface,null);
  assert.doesNotMatch(JSON.stringify(timing.workspaceSnapshot()),/private|https/);
+});
+
+test('internal workspace markers need no duplicated exhaustive whitelist',()=>{
+ const {timing}=fixture();
+ assert.equal(timing.observeWorkspace({surface:null,missing:['workspace-new-native-marker']}),false);
+ assert.equal(timing.workspaceSnapshot().missingCounts['workspace-new-native-marker'],1);
+ assert.equal(timing.observeWorkspace({surface:'workspace',missing:[]}),true);
 });
