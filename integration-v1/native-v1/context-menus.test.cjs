@@ -11,7 +11,7 @@ class Element {
  constructor(){this.nodeType=1;this.isConnected=true;this.parentElement=null;this.parentNode=null;this.childNodes=[];this.attributes=new Map();this.__reactFiberFixture=null;}
  getAttribute(k){return this.attributes.get(k)||null;} setAttribute(k,v){this.attributes.set(k,v);} hasAttribute(k){return this.attributes.has(k);} removeAttribute(k){this.attributes.delete(k);}
  closest(){return null;} querySelector(){return null;} contains(n){return n===this||this.childNodes.includes(n);} append(...children){for(const c of children){c.parentNode=c.parentElement=this;this.childNodes.push(c);}} prepend(n){n.parentNode=n.parentElement=this;this.childNodes.unshift(n);} remove(){this.isConnected=false;}
- getBoundingClientRect(){return {left:0,bottom:20};} focus(){}
+ getBoundingClientRect(){return {left:0,bottom:20,width:100,height:20};} focus(){}
 }
 function setup({legacy=profile(Legacy),variants=[profile(x)],type=x,decoys=[],badCache=false}={}) {
  const listeners={contextmenu:[],keydown:[]},frames=[],host=new Element(),menus=[],events=[],queries={seed:0,menus:0};
@@ -29,7 +29,7 @@ function setup({legacy=profile(Legacy),variants=[profile(x)],type=x,decoys=[],ba
  function fire(e){for(const f of [...listeners[e.type]]){f(e);if(e.stopped)break;}if(!e.stopped&&e.synthetic){events.push(e);menu.memoizedState.next.memoizedState='dropdown';}}
  class MouseEvent {constructor(type,init){Object.assign(this,init);this.type=type;this.target=host;this.synthetic=true;this.prevented=false;}preventDefault(){this.prevented=true;}stopImmediatePropagation(){this.stopped=true;}}
  host.dispatchEvent=fire;
- const context={config:{nativeMenu:legacy,nativeMenus:variants,portrait:'fixture'},document,window:{getSelection:()=>({isCollapsed:true})},MouseEvent,KeyboardEvent:MouseEvent,innerWidth:1000,innerHeight:800,requestAnimationFrame:f=>{frames.push(f);return frames.length;},schedule(){},element:()=>new Element()};
+ const context={config:{nativeMenu:legacy,nativeMenus:variants,portrait:'fixture'},document,window:{getSelection:()=>({isCollapsed:true})},getComputedStyle:()=>({display:'block',visibility:'visible'}),MouseEvent,KeyboardEvent:MouseEvent,innerWidth:1000,innerHeight:800,requestAnimationFrame:f=>{frames.push(f);return frames.length;},schedule(){},element:()=>new Element()};
  const create=vm.runInNewContext(source+';createContextMenuSkin',context);const skin=create();
  function open(keyboard=false){const e={type:keyboard?'keydown':'contextmenu',key:keyboard?'ContextMenu':undefined,target:host,button:2,buttons:2,clientX:8,clientY:8,preventDefault(){this.prevented=true;},stopImmediatePropagation(){this.stopped=true;}};fire(e);return e;}
  function flushFrames(){for(let i=0;frames.length&&i<30;i++)frames.shift()();assert.equal(frames.length,0);}
@@ -53,7 +53,7 @@ test('aggregate menu snapshots refresh between calls and retain native replay an
  f.menus.push(f.host);
  assert.equal(f.skin.hasOpenMenu(),true);
  f.skin.sync();assert.equal(f.skin.inspect().styled,1);
- f.menus.length=0;
+ f.menu.memoizedState.next.memoizedState=null;f.menus.length=0;
  assert.equal(f.skin.hasOpenMenu(),false);
  f.skin.sync();assert.equal(f.skin.inspect().styled,0);
  f.skin.clear();assert.equal(f.menu.memoizedProps.disableNative,undefined);
@@ -152,13 +152,13 @@ function popoverFixture({badCache=false,badProps=false,badHooks=false,editable=f
  const hook={memoizedState:null,queue:{dispatch(){}},next:firstRef};
  if(badHooks)hook.next.next=null;
  const cache=Array(80).fill(null);cache[29]=props.disableNative;cache[37]=()=>{};
- cache[21]=()=>{opens++;hook.memoizedState={kind:'popover'};};cache[12]=(...args)=>{closeArguments.push(args);closes++;hook.memoizedState=null;};
+ cache[21]=()=>{opens++;firstRef.memoizedState.current={kind:'popover',controller:new AbortController()};hook.memoizedState={kind:'popover'};};cache[12]=(...args)=>{closeArguments.push(args);closes++;firstRef.memoizedState.current?.controller.abort();firstRef.memoizedState.current=null;hook.memoizedState=null;};
  if(badCache)cache.pop();
  const root={tag:3,stateNode:{current:null},flags:0};root.stateNode.current=root;
  const menu={type:NativeMenu,memoizedProps:props,memoizedState:hook,updateQueue:{memoCache:{data:[cache]}},flags:0,return:root},dom={type:'button',stateNode:host,flags:0,return:menu};menu.child=dom;root.child=menu;host.__reactFiberFixture=dom;
  host.closest=()=>editable?{}:null;
  const document={documentElement:{getAttribute:()=> 'v1'},addEventListener:(name,fn)=>listeners[name].push(fn),removeEventListener:(name,fn)=>listeners[name]=listeners[name].filter(x=>x!==fn),querySelector:()=>host,querySelectorAll:()=>menus};
- const context={config:{nativeMenus:registry.profiles,portrait:'fixture'},document,window:{getSelection:()=>({isCollapsed:true})},requestAnimationFrame:fn=>frames.push(fn),schedule(){},element:()=>new Element(),innerWidth:1000,innerHeight:800};
+ const context={config:{nativeMenus:registry.profiles,portrait:'fixture'},document,window:{getSelection:()=>({isCollapsed:true})},getComputedStyle:()=>({display:'block',visibility:'visible'}),requestAnimationFrame:fn=>frames.push(fn),schedule(){},element:()=>new Element(),innerWidth:1000,innerHeight:800};
  const skin=vm.runInNewContext(source+';createContextMenuSkin',context)();
  const open=(keyboard=false)=>{const event={type:keyboard?'keydown':'contextmenu',key:keyboard?'ContextMenu':undefined,target:host,preventDefault(){this.prevented=true;},stopImmediatePropagation(){this.stopped=true;}};for(const f of listeners[event.type]){f(event);if(event.stopped)break;}return event;};
  return {skin,menu,host,menus,props,cache,open,listeners,frames,closeArguments,get opens(){return opens;},get closes(){return closes;}};
@@ -192,4 +192,38 @@ test('nonconfigurable disableNative preserves the original menu',async()=>{
 test('6357 Radix layout selects 171 slots and its original close callback',async()=>{
  function Updated(){return 'disableNative showContextMenu contextmenu getItems onCloseAutoFocus useState( useState( useState(';}
  const f=setup({type:Updated,legacy:null,variants:[profile(Updated,'codex-6357-radix')]});await ready(f);assert.equal(f.skin.inspect().ready,true);assert.equal(f.open().prevented,true);f.flushFrames();assert.equal(f.events.length,1);f.skin.clear();assert.equal(f.closeCalls,1);assert.equal(f.menu.memoizedProps.disableNative,undefined);
+});
+
+test('a visible native menu retains its workspace even when its component cannot be converted',()=>{
+ const f=setup({type:sameNameWrongHash});f.skin.sync();
+ const menu=new Element();menu.setAttribute('data-state','open');f.menus.push(menu);
+ assert.equal(f.skin.hasOpenMenu(),true);
+ f.skin.sync();assert.equal(f.skin.inspect().styled,0);assert.equal(f.open().prevented,undefined);
+ menu.setAttribute('data-state','closed');assert.equal(f.skin.hasOpenMenu(),false);
+ menu.setAttribute('data-state','open');menu.isConnected=false;assert.equal(f.skin.hasOpenMenu(),false);
+ f.skin.clear();
+});
+
+test('hidden, inert and zero-sized retained native menu nodes do not retain the workspace',()=>{
+ const f=setup({type:sameNameWrongHash}),menu=new Element();f.menus.push(menu);
+ menu.closest=()=>menu;assert.equal(f.skin.hasOpenMenu(),false);
+ menu.closest=()=>null;menu.getBoundingClientRect=()=>({width:0,height:20});assert.equal(f.skin.hasOpenMenu(),false);
+ f.skin.clear();
+});
+
+test('matched pending and open menus bridge a DOM commit gap, then release on native cancellation',async()=>{
+ const radix=setup();await ready(radix);radix.open();assert.equal(radix.skin.hasOpenMenu(),true);
+ radix.flushFrames();assert.equal(radix.skin.hasOpenMenu(),true);
+ radix.menu.memoizedState.next.memoizedState=null;assert.equal(radix.skin.hasOpenMenu(),false);radix.skin.clear();
+ const popover=popoverFixture();popover.skin.sync();popover.open();popover.menu.memoizedState.memoizedState=null;
+ assert.equal(popover.skin.hasOpenMenu(),true);
+ popover.menu.memoizedState.memoizedState={kind:'popover'};popover.cache[12]();
+ popover.menu.memoizedState.memoizedState={kind:'popover'};assert.equal(popover.skin.hasOpenMenu(),false);popover.skin.clear();
+});
+
+test('a closed native HTML popover is not retained even if its child menu remains mounted',()=>{
+ const f=setup({type:sameNameWrongHash}),menu=new Element(),popover=new Element();f.menus.push(menu);
+ menu.closest=selector=>selector==='[popover]'?popover:null;popover.matches=()=>false;
+ assert.equal(f.skin.hasOpenMenu(),false);popover.matches=()=>true;assert.equal(f.skin.hasOpenMenu(),true);
+ f.skin.clear();assert.equal(f.skin.hasOpenMenu(),false);
 });

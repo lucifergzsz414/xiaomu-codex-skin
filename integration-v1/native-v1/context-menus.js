@@ -230,7 +230,26 @@ function createContextMenuSkin(options={}) {
     }
     for(const [props,record]of records)if(!current(record.fiber)||!hostNode(current(record.fiber))){restore(record);records.delete(props);}
   }
-  function hasOpenMenu(menus){return (menus||[...document.querySelectorAll('[role="menu"][data-radix-menu-content], [data-native-menu-surface] [role="menu"]')]).some(n=>{const f=component(n);return f&&verified.has(f.type)&&(layout.popover?f.memoizedState?.memoizedState?.kind==='popover':f.memoizedProps?.disableNative===true);});}
+  function hasOpenMenu(menus){
+    if(stopped)return false;
+    // Surface retention observes native menus; decorating or converting one
+    // still requires the stricter component checks above.
+    if((menus||[...document.querySelectorAll('[role="menu"][data-radix-menu-content], [data-native-menu-surface] [role="menu"]')]).some(node=>{
+      if(!node.isConnected||node.getAttribute('data-state')==='closed'||node.closest('[hidden],[inert],[aria-hidden="true"]'))return false;
+      const popover=node.closest('[popover]');if(popover&&!popover.matches(':popover-open'))return false;
+      const style=getComputedStyle(node);if(style.display==='none'||style.visibility!=='visible')return false;
+      const box=node.getBoundingClientRect();return box.width>0&&box.height>0;
+    }))return true;
+    for(const record of records.values()){
+      const fiber=current(record.fiber);if(!fiber||!hostNode(fiber)||!state(fiber))continue;
+      if(layout.popover){
+        // Native open/close updates this ref before React commits the portal.
+        const active=fiber.memoizedState.next.memoizedState.current;
+        if(active?.kind==='popover'&&active.controller?.signal?.aborted===false)return true;
+      }else if(record.pending||fiber.memoizedState.next.memoizedState!==null)return true;
+    }
+    return false;
+  }
   document.addEventListener('contextmenu',onOpen,true);document.addEventListener('keydown',onOpen,true);
   return {sync,reset,hasOpenMenu,inspect:()=>({ready,converted:records.size,styled:marks.size,...activity}),clear(){if(stopped)return;stopped=true;document.removeEventListener('contextmenu',onOpen,true);document.removeEventListener('keydown',onOpen,true);reset();}};
 }
